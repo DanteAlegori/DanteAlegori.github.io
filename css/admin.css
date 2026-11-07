@@ -1,0 +1,849 @@
+/* ============================================================
+   XBOX 360 SYSTEM DASHBOARD · МАСТЕРСКАЯ NERO (ADMIN)
+   ---------------------------------------------------------
+   1. Токены и база
+   2. Типографика и кнопки
+   3. Верхняя панель и баннер черновика
+   4. Сетка макета
+   5. Статистика
+   6. Список целей (мини-плитки)
+   7. Вкладки и формы
+   8. Менеджер категорий
+   9. Саундтрек (плейлист)
+   10. Журнал и тосты
+   11. Адаптивность
+   ============================================================ */
+
+/* ---------- 1. ТОКЕНЫ И БАЗА ---------- */
+:root {
+  --green: #7cfc00;
+  --green2: #52b043;
+  --toxic: #00ff41;
+  --text: #dfe9e1;
+  --muted: #8aa291;
+  --dim: #5f7a63;
+  --line: rgba(82, 176, 67, 0.24);
+  --line-strong: rgba(124, 252, 0, 0.45);
+  --panel: rgba(15, 23, 17, 0.94);
+  --gold: #ffbf22;
+  --red: #ff5c5c;
+  --cyan: #5ad1ff;
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  --radius: 8px;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  font: 14px/1.45 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background:
+    radial-gradient(circle at 50% -8%, rgba(32, 96, 40, 0.55) 0%, transparent 48%),
+    radial-gradient(circle at 88% 18%, rgba(20, 70, 26, 0.35) 0%, transparent 42%),
+    radial-gradient(circle at 8% 82%, rgba(14, 52, 20, 0.4) 0%, transparent 45%),
+    #030604;
+  background-attachment: fixed;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background: repeating-linear-gradient(0deg, #000 0 1px, transparent 1px 3px);
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, transparent 40%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+::selection { background: var(--green2); color: #041006; }
+button, input, select, textarea { font: inherit; }
+a { color: inherit; }
+img { display: block; max-width: 100%; }
+
+.app { position: relative; z-index: 1; }
+
+/* ---------- 2. ТИПОГРАФИКА И КНОПКИ ---------- */
+.mono { font-family: 'Share Tech Mono', monospace; }
+.cap {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.btn {
+  appearance: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(38, 58, 42, 0.9) 0%, rgba(10, 18, 12, 0.95) 100%);
+  color: #cfe8d2;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, background 0.15s ease;
+}
+.btn:hover {
+  color: #fff;
+  border-color: var(--green2);
+  box-shadow: 0 0 16px rgba(82, 176, 67, 0.35);
+  transform: translateY(-1px);
+}
+.btn:active { transform: translateY(0) scale(0.98); }
+.btn:focus-visible, .tab:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, .star:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+.btn.primary {
+  color: #041006;
+  border-color: #b9ffab;
+  background: linear-gradient(180deg, #a8ff8c 0%, #52b043 58%, #2f7a24 100%);
+  box-shadow: 0 0 18px rgba(124, 252, 0, 0.28), inset 0 1px rgba(255, 255, 255, 0.45);
+  text-shadow: 0 1px rgba(255, 255, 255, 0.3);
+}
+.btn.primary:hover { filter: brightness(1.08); color: #041006; }
+.btn.ghost { background: rgba(8, 15, 10, 0.6); }
+.btn.cyan {
+  color: #d9f4ff;
+  border-color: rgba(90, 209, 255, 0.42);
+  background: linear-gradient(180deg, rgba(20, 58, 78, 0.9) 0%, rgba(6, 20, 28, 0.95) 100%);
+}
+.btn.cyan:hover { border-color: var(--cyan); box-shadow: 0 0 16px rgba(90, 209, 255, 0.35); }
+.btn.danger {
+  color: #ffd9d9;
+  border-color: rgba(255, 92, 92, 0.4);
+  background: linear-gradient(180deg, rgba(92, 26, 26, 0.85) 0%, rgba(48, 12, 12, 0.95) 100%);
+}
+.btn.danger:hover { border-color: var(--red); box-shadow: 0 0 16px rgba(255, 92, 92, 0.35); color: #fff; }
+.btn.sm { padding: 5px 9px; font-size: 10px; letter-spacing: 0.6px; }
+.btn.wide { width: 100%; margin-top: 16px; padding: 12px; }
+.btn:disabled { opacity: 0.32; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn.icon { padding: 5px 8px; min-width: 30px; }
+
+.file-input { display: none; }
+
+/* ---------- 3. ВЕРХНЯЯ ПАНЕЛЬ ---------- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 14px 26px;
+  background: linear-gradient(180deg, rgba(12, 20, 14, 0.97) 0%, rgba(6, 11, 7, 0.9) 100%);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(14px);
+}
+.brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.orb {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 27%, #f8fff5 0%, #d9ffd2 8%, #9dfb7c 20%, #58d84c 38%, #23a523 60%, #0d6b11 80%, #043609 100%);
+  box-shadow: 0 0 22px rgba(124, 252, 0, 0.55), inset -5px -6px 14px rgba(0, 0, 0, 0.7), inset 4px 5px 10px rgba(255, 255, 255, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.orb svg { width: 27px; height: 27px; filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.7)); }
+.brand-text h1 {
+  margin: 0;
+  font-family: 'Teko', 'Segoe UI', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  line-height: 0.95;
+  color: #fff;
+  text-shadow: 0 0 18px rgba(124, 252, 0, 0.35);
+  white-space: nowrap;
+}
+.brand-text p {
+  margin: 2px 0 0;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2.4px;
+  color: var(--dim);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.brand-text p #status { color: var(--green); text-shadow: 0 0 8px rgba(124, 252, 0, 0.5); }
+
+.top-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* ---------- БАННЕР ЧЕРНОВИКА / СИНХРОНИЗАЦИИ ---------- */
+.draft-banner {
+  position: relative;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 16px 26px 0;
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 191, 34, 0.45);
+  border-left: 3px solid var(--gold);
+  border-radius: 5px;
+  background: linear-gradient(90deg, rgba(56, 44, 10, 0.92) 0%, rgba(18, 16, 8, 0.94) 100%);
+  box-shadow: 0 0 24px rgba(255, 191, 34, 0.12);
+  font-size: 12px;
+  color: #ffe9b0;
+}
+.draft-banner[hidden] { display: none; }
+.draft-banner b { color: #fff; }
+.draft-banner > div { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.sync-banner {
+  position: relative;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 16px 26px 0;
+  padding: 10px 16px;
+  border: 1px solid rgba(90, 209, 255, 0.35);
+  border-left: 3px solid var(--cyan);
+  border-radius: 5px;
+  background: linear-gradient(90deg, rgba(12, 40, 54, 0.9) 0%, rgba(8, 16, 22, 0.94) 100%);
+  font-size: 12px;
+  color: #cdeeff;
+}
+.sync-banner[hidden] { display: none; }
+.sync-banner .sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan);
+  flex: 0 0 auto;
+  animation: syncPulse 2s ease-in-out infinite;
+}
+@keyframes syncPulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+/* ---------- 4. СЕТКА МАКЕТА ---------- */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(380px, 0.85fr);
+  gap: 18px;
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 18px 26px 60px;
+  align-items: start;
+}
+.col-main, .col-side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.col-side { position: sticky; top: 92px; }
+
+.panel {
+  position: relative;
+  background: linear-gradient(180deg, rgba(18, 28, 21, 0.94) 0%, rgba(9, 15, 11, 0.96) 100%);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow), inset 0 1px rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(30, 46, 34, 0.5) 0%, transparent 100%);
+}
+.panel-head h2, .panel > h2 {
+  margin: 0;
+  font-family: 'Teko', 'Segoe UI', sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  color: #fff;
+  text-transform: uppercase;
+}
+.panel-head h2 .badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 20px;
+  background: rgba(124, 252, 0, 0.14);
+  border: 1px solid var(--line-strong);
+  color: var(--green);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  vertical-align: middle;
+}
+.panel > h2 { padding: 16px 16px 0; }
+.hint { margin: 10px 0 0; font-size: 11px; color: var(--dim); line-height: 1.5; }
+.hint--flush { margin-top: 0; }
+.hint code {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10.5px;
+  background: rgba(124, 252, 0, 0.09);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: #b9ffab;
+}
+
+/* Переключатель синхронизации в баннере */
+.sync-switch {
+  margin: 0 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #cdeeff;
+  cursor: pointer;
+}
+.sync-switch input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  accent-color: var(--cyan);
+  cursor: pointer;
+}
+
+/* Ряд кнопок под полями */
+.row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+/* Поле с готовым кодом */
+.code-output { min-height: 180px; }
+
+/* ---------- 5. СТАТИСТИКА ---------- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 12px;
+}
+.stat {
+  position: relative;
+  padding: 13px 14px 14px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: linear-gradient(180deg, rgba(24, 38, 28, 0.85) 0%, rgba(8, 14, 10, 0.92) 100%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+.stat::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: linear-gradient(180deg, var(--green), transparent);
+  opacity: 0.7;
+}
+.stat .lbl {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 1.8px;
+  color: var(--dim);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.stat .val {
+  margin-top: 4px;
+  font-family: 'Teko', 'Segoe UI', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stat .val.green { color: var(--green); text-shadow: 0 0 14px rgba(124, 252, 0, 0.3); }
+.stat .val.gold { color: var(--gold); }
+.stat.wide { grid-column: span 2; }
+.stat .bar {
+  margin-top: 8px;
+  height: 5px;
+  border-radius: 3px;
+  background: #061008;
+  border: 1px solid #1a3320;
+  overflow: hidden;
+}
+.stat .bar i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--green2), var(--toxic));
+  box-shadow: 0 0 10px rgba(124, 252, 0, 0.5);
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---------- 6. СПИСОК ЦЕЛЕЙ ---------- */
+.list-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.list-tools input, .list-tools select { padding: 7px 10px; font-size: 11px; }
+.list-tools input { width: 210px; }
+
+.items { display: flex; flex-direction: column; }
+.item-card {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 15px;
+  padding: 16px;
+  border-bottom: 1px solid rgba(82, 176, 67, 0.13);
+  transition: background 0.18s ease;
+}
+.item-card:last-child { border-bottom: 0; }
+.item-card:hover { background: rgba(82, 176, 67, 0.045); }
+.item-card.is-busted { background: rgba(255, 191, 34, 0.03); }
+
+.thumb-wrap {
+  position: relative;
+  width: 112px;
+  height: 84px;
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid rgba(124, 252, 0, 0.22);
+  background: linear-gradient(135deg, #0c1810, #050a06);
+  box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.8);
+}
+.thumb-wrap .thumb { width: 100%; height: 100%; object-fit: cover; filter: contrast(1.08) saturate(1.05); }
+.thumb-wrap.no-art::before {
+  content: "NO ART";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: rgba(124, 252, 0, 0.4);
+}
+.heat-badge {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(124, 252, 0, 0.4);
+  color: var(--green);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  backdrop-filter: blur(3px);
+}
+
+.item-body { min-width: 0; }
+.item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.item-titles { min-width: 0; }
+.item-titles h3 {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.item-meta { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 5px; font-size: 10px; color: var(--muted); letter-spacing: 0.6px; }
+.pill {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 20px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 1.2px;
+  border: 1px solid transparent;
+}
+.pill.wanted { color: var(--green); border-color: rgba(124, 252, 0, 0.4); background: rgba(124, 252, 0, 0.08); }
+.pill.busted { color: var(--gold); border-color: rgba(255, 191, 34, 0.45); background: rgba(255, 191, 34, 0.08); }
+.tag {
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8.5px;
+  color: #b9c9bd;
+  letter-spacing: 0.6px;
+}
+.item-money { text-align: right; flex: 0 0 auto; }
+.item-money strong { display: block; color: var(--green); font-family: 'Share Tech Mono', monospace; font-size: 13px; white-space: nowrap; }
+.item-money span { display: block; color: var(--dim); font-size: 9.5px; margin-top: 2px; white-space: nowrap; }
+.progress-track { height: 5px; margin-top: 11px; border-radius: 3px; background: #061008; border: 1px solid #1a3320; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--green2), var(--toxic)); box-shadow: 0 0 8px rgba(124, 252, 0, 0.45); transition: width 0.25s ease; }
+.progress-fill.busted { background: linear-gradient(90deg, #b8860b, var(--gold)); box-shadow: 0 0 8px rgba(255, 191, 34, 0.45); }
+.item-progress-meta { display: flex; justify-content: space-between; gap: 10px; margin-top: 4px; font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--dim); letter-spacing: 0.5px; }
+.item-progress-meta .pct { color: var(--green); }
+.slider { width: 100%; margin: 8px 0 0; accent-color: var(--green2); cursor: pointer; }
+.item-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+
+/* Превью обложки прямо в карточке */
+.art-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ---------- 7. ВКЛАДКИ И ФОРМЫ ---------- */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+  background: rgba(8, 14, 10, 0.6);
+  flex-wrap: wrap;
+}
+.tab {
+  flex: 1 1 auto;
+  appearance: none;
+  cursor: pointer;
+  padding: 13px 8px 11px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--dim);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.tab:hover { color: #cfe8d2; background: rgba(82, 176, 67, 0.05); }
+.tab.active { color: var(--green); border-bottom-color: var(--green); background: rgba(124, 252, 0, 0.06); text-shadow: 0 0 12px rgba(124, 252, 0, 0.4); }
+.tab-pane { display: none; padding: 16px; }
+.tab-pane.active { display: block; animation: paneIn 0.22s ease both; }
+@keyframes paneIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+.pane-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+.pane-head h2, .tab-pane h2 {
+  margin: 0 0 10px;
+  font-family: 'Teko', 'Segoe UI', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #fff;
+  text-transform: uppercase;
+}
+.pane-head h2 { margin-bottom: 0; }
+
+label {
+  display: block;
+  margin: 11px 0 5px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+input[type=text], input[type=number], input[type=url], select, textarea {
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 4px;
+  border: 1px solid #2b4432;
+  background: #061009;
+  color: #eaf6ec;
+  font-size: 12.5px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input:hover, select:hover, textarea:hover { border-color: #3c6047; }
+input:focus, select:focus, textarea:focus { border-color: var(--green2); box-shadow: 0 0 0 3px rgba(82, 176, 67, 0.14); outline: none; }
+textarea { min-height: 72px; resize: vertical; font-family: 'Share Tech Mono', monospace; font-size: 11.5px; }
+select { cursor: pointer; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+/* Инлайн-подсказка с авто-расчётом */
+.calc-readout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 7px 10px;
+  border-radius: 4px;
+  background: rgba(124, 252, 0, 0.06);
+  border: 1px solid var(--line);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.calc-readout b { color: var(--green); font-size: 13px; }
+
+/* Шкала важности «звёзды/огонь» */
+.heat-scale { display: flex; gap: 4px; margin-top: 6px; }
+.star {
+  appearance: none;
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 4px;
+  background: rgba(255, 133, 0, 0.08);
+  border: 1px solid rgba(255, 133, 0, 0.24);
+  color: rgba(255, 133, 0, 0.35);
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.star:hover { transform: scale(1.12); }
+.star.on {
+  color: #ffb300;
+  background: rgba(255, 133, 0, 0.2);
+  border-color: rgba(255, 179, 0, 0.65);
+  box-shadow: 0 0 12px rgba(255, 179, 0, 0.4);
+}
+.heat-label {
+  margin-left: auto;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: #ffa733;
+  letter-spacing: 1px;
+}
+
+/* Превью обложки */
+.preview-box {
+  margin-top: 8px;
+  border: 1px dashed var(--line);
+  border-radius: 5px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.4);
+}
+.preview-box .cap { margin-bottom: 6px; display: block; }
+.preview-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  max-height: 220px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0c1810, #050a06);
+  border: 1px solid rgba(124, 252, 0, 0.2);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.preview-frame img { width: 100%; height: 100%; object-fit: cover; }
+.preview-frame .no-art {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: rgba(124, 252, 0, 0.35);
+}
+.preview-frame .bounty {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: #ffeb3b;
+  color: #000;
+  font-family: 'Permanent Marker', cursive;
+  font-size: 11px;
+  transform: rotate(8deg);
+  box-shadow: 2px 3px 6px rgba(0, 0, 0, 0.6);
+}
+.preview-frame .heat {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 1px 7px;
+  border-radius: 3px;
+  background: #000;
+  border: 2px solid #fff;
+  color: #fff;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+}
+
+.empty {
+  padding: 44px 20px;
+  text-align: center;
+  color: var(--dim);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+/* ---------- 8. МЕНЕДЖЕР КАТЕГОРИЙ ---------- */
+.cat-add { display: flex; gap: 8px; margin-bottom: 14px; }
+.cat-add input { flex: 1; }
+.cat-list { display: flex; flex-direction: column; gap: 8px; }
+.cat-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(82, 176, 67, 0.16);
+  border-radius: 5px;
+  background: rgba(8, 15, 10, 0.7);
+}
+.cat-row.drag-over { border-color: var(--green); box-shadow: 0 0 14px rgba(124, 252, 0, 0.3); }
+.cat-row.dragging { opacity: 0.4; }
+.cat-index { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--dim); flex: 0 0 auto; }
+.cat-row input { flex: 1; padding: 6px 8px; font-size: 11.5px; min-width: 0; }
+.cat-row input[readonly] { color: var(--muted); border-style: dashed; }
+.cat-lock { font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 1px; color: var(--dim); white-space: nowrap; }
+.cat-count {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--cyan);
+  background: rgba(90, 209, 255, 0.1);
+  border: 1px solid rgba(90, 209, 255, 0.3);
+  border-radius: 3px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+
+/* ---------- 9. САУНДТРЕК ---------- */
+.playlist-box textarea {
+  min-height: 200px;
+  line-height: 1.65;
+  font-size: 11px;
+}
+.playlist-status {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.4);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.playlist-status b { color: var(--green); }
+.track-list {
+  max-height: 220px;
+  overflow-y: auto;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #030805;
+}
+.track-list .tr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: #9fb8a5;
+  border-bottom: 1px solid rgba(82, 176, 67, 0.08);
+}
+.track-list .tr:last-child { border-bottom: 0; }
+.track-list .tr .n { color: var(--dim); flex: 0 0 auto; min-width: 26px; }
+.track-list .tr .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.track-list .tr .ext { color: var(--green2); font-size: 9px; flex: 0 0 auto; }
+.track-list .tr.bad .nm { color: #d78a8a; text-decoration: line-through; }
+
+/* ---------- 10. ЖУРНАЛ И ТОСТЫ ---------- */
+.log-panel .panel-head { padding: 11px 14px; }
+.log {
+  height: 150px;
+  overflow: auto;
+  padding: 10px 14px;
+  background: #030805;
+  color: #77d98a;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10.5px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  border-top: 1px solid rgba(82, 176, 67, 0.1);
+}
+.log::-webkit-scrollbar { width: 8px; }
+.log::-webkit-scrollbar-thumb { background: #1d3a24; border-radius: 4px; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  z-index: 200;
+  transform: translate(-50%, 20px);
+  padding: 10px 20px;
+  border-radius: 5px;
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(180deg, rgba(28, 46, 32, 0.98), rgba(8, 16, 10, 0.98));
+  color: #eaffea;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  box-shadow: 0 0 26px rgba(124, 252, 0, 0.25), 0 18px 40px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- 11. АДАПТИВНОСТЬ ---------- */
+@media (max-width: 1180px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .col-side { position: static; }
+}
+@media (max-width: 760px) {
+  .topbar { padding: 12px 16px; }
+  .layout { padding: 14px 16px 50px; }
+  .draft-banner, .sync-banner { margin: 14px 16px 0; }
+  .brand-text h1 { font-size: 21px; letter-spacing: 2px; }
+  .brand-text p { font-size: 8px; letter-spacing: 1.6px; }
+  .orb { width: 42px; height: 42px; }
+  .top-actions { width: 100%; }
+  .top-actions .btn { flex: 1 1 auto; }
+  .list-tools { width: 100%; }
+  .list-tools input { width: 100%; flex: 1; }
+  .item-card { grid-template-columns: 88px minmax(0, 1fr); padding: 13px; gap: 12px; }
+  .thumb-wrap { width: 88px; height: 70px; }
+  .item-top { flex-direction: column; gap: 5px; }
+  .item-money { text-align: left; }
+  .stat.wide { grid-column: span 2; }
+  .row, .row-3 { grid-template-columns: 1fr; }
+  .tab { font-size: 9.5px; letter-spacing: 0.8px; }
+  .star { width: 26px; height: 26px; font-size: 12px; }
+}
+@media (max-width: 430px) {
+  .item-card { grid-template-columns: 1fr; }
+  .thumb-wrap { width: 100%; height: 130px; }
+  .item-money { text-align: left; }
+  .stat.wide { grid-template-column: span 1; }
+  .heat-scale { flex-wrap: wrap; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

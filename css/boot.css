@@ -1,0 +1,506 @@
+/* ============================================================
+   XBOX 360 SYSTEM DASHBOARD · KINECT 2010 INTRO
+   ---------------------------------------------------------
+   Стили заставки по мотивам Kinect Dashboard Update (2010):
+     • Тёмная сцена с лентами света
+     • Хромированная сфера Nexus со стеклянным бликом
+     • Кинетическая типографика XBOX 360
+     • Призыв «НАЖМИ ЛЮБУЮ КНОПКУ / CLICK TO START»
+     • Bloom Shockwave в момент сборки сферы
+   ============================================================ */
+
+#bootScreen {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-boot);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(18, 62, 20, 0.55) 0%, rgba(4, 14, 6, 0.9) 42%, #000 78%),
+    #000;
+  font-family: var(--font-ui);
+  transition: opacity 0.7s var(--ease-out), transform 0.7s ease;
+  will-change: opacity, transform;
+}
+
+#bootScreen.boot-done {
+  opacity: 0;
+  transform: scale(1.14);
+  pointer-events: none;
+}
+/* После гашения заставки ни один её элемент не должен перехватывать
+   клики по дашборду (призрак невидимого логотипа над кнопками). */
+#bootScreen.boot-done,
+#bootScreen.boot-done *,
+#bootScreen.boot-done *::before,
+#bootScreen.boot-done *::after {
+  pointer-events: none !important;
+}
+
+#bootCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ---------- Сканлайны / вспышка ---------- */
+.boot-scanlines {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0.07;
+  background: repeating-linear-gradient(0deg, #000 0 1px, transparent 1px 3px);
+  mix-blend-mode: multiply;
+}
+
+.boot-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle at center, #fff 0%, #d8ffd0 32%, transparent 72%);
+}
+#bootScreen.boot-done .boot-flash { animation: bootFlash 0.7s ease-out forwards; }
+@keyframes bootFlash {
+  0% { opacity: 0; }
+  12% { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+
+/* ---------- Центральный стек ---------- */
+/* Позиция сферы на canvas — (50%, 40%). Типографика выстраивается
+   строго под ней, поэтому логотип всегда «висит» под сферой. */
+.boot-center-stack {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 52vh 20px 20px;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   СФЕРА NEXUS
+   Сфера рисуется на canvas. Здесь — только контейнер-заглушка и «ореол»,
+   который добавляет мягкое свечение вокруг неё.
+   ========================================================================== */
+.x360-orb-wrap {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: 250px;
+  height: 250px;
+  margin: -125px 0 0 -125px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  opacity: 0;
+  pointer-events: auto;
+}
+.boot-live .x360-orb-wrap {
+  animation: bootOrbIn 1.15s var(--ease-out) 0.05s both;
+}
+@keyframes bootOrbIn {
+  0% { opacity: 0; transform: scale(0.22) translateY(26px); filter: blur(18px); }
+  55% { opacity: 1; filter: blur(2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+}
+
+/* Мягкий ореол вокруг сферы */
+.x360-orb-halo {
+  position: absolute;
+  inset: -46px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(157, 255, 0, 0.22) 0%, rgba(16, 113, 16, 0.14) 44%, transparent 70%);
+  filter: blur(16px);
+  animation: bootHalo 3s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes bootHalo {
+  0% { opacity: 0.45; transform: scale(0.94); }
+  100% { opacity: 0.95; transform: scale(1.1); }
+}
+
+/* Резервная CSS-сфера на случай, если canvas недоступен */
+.x360-orb {
+  position: relative;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 27%, #ffffff 0%, #e6ffe0 8%, #9dfb7c 20%, #58d84c 38%, #23a523 60%, #0d6b11 80%, #043609 100%);
+  box-shadow:
+    0 0 55px rgba(157, 255, 0, 0.45),
+    0 0 130px rgba(16, 113, 16, 0.3),
+    0 26px 60px rgba(0, 0, 0, 0.95),
+    inset -20px -26px 50px rgba(0, 0, 0, 0.82),
+    inset 14px 18px 38px rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  animation: orbFloat 6s ease-in-out 1.4s infinite;
+}
+/* Когда canvas рисует сферу — CSS-копия скрывается */
+.boot-canvas-ready .x360-orb { opacity: 0; }
+@keyframes orbFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+
+.x360-orb::after {
+  content: "";
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  bottom: -4%;
+  height: 26%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(157, 255, 0, 0.26), transparent 70%);
+  filter: blur(9px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.x360-orb-shine {
+  position: absolute;
+  left: 17%;
+  top: 10%;
+  width: 45%;
+  height: 30%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.22) 46%, transparent 72%);
+  filter: blur(5px);
+  transform: rotate(-28deg);
+  pointer-events: none;
+}
+
+/* Буква «X» высекается лучом на canvas — CSS-копия нужна как фоллбэк */
+.x360-x {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.35)) drop-shadow(0 0 22px rgba(157, 255, 0, 0.45));
+  opacity: 0;
+  transform-origin: 50% 50%;
+  transition: opacity 0.5s ease;
+}
+.boot-canvas-ready .x360-x { opacity: 0; }
+@keyframes xForm {
+  0% { opacity: 0; transform: scale(0.35) rotate(-110deg); }
+  55% { opacity: 1; }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.x360-x .x-blade { opacity: 0; animation: xBladeIn 0.45s ease both; }
+.boot-live .x360-x .x-blade:nth-child(1) { animation-delay: 0.55s; }
+.boot-live .x360-x .x-blade:nth-child(2) { animation-delay: 0.64s; }
+.boot-live .x360-x .x-blade:nth-child(3) { animation-delay: 0.73s; }
+.boot-live .x360-x .x-blade:nth-child(4) { animation-delay: 0.82s; }
+@keyframes xBladeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Орбитальные кольца */
+.orb-ring {
+  position: absolute;
+  inset: -20px;
+  border-radius: 50%;
+  border: 1px solid rgba(157, 255, 0, 0.22);
+  border-top-color: rgba(230, 255, 224, 0.7);
+  border-right-color: rgba(16, 113, 16, 0.5);
+  box-shadow: 0 0 18px rgba(16, 113, 16, 0.16);
+  pointer-events: none;
+  transform-style: preserve-3d;
+  animation: ringSpin3d 9s linear infinite;
+  opacity: 0.7;
+}
+.orb-ring.ring-a { --tilt: 72deg; animation-duration: 8s; }
+.orb-ring.ring-b { inset: -38px; --tilt: 64deg; animation-duration: 13s; animation-direction: reverse; border-style: dashed; opacity: 0.4; }
+.orb-ring.ring-c { inset: -58px; --tilt: 80deg; animation-duration: 18s; opacity: 0.24; }
+.orb-ring.ring-d {
+  inset: -82px;
+  --tilt: 58deg;
+  animation-duration: 26s;
+  animation-direction: reverse;
+  border-style: dotted;
+  border-color: rgba(157, 255, 0, 0.14);
+  opacity: 0.2;
+}
+@keyframes ringSpin3d {
+  from { transform: rotateX(var(--tilt, 72deg)) rotateZ(0deg); }
+  to { transform: rotateX(var(--tilt, 72deg)) rotateZ(360deg); }
+}
+.boot-live.ready .orb-ring { animation-duration: 3.6s; }
+.boot-sphere .orb-ring { animation-duration: 3.6s; }
+
+/* ==========================================================================
+   КИНЕТИЧЕСКАЯ ТИПОГРАФИКА
+   ========================================================================== */
+.boot-wordmark {
+  margin-top: 30px;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: 11px;
+  opacity: 0;
+  text-transform: uppercase;
+  white-space: nowrap;
+  position: relative;
+}
+/* Полупрозрачный белый глянец поверх букв */
+.boot-wordmark::after {
+  content: "";
+  position: absolute;
+  inset: -10% -8%;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.55) 48%, transparent 72%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: wordmarkShine 4.6s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes wordmarkShine {
+  0%, 55% { background-position: 180% 0; }
+  85%, 100% { background-position: -80% 0; }
+}
+.boot-sphere .boot-wordmark { animation: wordmarkIn 1s var(--ease-out) both; }
+@keyframes wordmarkIn {
+  0% { opacity: 0; transform: translateY(22px) scale(0.94); letter-spacing: 24px; filter: blur(10px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); letter-spacing: 11px; filter: blur(0); }
+}
+.boot-wordmark .wm-xbox {
+  font-size: 52px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.94);
+  text-shadow: 0 2px 26px rgba(255, 255, 255, 0.42), 0 0 2px #fff;
+  letter-spacing: inherit;
+}
+.boot-wordmark .wm-360 {
+  font-size: 52px;
+  font-weight: 300;
+  color: rgba(157, 255, 0, 0.92);
+  text-shadow: 0 0 20px rgba(157, 255, 0, 0.85), 0 0 52px rgba(16, 113, 16, 0.7);
+  position: relative;
+  letter-spacing: inherit;
+}
+
+.boot-subline {
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: rgba(157, 255, 0, 0.6);
+  opacity: 0;
+  text-transform: uppercase;
+  text-align: center;
+}
+.boot-sphere .boot-subline { animation: bootFadeUp 0.8s ease 0.35s both; }
+.boot-subline span { color: rgba(255, 255, 255, 0.45); }
+@keyframes bootFadeUp {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Призыв «НАЖМИ ЛЮБУЮ КНОПКУ» ---------- */
+.boot-press-start {
+  margin-top: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: #d6ffce;
+  cursor: pointer;
+  opacity: 0;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  pointer-events: auto;
+}
+.boot-sphere .boot-press-start { animation: promptIn 0.8s var(--ease-out) 0.55s both; }
+@keyframes promptIn {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.press-guide {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 34% 28%, #f8fff5 0%, #c6ffc0 16%, #52d63c 50%, #0d6b11 100%);
+  box-shadow: 0 0 22px rgba(157, 255, 0, 0.75), 0 0 52px rgba(16, 113, 16, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.7);
+  animation: guidePulse 2.2s ease-in-out infinite;
+  position: relative;
+}
+.press-guide .xbox-logo-svg {
+  width: 27px;
+  height: 27px;
+  filter: drop-shadow(0 0 7px rgba(157, 255, 0, 0.9));
+}
+.press-guide::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1px solid rgba(157, 255, 0, 0.5);
+  animation: guideRing 2.2s ease-out infinite;
+}
+@keyframes guidePulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 22px rgba(157, 255, 0, 0.75), 0 0 52px rgba(16, 113, 16, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.7); }
+  50% { transform: scale(1.07); box-shadow: 0 0 30px rgba(157, 255, 0, 1), 0 0 70px rgba(16, 113, 16, 0.7), inset 0 0 10px rgba(255, 255, 255, 0.7); }
+}
+@keyframes guideRing {
+  0% { transform: scale(0.82); opacity: 0.9; }
+  100% { transform: scale(1.45); opacity: 0; }
+}
+.press-text {
+  font-size: 13px;
+  letter-spacing: 5px;
+  color: #eaffea;
+  text-shadow: 0 0 16px rgba(157, 255, 0, 0.7);
+  animation: promptBlink 2.4s ease-in-out infinite;
+}
+@keyframes promptBlink {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.press-sub {
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: rgba(157, 255, 0, 0.55);
+}
+
+/* ---------- Статусный лог ---------- */
+.boot-status {
+  position: absolute;
+  left: 34px;
+  right: 34px;
+  bottom: 28px;
+  z-index: 30;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: rgba(157, 255, 0, 0.45);
+  opacity: 0;
+  text-transform: uppercase;
+}
+.boot-live .boot-status { animation: bootFadeUp 0.8s ease 0.8s both; }
+.boot-status-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  line-height: 1.7;
+}
+.bs-brand { color: rgba(157, 255, 0, 0.85); font-weight: 700; letter-spacing: 2px; }
+.bs-build { color: rgba(120, 160, 120, 0.4); }
+.bs-log { color: rgba(157, 255, 0, 0.5); }
+#bootProgressPct { color: rgba(255, 255, 255, 0.8); }
+.boot-progress-track {
+  height: 4px;
+  margin-top: 7px;
+  background: #06120a;
+  border: 1px solid rgba(16, 113, 16, 0.45);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.boot-progress-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #107c10 0%, #52b043 50%, #9dff00 100%);
+  box-shadow: 0 0 14px rgba(157, 255, 0, 0.8);
+  transition: width 0.28s linear;
+}
+
+.boot-skip {
+  position: absolute;
+  top: 24px;
+  right: 28px;
+  z-index: 35;
+  padding: 7px 13px;
+  background: rgba(6, 18, 8, 0.7);
+  border: 1px solid rgba(157, 255, 0, 0.3);
+  border-radius: 3px;
+  color: rgba(157, 255, 0, 0.75);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.boot-skip:hover {
+  color: #041006;
+  background: #9dff00;
+  border-color: #d6ffce;
+  box-shadow: 0 0 18px rgba(157, 255, 0, 0.6);
+}
+
+/* ==========================================================================
+   BLOOM SHOCKWAVE — кульминация сборки сферы
+   ========================================================================== */
+#bootScreen.boot-bloom .boot-flash {
+  animation: bloomShock 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes bloomShock {
+  0% { opacity: 0; transform: scale(0.4); }
+  12% { opacity: 1; transform: scale(1); }
+  38% { opacity: 0.7; transform: scale(1.35); }
+  100% { opacity: 0; transform: scale(1.9); }
+}
+#bootScreen.boot-bloom::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 55;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.95) 0%, rgba(157, 255, 0, 0.42) 11%, transparent 44%);
+  animation: bloomRing 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes bloomRing {
+  0% { opacity: 0; transform: scale(0.2); }
+  12% { opacity: 1; }
+  100% { opacity: 0; transform: scale(2.6); }
+}
+
+/* Ленты схлопываются, орбитальные кольца исчезают */
+#bootScreen.boot-launch .orb-ring {
+  animation: ringCollapse 0.62s cubic-bezier(0.55, 0, 0.85, 0.35) forwards;
+}
+@keyframes ringCollapse {
+  0% { opacity: 0.7; transform: rotateX(var(--tilt, 72deg)) rotateZ(0deg) scale(1); }
+  65% { opacity: 0.8; transform: rotateX(var(--tilt, 72deg)) rotateZ(310deg) scale(0.55); }
+  100% { opacity: 0; transform: rotateX(var(--tilt, 72deg)) rotateZ(520deg) scale(0.08); }
+}
+
+/* Мгновенный вход в дашборд после клика */
+#bootScreen.boot-done .boot-center-stack,
+#bootScreen.boot-done .boot-status,
+#bootScreen.boot-done .boot-skip {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}

@@ -1,0 +1,493 @@
+/* ============================================================
+   XBOX 360 SYSTEM DASHBOARD · BLADES
+   ---------------------------------------------------------
+   1. Unified sliding-panel system (transform: translate3d)
+      — Guide Blade (досье) и Media Blade (плеер)
+   2. Sheet handle + backdrop (мобильные bottom-sheet)
+   3. Guide Blade content
+   4. Media Blade content
+   5. Achievement toast / theme toast / gamepad badge
+   ============================================================ */
+
+/* ---------- 1. UNIFIED SLIDING PANEL SYSTEM ---------- */
+.blade-panel {
+  --sheet-y: 0px;
+  position: fixed;
+  top: calc(var(--header-h) + var(--safe-top) + 4px);
+  bottom: calc(var(--footer-h) + var(--safe-bottom));
+  /* Панели живут на уровне body (вне #dashboard), поэтому их z-index
+     сравним с backdrop и точно перекрывают размытие. */
+  z-index: var(--z-blade);
+  width: min(440px, 42vw);
+  max-height: calc(100dvh - var(--header-h) - var(--footer-h) - var(--safe-top) - var(--safe-bottom) - 8px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 22px 22px 20px;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(16, 26, 18, 0.98) 0%, rgba(8, 12, 9, 0.985) 100%);
+  border: 1px solid var(--theme-border);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), 0 0 25px var(--theme-glow);
+  backdrop-filter: blur(16px);
+  /* Единственная система позиционирования: translate3d + will-change */
+  transform: translate3d(0, 0, 0);
+  transition: transform var(--dur-slow) var(--ease-blade), opacity var(--dur-med) ease;
+  will-change: transform;
+  pointer-events: auto;
+}
+
+#guideBlade {
+  right: 0;
+  left: auto;
+  border-left: 3px solid var(--theme-accent);
+  border-radius: 0;
+  transform: translate3d(102%, 0, 0);
+}
+#guideBlade.open { transform: translate3d(0, 0, 0); }
+
+#mediaBlade {
+  left: 0;
+  right: auto;
+  border-right: 3px solid var(--theme-accent);
+  border-radius: 0;
+  transform: translate3d(-102%, 0, 0);
+}
+#mediaBlade.open { transform: translate3d(0, 0, 0); }
+
+/* Закрытые панели не перехватывают клики */
+#guideBlade:not(.open),
+#mediaBlade:not(.open) {
+  pointer-events: none;
+}
+
+/* Все интерактивные элементы внутри панели всегда кликабельны —
+   иначе блюр-оверлей перехватывает события и UI «зависает». */
+.blade-panel button,
+.blade-panel input,
+.blade-panel select,
+.blade-panel a,
+.blade-panel .station-item-row,
+.blade-panel .media-stations-list {
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+/* Свечение кромки лезвия */
+.blade-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  opacity: 0.8;
+  background: linear-gradient(180deg, transparent, var(--theme-toxic), transparent);
+  pointer-events: none;
+}
+#guideBlade::before { left: -3px; }
+#mediaBlade::before { right: -3px; }
+
+/* Scrollable inner body */
+.blade-panel-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--theme-accent) #000;
+}
+.blade-panel-inner::-webkit-scrollbar { width: 6px; }
+.blade-panel-inner::-webkit-scrollbar-track { background: #050806; }
+.blade-panel-inner::-webkit-scrollbar-thumb { background: var(--theme-accent); border-radius: 3px; }
+
+/* ---------- 2. SHEET HANDLE + BACKDROP ---------- */
+.blade-sheet-handle {
+  display: none;
+  width: 46px;
+  height: 4px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.28);
+  margin: 0 auto 8px;
+  flex: 0 0 auto;
+  cursor: grab;
+  touch-action: none;
+}
+.blade-sheet-handle:active { cursor: grabbing; }
+
+/* Затемняющий блюр-оверлей под панелями: клик по нему закрывает шторку.
+   z-index строго ниже --z-blade, поэтому панель всегда поверх. */
+#sheetBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-backdrop);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-med) ease;
+}
+#sheetBackdrop.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ---------- 3. GUIDE BLADE (DOSSIER) ---------- */
+.guide-header {
+  border-bottom: 1px solid #283e2e;
+  padding-bottom: 14px;
+}
+.guide-tag {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--theme-toxic);
+  letter-spacing: 2px;
+}
+.guide-title {
+  font-size: clamp(20px, 2vw, 28px);
+  font-weight: 700;
+  line-height: 1.1;
+  color: #fff;
+  margin: 4px 0 10px;
+  overflow-wrap: anywhere;
+}
+.guide-quote {
+  font-style: italic;
+  color: #9cb8a1;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.guide-progress-section {
+  background: #070a08;
+  border: 1px solid #1c2b1f;
+  padding: 14px;
+  border-radius: 6px;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.55), 0 0 18px rgba(0, 0, 0, 0.35);
+}
+.gps-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  margin-bottom: 6px;
+  color: #8da491;
+}
+.gps-row--spaced { margin-top: 8px; margin-bottom: 0; }
+.gps-row--tight { margin-top: 6px; margin-bottom: 0; color: #8da491; }
+.gps-accent { color: var(--theme-toxic); font-weight: bold; }
+.gps-strong { color: #fff; font-weight: bold; }
+.gps-track {
+  height: 16px;
+  background: #111a13;
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid #2d4232;
+  position: relative;
+}
+.gps-track::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.32), transparent);
+  transform: translateX(-100%);
+  animation: progressShine 2.8s ease-in-out infinite;
+}
+@keyframes progressShine {
+  0%, 55% { transform: translateX(-100%); }
+  85%, 100% { transform: translateX(100%); }
+}
+.gps-fill {
+  width: 0%;
+  height: 100%;
+  background-image:
+    linear-gradient(90deg, var(--theme-accent), var(--theme-toxic)),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.16) 0 6px, transparent 6px 12px);
+  background-blend-mode: overlay;
+  background-size: auto, 24px 24px;
+  box-shadow: 0 0 12px var(--theme-glow);
+  transition: width 0.6s ease;
+  animation: progressStripes 1.2s linear infinite;
+}
+@keyframes progressStripes { to { background-position: 0 0, 24px 0; } }
+
+.guide-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+/* ---------- 4. MEDIA BLADE (BRADYYCARDIA) ---------- */
+.media-blade-header {
+  border-bottom: 1px solid #283e2e;
+  padding-bottom: 12px;
+}
+.media-blade-title {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 1.8vw, 26px);
+  color: var(--theme-toxic);
+  letter-spacing: 2px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1;
+}
+.media-blade-sub {
+  font-size: 12px;
+  color: #8da491;
+  margin-top: 4px;
+}
+
+.media-now-playing-card {
+  background: #080c09;
+  border: 1px solid #223326;
+  border-radius: 6px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mnp-station-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #ffaa00;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.mnp-track-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.mnp-artist {
+  font-size: 13px;
+  color: #9cb8a1;
+  overflow-wrap: anywhere;
+}
+
+#mediaVisualizer {
+  width: 100%;
+  height: 38px;
+  background: #040605;
+  border: 1px solid #1a2a1e;
+  border-radius: 3px;
+  display: block;
+  margin: 4px 0;
+}
+
+.media-stations-list {
+  flex: 1 1 auto;
+  min-height: 64px;
+  overflow-y: auto;
+  margin: 4px 0;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--theme-accent) #000;
+}
+.media-stations-list::-webkit-scrollbar { width: 6px; }
+.media-stations-list::-webkit-scrollbar-track { background: #050806; }
+.media-stations-list::-webkit-scrollbar-thumb { background: var(--theme-accent); border-radius: 3px; }
+
+.station-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  background: rgba(20, 32, 24, 0.45);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--dur-fast) ease, border-color var(--dur-fast) ease, transform var(--dur-fast) ease;
+}
+.station-item-row:hover {
+  background: rgba(82, 176, 67, 0.18);
+  border-color: var(--theme-border);
+  transform: translateX(3px);
+}
+.station-item-row.active {
+  background: linear-gradient(90deg, rgba(82, 176, 67, 0.3) 0%, rgba(16, 124, 16, 0.1) 100%);
+  border-color: var(--theme-accent);
+  box-shadow: inset 3px 0 0 var(--theme-toxic), 0 0 16px rgba(0, 0, 0, 0.4);
+}
+.sir-info .sir-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+.sir-info .sir-desc {
+  font-size: 11px;
+  color: #7d9682;
+  margin-top: 2px;
+}
+.sir-icon {
+  font-size: 14px;
+  color: var(--theme-toxic);
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex: 0 0 auto;
+}
+.station-item-row.active .sir-icon { opacity: 1; }
+
+/* Счётчик треков в шапке станции (гостевой режим — без путей к файлам) */
+.media-track-count {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1.2px;
+  color: var(--dim);
+  margin-top: 6px;
+  text-transform: uppercase;
+}
+
+.media-volume-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  color: #8da491;
+}
+.media-volume-row .mv-label { flex: 0 0 auto; color: #6f8a74; }
+.media-volume-row input[type="range"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  accent-color: var(--theme-accent);
+  cursor: pointer;
+}
+.media-volume-row .mv-val {
+  flex: 0 0 auto;
+  min-width: 34px;
+  text-align: right;
+  color: var(--theme-toxic);
+}
+
+.media-playback-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+.mp-btn {
+  background: #152219;
+  border: 1px solid #2d3d30;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background var(--dur-fast) ease, color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+}
+.mp-btn:hover {
+  background: var(--theme-accent);
+  color: #000;
+  box-shadow: 0 0 10px var(--theme-glow);
+}
+.mp-btn:active { transform: translateY(1px) scale(0.98); }
+
+/* ---------- 5. TOASTS & BADGES ---------- */
+#achievementToast {
+  position: fixed;
+  bottom: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, #2b3930 0%, #111a13 100%);
+  border: 2px solid var(--theme-accent);
+  border-radius: 40px;
+  padding: 10px 28px 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 25px var(--theme-glow);
+  z-index: var(--z-toast);
+  transition: bottom 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.25);
+  pointer-events: none;
+  max-width: min(92vw, 460px);
+}
+#achievementToast.show { bottom: calc(40px + var(--safe-bottom)); }
+.achieve-icon-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--theme-toxic), var(--theme-accent));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 16px var(--theme-glow);
+  border: 2px solid #fff;
+  font-size: 20px;
+  color: #000;
+  flex: 0 0 auto;
+}
+.achieve-text-col .achieve-sub {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--theme-toxic);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.achieve-text-col .achieve-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+
+#gamepadBadge {
+  position: fixed;
+  left: calc(16px + var(--safe-left));
+  bottom: calc(var(--footer-h) + var(--safe-bottom) + 14px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--theme-accent);
+  background: rgba(6, 12, 8, 0.92);
+  color: var(--theme-toxic);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  box-shadow: 0 0 20px var(--theme-glow);
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+#gamepadBadge.show { opacity: 1; transform: translateY(0); }
+
+.theme-toast {
+  position: fixed;
+  top: calc(12px + var(--safe-top));
+  left: 50%;
+  z-index: 400;
+  transform: translate(-50%, -14px);
+  padding: 9px 18px;
+  border-radius: 4px;
+  border: 1px solid var(--theme-accent);
+  background: linear-gradient(180deg, rgba(22, 40, 26, 0.97), rgba(5, 10, 7, 0.97));
+  color: #eaffdf;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.8), 0 0 24px var(--theme-glow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  max-width: min(92vw, 420px);
+  text-align: center;
+}
+.theme-toast.show { opacity: 1; transform: translate(-50%, 0); }

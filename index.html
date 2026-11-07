@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0c120e">
+  <meta name="description" content="XBOX 360 System Dashboard — вишлист в стиле Blades UI 2005. Coverflow-карусель дисков, Guide Blade, саундтрек BRADYYCARDIA.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>XBOX 360 // SYSTEM DASHBOARD</title>
+
+  <link rel="icon" type="image/svg+xml" href="xbox-svgrepo-com.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700;900&family=Teko:wght@600;700&family=Share+Tech+Mono&family=Permanent+Marker&family=VT323&display=swap" rel="stylesheet">
+
+  <!-- Стили: variables → boot → dashboard → blades → responsive -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/boot.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/blades.css">
+  <link rel="stylesheet" href="css/responsive.css">
+
+  <!-- Обратная совместимость: внешние данные проекта -->
+  <script src="config.js"></script>
+  <script src="music/playlist.js"></script>
+</head>
+
+<body class="theme-fat">
+
+  <!-- =========================================================
+       SVG-SPRITE: официальный логотип XBOX (работает offline)
+       ========================================================= -->
+  <svg width="0" height="0" aria-hidden="true" focusable="false" class="svg-sprite">
+    <defs>
+      <symbol id="xboxLogo" viewBox="0 0 32 32">
+        <circle opacity="0.852" cx="16" cy="16" r="14" fill="url(#xboxLogoRadial)"/>
+        <path d="M6.75137 26.5333C6.73227 26.5193 6.7127 26.5016 6.69312 26.4801C6.33073 26.1504 5.74045 25.6304 5.12362 24.8444C4.5909 23.6889 4.89287 21.748 6.20386 19.0075C8.05357 15.1409 11.0131 11.2151 12.2265 9.8225C11.8813 9.43732 10.8119 8.38253 9.29659 7.24477C7.7813 6.10701 6.67738 5.99047 6.29264 6.05961C6.64779 5.67443 7.47646 4.94852 8.17196 4.45964C10.3265 3.39299 14.3081 5.19543 16.0148 6.22257V13.2891C11.6642 16.6372 7.63924 21.8075 6.82536 23.8222C6.20418 25.36 6.44975 26.2128 6.69312 26.4801C6.71325 26.4984 6.73269 26.5161 6.75137 26.5333Z" fill="url(#xboxLogoGradA)"/>
+        <path d="M6.75137 26.5331C6.73227 26.5191 6.7127 26.5014 6.69311 26.4799C6.33072 26.1502 5.74045 25.6302 5.12362 24.8442C4.5909 23.6887 4.89287 21.7477 6.20386 19.0073C8.35133 14.5183 12.2265 9.82227 12.2265 9.82227C12.2265 9.82227 12.9185 11.5405 14.4888 14.5183C10.4444 18.1034 7.63923 21.8072 6.82536 23.822C6.20418 25.3598 6.44974 26.2126 6.69311 26.4799C6.71325 26.4982 6.73268 26.5159 6.75137 26.5331Z" fill="url(#xboxLogoGradB)"/>
+        <path d="M25.2779 26.5333C25.297 26.5193 25.3166 26.5016 25.3362 26.4801C25.6986 26.1504 26.2888 25.6304 26.9057 24.8444C27.4384 23.6889 27.1364 21.748 25.8254 19.0075C23.9757 15.1409 21.0162 11.2151 19.8028 9.8225C20.148 9.43732 21.2174 8.38253 22.7327 7.24477C24.248 6.10701 25.3519 5.99047 25.7367 6.05961C25.3815 5.67443 24.5528 4.94852 23.8573 4.45964C21.7028 3.39299 17.7212 5.19543 16.0145 6.22257V13.2891C20.3651 16.6372 24.3901 21.8075 25.2039 23.8222C25.8251 25.36 25.5796 26.2128 25.3362 26.4801C25.316 26.4984 25.2966 26.5161 25.2779 26.5333Z" fill="url(#xboxLogoGradC)"/>
+        <path d="M25.2779 26.5331C25.297 26.5191 25.3166 26.5014 25.3362 26.4799C25.6986 26.1502 26.2888 25.6302 26.9057 24.8442C27.4384 23.6887 27.1364 21.7477 25.8254 19.0073C23.678 14.5183 19.8028 9.82227 19.8028 9.82227C19.8028 9.82227 19.1108 11.5405 17.5405 14.5183C21.5849 18.1034 24.3901 21.8072 25.2039 23.822C25.8251 25.3598 25.5796 26.2126 25.3362 26.4799C25.316 26.4982 25.2966 26.5159 25.2779 26.5331Z" fill="url(#xboxLogoGradD)"/>
+        <defs>
+          <radialGradient id="xboxLogoRadial" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(16 14.5) rotate(90.0548) scale(15.5)">
+            <stop stop-color="#FAFAFA"/>
+            <stop offset="0.499976" stop-color="#EFEFEF"/>
+            <stop offset="0.828794" stop-color="#C0BEC0"/>
+            <stop offset="1" stop-color="#879288"/>
+          </radialGradient>
+          <linearGradient id="xboxLogoGradA" x1="12.9925" y1="4.72589" x2="13.2296" y2="12.7852" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#008B00"/><stop offset="1" stop-color="#6CC329"/>
+          </linearGradient>
+          <linearGradient id="xboxLogoGradB" x1="10.1481" y1="12.6667" x2="12.874" y2="16.4" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#008C00"/><stop offset="1" stop-color="#48BF21"/>
+          </linearGradient>
+          <linearGradient id="xboxLogoGradC" x1="19.0368" y1="4.72589" x2="18.7997" y2="12.7852" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#008B00"/><stop offset="1" stop-color="#6CC329"/>
+          </linearGradient>
+          <linearGradient id="xboxLogoGradD" x1="21.8812" y1="12.6667" x2="19.1553" y2="16.4" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#008C00"/><stop offset="1" stop-color="#48BF21"/>
+          </linearGradient>
+        </defs>
+      </symbol>
+    </defs>
+  </svg>
+
+  <!-- =========================================================
+       1. BOOT SCREEN — Nexus Orb 2005
+       ========================================================= -->
+  <section id="bootScreen" class="boot-live" aria-label="Заставка Xbox 360">
+    <canvas id="bootCanvas" aria-hidden="true"></canvas>
+    <div class="boot-aurora" aria-hidden="true"></div>
+    <div class="boot-scanlines" aria-hidden="true"></div>
+    <div class="boot-flash" aria-hidden="true"></div>
+
+    <div class="boot-center-stack">
+      <div class="x360-orb-wrap" id="nexusWrap" role="button" tabindex="0" aria-label="Запустить систему">
+        <div class="x360-orb-halo" aria-hidden="true"></div>
+        <div class="x360-orb">
+          <div class="x360-orb-sheen" aria-hidden="true"></div>
+          <svg class="x360-x" viewBox="0 0 200 200" aria-hidden="true">
+            <defs>
+              <linearGradient id="xBladeGrad" x1="0" y1="0" x2="0.35" y2="1">
+                <stop offset="0" stop-color="#ffffff"/>
+                <stop offset="0.26" stop-color="#edffe8"/>
+                <stop offset="0.58" stop-color="#a8ff88"/>
+                <stop offset="1" stop-color="#2f9c2f"/>
+              </linearGradient>
+              <radialGradient id="xCoreHole" cx="50%" cy="50%" r="50%">
+                <stop offset="0" stop-color="#021405"/>
+                <stop offset="0.7" stop-color="#0a3a0d"/>
+                <stop offset="1" stop-color="#1a6b1d"/>
+              </radialGradient>
+            </defs>
+            <g>
+              <path class="x-blade" d="M96 104 C116 84 140 60 158 42 C170 30 182 44 172 58 C152 84 126 110 104 124 C93 133 83 113 96 104 Z" fill="url(#xBladeGrad)"/>
+              <path class="x-blade" d="M96 104 C116 84 140 60 158 42 C170 30 182 44 172 58 C152 84 126 110 104 124 C93 133 83 113 96 104 Z" fill="url(#xBladeGrad)" transform="rotate(90 100 100)"/>
+              <path class="x-blade" d="M96 104 C116 84 140 60 158 42 C170 30 182 44 172 58 C152 84 126 110 104 124 C93 133 83 113 96 104 Z" fill="url(#xBladeGrad)" transform="rotate(180 100 100)"/>
+              <path class="x-blade" d="M96 104 C116 84 140 60 158 42 C170 30 182 44 172 58 C152 84 126 110 104 124 C93 133 83 113 96 104 Z" fill="url(#xBladeGrad)" transform="rotate(270 100 100)"/>
+            </g>
+            <circle cx="100" cy="100" r="14" fill="url(#xCoreHole)" stroke="#08280b" stroke-width="2.5"/>
+          </svg>
+          <div class="x360-orb-shine" aria-hidden="true"></div>
+        </div>
+        <div class="orb-ring ring-a" aria-hidden="true"></div>
+        <div class="orb-ring ring-b" aria-hidden="true"></div>
+        <div class="orb-ring ring-c" aria-hidden="true"></div>
+        <div class="orb-ring ring-d" aria-hidden="true"></div>
+        <div class="orb-spark s1" aria-hidden="true"></div>
+        <div class="orb-spark s2" aria-hidden="true"></div>
+        <div class="orb-spark s3" aria-hidden="true"></div>
+      </div>
+
+      <div class="boot-wordmark" id="bootLogoRow">
+        <span class="wm-xbox">XBOX</span>
+        <span class="wm-360">360</span>
+      </div>
+
+      <p class="boot-subline">WISHLIST OS <span>//</span> BUILD 2005.11.22 <span>//</span> PAL</p>
+
+      <button class="boot-press-start" id="bootStartBtn" type="button" aria-label="Запустить дашборд">
+        <span class="press-guide">
+          <svg class="xbox-logo-svg" aria-hidden="true"><use href="#xboxLogo"></use></svg>
+        </span>
+        <span class="press-text">НАЖМИ ЛЮБУЮ КНОПКУ</span>
+        <span class="press-sub">CLICK / ENTER TO START</span>
+      </button>
+    </div>
+
+    <div class="boot-status" aria-hidden="true">
+      <div class="boot-status-row">
+        <span class="bs-brand">XBOX 360</span>
+        <span class="bs-build">KERNEL 2.0.2230 // 2005</span>
+      </div>
+      <div class="boot-status-row bs-log">
+        <span id="bootStatusText">MEMORY CHECK ... OK</span>
+        <span id="bootProgressPct">0%</span>
+      </div>
+      <div class="boot-progress-track">
+        <div class="boot-progress-fill" id="bootProgressFill"></div>
+      </div>
+    </div>
+
+    <button class="boot-skip" id="bootSkipBtn" type="button">ПРОПУСТИТЬ &gt;</button>
+  </section>
+
+  <!-- =========================================================
+       2. DASHBOARD
+       ========================================================= -->
+  <div id="dashboard">
+
+    <!-- Фоновые слои -->
+    <div class="bg-ribbon" aria-hidden="true"></div>
+    <div class="aurora-ribbon" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="bg-spotlight" id="bgSpotlight" aria-hidden="true"></div>
+
+    <!-- ---------- TOP GAMER BAR ---------- -->
+    <header class="top-gamer-bar">
+      <div class="gamer-profile-left">
+        <div class="gamerpic-box">
+          <span class="initial" id="avatarInitial">D</span>
+        </div>
+        <div class="gamer-text">
+          <h1>
+            <span id="gamertagText">DANTE // 2003</span>
+            <span class="online-pip" title="Xbox LIVE Online"></span>
+          </h1>
+          <div class="gamerscore">
+            <span class="g-icon">G</span>
+            <span id="totalGamerscoreVal">1 000</span>
+            <span id="statusMessageText" title="">// WISHLIST VAULT</span>
+            <span class="progress-sep">//</span>
+            <span class="progress-inline" id="headerProgressText">0% COLLECTED</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="console-stats-right">
+        <div class="hud-stat">
+          <div class="stat-lbl">ОБЩАЯ СТОИМОСТЬ</div>
+          <div class="stat-val" id="totalGoalVal">0 ₽</div>
+        </div>
+        <div class="hud-stat">
+          <div class="stat-lbl">НАКОПЛЕНО В БАНК</div>
+          <div class="stat-val green" id="totalSavedVal">0 ₽</div>
+        </div>
+
+        <div class="console-skin-wrap">
+          <label for="themeSelect">КОРПУС:</label>
+          <select id="themeSelect" class="skin-select">
+            <option value="theme-fat">XBOX 360 FAT (2005)</option>
+            <option value="theme-elite">XBOX 360 ELITE (2007)</option>
+            <option value="theme-gears">GEARS OF WAR LE</option>
+            <option value="theme-halo">HALO 3 SPARTAN</option>
+          </select>
+        </div>
+
+        <div class="audio-toggles-group">
+          <button class="audio-chip-btn media-pill" id="mediaOpenBtn" type="button" title="Саундтрек / Media Player">
+            <span aria-hidden="true">🎵</span> <span id="mediaBtnText">МУЗЫКА: САУНДТРЕК</span>
+          </button>
+          <button class="audio-chip-btn active" id="fanHumBtn" type="button" title="Фоновый гул кулера и привода консоли">
+            <span aria-hidden="true">🌀</span> <span id="fanHumText">КУЛЕР: ВКЛ</span>
+          </button>
+          <button class="audio-chip-btn active" id="sfxToggleBtn" type="button" title="Звуковые эффекты">
+            <span aria-hidden="true">🔊</span> <span id="sfxText">SFX: ВКЛ</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="header-progress-track" aria-hidden="true">
+        <div class="header-progress-fill" id="headerProgressFill"></div>
+      </div>
+    </header>
+
+    <!-- ---------- BLADES RIBBON ---------- -->
+    <div class="blades-ribbon-wrap" id="bladesRibbonWrap">
+      <button class="blade-scroll-btn" id="bladesPrevBtn" type="button" title="Предыдущая категория (LB)" aria-label="Предыдущая категория">LB&nbsp;◀</button>
+      <!-- Viewport жёстко обрезает ленту: вкладки не могут вылететь за экран -->
+      <div class="blades-ribbon-viewport">
+        <nav class="blades-nav-bar" id="bladesContainer" aria-label="Категории вишлиста"><!-- JS --></nav>
+      </div>
+      <button class="blade-scroll-btn" id="bladesNextBtn" type="button" title="Следующая категория (RB)" aria-label="Следующая категория">▶&nbsp;RB</button>
+    </div>
+
+    <!-- ---------- 3D COVERFLOW STAGE ---------- -->
+    <main class="stage-center">
+      <button class="carousel-nav-btn prev" id="carouselPrevBtn" type="button" title="Предыдущий диск" aria-label="Предыдущий диск">
+        <span class="cnb-arrow" aria-hidden="true">‹</span>
+        <span class="cnb-label">PREV</span>
+      </button>
+
+      <div class="carousel-stage" id="carouselStage"><!-- JS --></div>
+
+      <button class="carousel-nav-btn next" id="carouselNextBtn" type="button" title="Следующий диск" aria-label="Следующий диск">
+        <span class="cnb-arrow" aria-hidden="true">›</span>
+        <span class="cnb-label">NEXT</span>
+      </button>
+
+      <div class="carousel-pips-bar" id="carouselPipsBar"><!-- JS --></div>
+    </main>
+
+    <!-- ---------- BOTTOM CONTROLLER BAR ---------- -->
+    <footer class="bottom-controller-bar">
+      <div class="controller-hints">
+        <div class="ctrl-hint-item" id="hintSelect" role="button" tabindex="0">
+          <span class="xbox-btn-dot btn-a">A</span> <span>ВЫБРАТЬ / ДЕТАЛИ</span>
+        </div>
+        <div class="ctrl-hint-item" id="hintFlip" role="button" tabindex="0">
+          <span class="xbox-btn-dot btn-y">Y</span> <span>ПЕРЕВЕРНУТЬ КОРОБКУ (360°)</span>
+        </div>
+        <div class="ctrl-hint-item" id="hintMedia" role="button" tabindex="0">
+          <span class="xbox-btn-dot btn-x">X</span> <span>САУНДТРЕК (МУЗЫКА)</span>
+        </div>
+        <div class="ctrl-hint-item" id="hintBack" role="button" tabindex="0">
+          <span class="xbox-btn-dot btn-b">B</span> <span>НАЗАД</span>
+        </div>
+        <div class="ctrl-hint-item">
+          <span>ЛИСТАТЬ:</span> <span>СТРЕЛКИ / МЫШЬ / ДРАГ</span>
+        </div>
+      </div>
+
+      <div class="footer-right">
+        <button class="footer-boot-btn" id="crtToggleBtn" type="button" title="Переключить CRT-сканлайны и виньетку">CRT: ВКЛ</button>
+        <button class="footer-boot-btn" id="replayBootBtn" type="button" title="Перезапустить заставку Xbox 360">⟲ ЗАСТАВКА</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ---------- GUIDE BLADE (ДОСЬЕ) ---------- -->
+  <aside id="guideBlade" class="blade-panel" aria-hidden="true" aria-label="Досье цели">
+    <div class="blade-sheet-handle" role="separator" aria-label="Потяните вниз, чтобы закрыть"></div>
+
+    <div class="blade-panel-inner">
+      <div class="guide-header">
+        <div class="guide-tag" id="guideTag">DOSSIER</div>
+        <h2 class="guide-title" id="guideTitle">TITLE</h2>
+        <p class="guide-quote" id="guideQuote">«Quote»</p>
+      </div>
+
+      <div class="guide-progress-section">
+        <div class="gps-row">
+          <span>ПРОГРЕСС СБОРА</span>
+          <span id="guidePercentText" class="gps-accent">0%</span>
+        </div>
+        <div class="gps-track">
+          <div class="gps-fill" id="guideFillBar"></div>
+        </div>
+        <div class="gps-row gps-row--spaced">
+          <span id="guideSavedText">Отложено: 0 ₽</span>
+          <span id="guidePriceText" class="gps-strong">0 ₽</span>
+        </div>
+        <div class="gps-row gps-row--tight">
+          <span id="guideRemainText">Осталось: 0 ₽</span>
+          <span id="guideStatusText" class="gps-accent">WANTED</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-actions">
+      <a href="#" target="_blank" rel="noopener noreferrer" class="btn-xbox primary" id="guideStoreLink">
+        <span class="xbox-btn-dot btn-a">A</span> КУПИТЬ / ОСМОТРЕТЬ
+      </a>
+      <button class="btn-xbox secondary" id="guideCloseBtn" type="button">
+        <span class="xbox-btn-dot btn-b">B</span> ЗАКРЫТЬ
+      </button>
+    </div>
+  </aside>
+
+  <!-- ---------- MEDIA BLADE (BRADYYCARDIA) ---------- -->
+  <aside id="mediaBlade" class="blade-panel" aria-hidden="true" aria-label="Музыкальный плеер">
+    <div class="blade-sheet-handle" role="separator" aria-label="Потяните вниз, чтобы закрыть"></div>
+
+    <div class="blade-panel-inner">
+      <div class="media-blade-header">
+        <div class="media-blade-title">
+          <span aria-hidden="true">💿</span> BRADYYCARDIA // RADIO
+        </div>
+        <p class="media-blade-sub">Custom Soundtrack — встроенный плейлист</p>
+        <div class="media-track-count" id="musicTrackCount">загрузка…</div>
+      </div>
+
+      <div class="media-now-playing-card">
+        <div class="mnp-station-badge" id="mnpStation">РАДИОСТАНЦИЯ: BRADYYCARDIA</div>
+        <div class="mnp-track-name" id="mnpTrack">Воспроизведение...</div>
+        <div class="mnp-artist" id="mnpArtist">Папка music // Shuffle</div>
+        <canvas id="mediaVisualizer" width="370" height="38" aria-hidden="true"></canvas>
+      </div>
+
+      <div class="media-stations-list" id="stationsList"><!-- JS --></div>
+    </div>
+
+    <div>
+      <div class="media-volume-row">
+        <span class="mv-label">ГРОМКОСТЬ</span>
+        <input type="range" id="musicVolume" min="0" max="100" value="55" aria-label="Громкость музыки">
+        <span class="mv-val" id="musicVolumeVal">55%</span>
+      </div>
+      <div class="media-playback-controls">
+        <button class="mp-btn" id="mpPrevBtn" type="button">|&lt; ТРЕК</button>
+        <button class="mp-btn" id="mpPlayBtn" type="button">▶ / || ПАУЗА</button>
+        <button class="mp-btn" id="mpNextBtn" type="button">ТРЕК &gt;|</button>
+      </div>
+      <button class="btn-xbox secondary btn-xbox--wide" id="mediaCloseBtn" type="button">
+        <span class="xbox-btn-dot btn-b">B</span> ЗАКРЫТЬ ПЛЕЕР
+      </button>
+    </div>
+  </aside>
+
+  <!-- =========================================================
+       OVERLAY LAYERS
+       ========================================================= -->
+  <div id="sheetBackdrop" aria-hidden="true"></div>
+
+  <div id="achievementToast" role="status" aria-live="polite">
+    <div class="achieve-icon-circle" aria-hidden="true">🏆</div>
+    <div class="achieve-text-col">
+      <div class="achieve-sub">Achievement Unlocked</div>
+      <div class="achieve-title" id="achieveTitle">1000G — Grail Acquired</div>
+    </div>
+  </div>
+
+  <div id="crtOverlay" aria-hidden="true"></div>
+
+  <div id="gamepadBadge" role="status" aria-live="polite">
+    <span class="xbox-btn-dot btn-a">A</span>
+    <span id="gamepadBadgeText">GAMEPAD CONNECTED</span>
+  </div>
+
+  <div id="themeToast" class="theme-toast" role="status" aria-live="polite"></div>
+
+  <!-- =========================================================
+       MODULES
+       ========================================================= -->
+  <script src="js/core.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/carousel.js"></script>
+  <script src="js/gamepad.js"></script>
+  <script src="js/boot.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

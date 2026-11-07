@@ -1,0 +1,2064 @@
+/* ============================================================
+   XBOX 360 SYSTEM DASHBOARD · DASHBOARD
+   ---------------------------------------------------------
+   1. Shell / background layers / spotlight
+   2. Top gamer bar (profile, HUD stats, skin picker, audio chips)
+   3. Blades ribbon (category navigation)
+   4. 3D Coverflow stage + case cards
+   5. Disc tray (metallic DVD, grooves, diffraction rainbow)
+   6. Holography / specular / fresnel
+   7. Aurora ribbon + CRT overlay
+   8. Bottom controller bar
+   ============================================================ */
+
+/* ---------- 1. SHELL ---------- */
+/* Декоративные слои НИКОГДА не перехватывают мышь.
+   Иначе «невидимый» блик или шейдер перекрывает кнопки на боксе
+   (Y 360°, A ДОСЬЕ) и клики по ним просто игнорируются. */
+.case-sheen,
+.case-holo-sheen,
+.case-specular,
+.case-emboss,
+.case-chassis-glow,
+.case-artwork-wrap::before,
+.case-artwork-wrap::after,
+.case-face::after,
+.case-face::before,
+.tray-disc,
+.disc-rotor,
+.disc-surface,
+.disc-print-clip,
+.disc-artwork,
+.disc-artwork::after,
+.disc-xbox-header,
+.disc-header-green-swoosh,
+.disc-header-brand,
+.disc-meta-left,
+.disc-meta-right,
+.disc-edge-legal,
+.disc-holo-shine,
+.disc-center-hub,
+.disc-holo-ring-svg,
+.disc-spindle-hole,
+.disc-outer-rim,
+.market-sticker,
+.heat-rating-badge {
+  pointer-events: none !important;
+}
+#dashboard {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: calc(var(--header-h) + var(--safe-top)) minmax(0, 1fr) calc(var(--footer-h) + var(--safe-bottom));
+  perspective: 1400px;
+  overflow: hidden;
+  z-index: var(--z-scene);
+  opacity: 0;
+  transition: opacity 0.6s ease, border-radius var(--dur-med) ease;
+}
+#dashboard.active { opacity: 1; }
+
+/* CRT tube geometry — лёгкая бочкообразная дисторсия без нагрузки на GPU */
+body.crt-on #dashboard {
+  border-radius: 2.6% / 4.2%;
+  box-shadow: inset 0 0 140px rgba(0, 0, 0, 0.8);
+}
+
+/* Сканлайны дашборда (включаются тумблером CRT) */
+#dashboard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 3px);
+  pointer-events: none !important;
+  z-index: 90;
+  opacity: 0;
+  transition: opacity var(--dur-med) ease;
+}
+body.crt-on #dashboard::before { opacity: 0.75; }
+
+/* Виньетка + верхнее/нижнее затемнение */
+#dashboard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 91;
+  pointer-events: none !important;
+  background:
+    radial-gradient(ellipse 118% 118% at 50% 50%, transparent 46%, rgba(0, 0, 0, 0.28) 78%, rgba(0, 0, 0, 0.66) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.22), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.35));
+  animation: crtFlicker 6s steps(2, end) infinite;
+}
+@keyframes crtFlicker {
+  0%, 96%, 100% { opacity: 1; }
+  97% { opacity: 0.93; }
+  98% { opacity: 0.98; }
+}
+
+/* Фоновые слои */
+.bg-spotlight {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-bg);
+  pointer-events: none;
+  background: radial-gradient(circle 480px at var(--mx, 50%) var(--my, 40%), var(--theme-glow) 0%, transparent 70%);
+  opacity: 0.16;
+  mix-blend-mode: screen;
+  transition: background 0.16s linear;
+}
+
+.bg-ribbon {
+  position: absolute;
+  width: 140vw;
+  height: 60vh;
+  top: 15vh;
+  left: -20vw;
+  background: radial-gradient(ellipse at center, var(--theme-ribbon) 0%, rgba(0, 0, 0, 0.05) 50%, transparent 75%);
+  transform: rotate(-8deg) skewX(-20deg);
+  filter: blur(45px);
+  pointer-events: none !important;
+  z-index: var(--z-bg);
+  transition: background 0.5s ease;
+}
+.bg-ribbon::after {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  background: radial-gradient(ellipse at 30% 50%, var(--theme-ribbon) 0%, transparent 62%);
+  transform: rotate(18deg) skewX(24deg);
+  filter: blur(34px);
+  opacity: 0.7;
+  animation: ambientDrift 14s ease-in-out infinite alternate;
+}
+@keyframes ambientDrift {
+  0% { transform: translate3d(-2%, -1%, 0) rotate(14deg) skewX(20deg); opacity: 0.5; }
+  100% { transform: translate3d(3%, 2%, 0) rotate(22deg) skewX(28deg); opacity: 0.9; }
+}
+
+/* ---------- 2. TOP GAMER BAR ---------- */
+.top-gamer-bar {
+  position: relative;
+  z-index: var(--z-header);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 0;
+  padding: var(--safe-top) calc(30px + var(--safe-right)) 0 calc(30px + var(--safe-left));
+  background: var(--theme-header-bg);
+  border-bottom: 2px solid var(--theme-border);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.85);
+  transition: background 0.4s ease, border-color 0.4s ease;
+}
+.top-gamer-bar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--theme-toxic), transparent);
+  background-size: 220% 100%;
+  opacity: 0.7;
+  animation: barScan 5s linear infinite;
+}
+@keyframes barScan {
+  0% { background-position: 220% 0; }
+  100% { background-position: -220% 0; }
+}
+
+.gamer-profile-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.gamerpic-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 6px;
+  background: #000;
+  border: 2px solid var(--theme-accent);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18), 0 0 18px var(--theme-glow), inset 0 0 14px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: border-color 0.4s;
+  animation: avatarPulse 3.2s ease-in-out infinite;
+}
+@keyframes avatarPulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18), 0 0 14px var(--theme-glow), inset 0 0 14px rgba(0, 0, 0, 0.8); }
+  50% { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.38), 0 0 28px var(--theme-glow), inset 0 0 14px rgba(0, 0, 0, 0.8); }
+}
+.gamerpic-box .initial {
+  font-size: 26px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 10px var(--theme-accent);
+}
+
+.gamer-text { min-width: 0; }
+.gamer-text h1 {
+  font-size: clamp(15px, 1.15vw, 21px);
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.online-pip {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--theme-toxic);
+  box-shadow: 0 0 10px var(--theme-toxic);
+  display: inline-block;
+  flex: 0 0 auto;
+  animation: pipPulse 1.6s ease-in-out infinite;
+}
+@keyframes pipPulse {
+  0%, 100% { opacity: 0.55; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.gamer-text .gamerscore {
+  font-size: 13px;
+  color: #a4b8a2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  min-width: 0;
+}
+#statusMessageText {
+  max-width: 340px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.g-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--theme-accent);
+  color: #000;
+  font-weight: 900;
+  font-size: 10px;
+  flex: 0 0 auto;
+  transition: background 0.4s;
+}
+.gamerscore .progress-inline {
+  color: var(--theme-toxic);
+  font-family: var(--font-mono);
+  text-shadow: 0 0 8px var(--theme-glow);
+  white-space: nowrap;
+}
+.gamerscore .progress-sep { color: #46604a; }
+
+.console-stats-right {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 1vw, 18px);
+  min-width: 0;
+}
+
+.hud-stat { text-align: right; }
+.hud-stat + .hud-stat {
+  padding-left: 18px;
+  border-left: 1px solid var(--theme-border);
+}
+.hud-stat .stat-lbl {
+  font-size: 10px;
+  color: #8da48e;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.hud-stat .stat-val {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  font-family: var(--font-mono);
+}
+.hud-stat .stat-val.green {
+  color: var(--theme-toxic);
+  text-shadow: 0 0 10px var(--theme-glow);
+}
+
+/* Skin picker */
+.console-skin-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--theme-border);
+  padding: 4px 10px;
+  border-radius: 4px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.console-skin-wrap:hover {
+  border-color: var(--theme-accent);
+  box-shadow: 0 0 16px var(--theme-glow);
+}
+.console-skin-wrap label {
+  font-size: 10px;
+  color: var(--theme-accent);
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.skin-select {
+  background: #0f1411;
+  border: 1px solid #334438;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 6px;
+  cursor: pointer;
+  border-radius: 2px;
+  outline: none;
+}
+
+/* Audio chips */
+.audio-toggles-group {
+  display: flex;
+  gap: 6px;
+}
+.audio-chip-btn {
+  background: #141c16;
+  border: 1px solid #2d3d30;
+  color: #8fa894;
+  font-size: 11px;
+  padding: 5px 9px;
+  cursor: pointer;
+  font-weight: 600;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background var(--dur-fast) ease, color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+}
+.audio-chip-btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--theme-accent);
+  color: #fff;
+}
+.audio-chip-btn.active {
+  background: var(--theme-accent);
+  color: #000;
+  border-color: #fff;
+  box-shadow: 0 0 14px var(--theme-glow), inset 0 0 10px rgba(255, 255, 255, 0.18);
+}
+.audio-chip-btn.media-pill {
+  background: linear-gradient(180deg, #1f4222 0%, #0e1e10 100%);
+  border-color: var(--theme-accent);
+  color: #fff;
+}
+
+/* Прогресс-бар шапки */
+.header-progress-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  z-index: 2;
+  pointer-events: none;
+}
+.header-progress-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--theme-accent), var(--theme-toxic));
+  box-shadow: 0 0 12px var(--theme-glow);
+  transition: width 0.8s var(--ease-out);
+}
+
+/* ---------- 3. BLADES RIBBON ---------- */
+.blades-ribbon-wrap {
+  position: absolute;
+  top: calc(var(--header-h) + var(--safe-top) + 2px);
+  left: var(--safe-left);
+  right: var(--safe-right);
+  height: var(--blades-h);
+  z-index: var(--z-ribbon);
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 0 8px;
+  pointer-events: none;
+}
+
+/* Viewport ленты: жёстко обрезает область скролла, поэтому вкладки
+   физически не могут вылететь за экран или наложиться на LB/RB. */
+.blades-ribbon-viewport {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 28px, #000 calc(100% - 28px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 28px, #000 calc(100% - 28px), transparent 100%);
+}
+
+.blade-scroll-btn {
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
+  flex: 0 0 auto;
+  height: 36px;
+  min-width: 42px;
+  padding: 0 8px;
+  border: 1px solid var(--theme-border);
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(34, 50, 38, 0.92), rgba(8, 14, 10, 0.92));
+  color: var(--theme-toxic);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background var(--dur-fast) ease, color var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease, transform var(--dur-fast) ease;
+}
+.blade-scroll-btn:hover {
+  color: #000;
+  background: var(--theme-accent);
+  border-color: #fff;
+  box-shadow: 0 0 18px var(--theme-glow);
+}
+.blade-scroll-btn:active { transform: scale(0.94); }
+.blades-ribbon-wrap.no-overflow .blade-scroll-btn { display: none; }
+
+.blades-nav-bar {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: clamp(4px, 0.55vw, 8px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px clamp(18px, 2.2vw, 38px) 0;
+  margin: 0;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  cursor: grab;
+  pointer-events: auto;
+  overscroll-behavior-x: contain;
+}
+.blades-nav-bar::-webkit-scrollbar { display: none; }
+/* Маска перенесена на .blades-ribbon-viewport — она обрезает ленту
+   и не задевает кнопки LB/RB, стоящие вне вьюпорта. */
+.blades-nav-bar.has-overflow {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.blades-nav-bar.dragging {
+  cursor: grabbing;
+  scroll-behavior: auto;
+  user-select: none;
+}
+
+/* Скольжение ленты при смене категории */
+.blades-nav-bar.is-swapping {
+  animation: ribbonSwap 0.42s var(--ease-pop) both;
+}
+@keyframes ribbonSwap {
+  0% { transform: translate3d(var(--swap-from, -16px), 0, 0); opacity: 0.5; }
+  100% { transform: translate3d(0, 0, 0); opacity: 1; }
+}
+
+/* Лезвие категории */
+.blade-tab {
+  --rest-rotx: 20deg;
+  --rest-tx: 0px;
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: min(31ch, 34vw);
+  overflow: hidden;
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(180deg, #2b3930 0%, #151e18 100%);
+  border: 2px solid #3d5244;
+  border-bottom: none;
+  color: #8fa894;
+  font-family: var(--font-display);
+  font-size: clamp(14px, 1.35vw, 24px);
+  letter-spacing: clamp(0.4px, 0.12vw, 2px);
+  padding: 4px clamp(10px, 1.15vw, 28px) 2px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  text-transform: uppercase;
+  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+  transform: perspective(400px) rotateX(var(--rest-rotx)) translateY(var(--rest-tx));
+  transition: transform 0.28s var(--ease-pop), background 0.2s ease, color 0.2s ease,
+    box-shadow 0.25s ease, border-color 0.2s ease;
+  will-change: transform;
+}
+.blade-tab::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 45%),
+    linear-gradient(105deg, transparent 36%, rgba(255, 255, 255, 0.6) 50%, transparent 64%);
+  background-size: 100% 100%, 260% 100%;
+  background-position: 0 0, -150% 0;
+  transition: background-position 0.6s var(--ease-out);
+}
+/* Акриловый срез (Blades Gloss): диагональный световой перелив
+   по верхней грани лезвия — имитация выпуклого пластика 2005 года. */
+.blade-tab::after {
+  content: "";
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 0;
+  height: 2px;
+  background: var(--theme-toxic);
+  opacity: 0;
+  box-shadow: 0 0 12px var(--theme-toxic);
+  transition: opacity 0.2s ease;
+}
+.blade-tab.active::after { opacity: 1; }
+
+/* Глянцевая «шапка» активного лезвия: диагональный блик-шейдер
+   + тонкая световая кромка по верхнему ребру.
+   Диагональный блик имитирует выпуклое полированное стекло. */
+.blade-tab.active .blade-gloss {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+  background:
+    /* тонкая световая кромка верхней грани */
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.14) 2px, transparent 3px),
+    /* диагональный объёмный перелив (блик-шейдер) */
+    linear-gradient(112deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.18) 22%,
+      rgba(255, 255, 255, 0.55) 36%,
+      rgba(255, 255, 255, 0.06) 50%,
+      rgba(255, 255, 255, 0) 68%),
+    /* вертикальный объём «выпуклого пластика» */
+    linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 34%, rgba(0, 0, 0, 0.2) 100%);
+  background-size: 100% 100%, 240% 100%, 100% 100%;
+  background-position: 0 0, 130% 0, 0 0;
+  mix-blend-mode: screen;
+  opacity: 0.95;
+  animation: bladeGlossSlide 4.2s ease-in-out infinite;
+}
+@keyframes bladeGlossSlide {
+  0%, 100% { background-position: 0 0, 140% 0, 0 0; }
+  50% { background-position: 0 0, -40% 0, 0 0; }
+}
+/* Дополнительный узкий «шлик» блика — ощущение толщины стекла */
+.blade-tab.active .blade-gloss::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(104deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.55) 47%,
+    rgba(255, 255, 255, 0) 54%);
+  background-size: 260% 100%;
+  background-position: 140% 0;
+  mix-blend-mode: screen;
+  animation: bladeGlossSlide 4.2s ease-in-out infinite;
+}
+/* Тёмная подложка активного лезвия — усиливает «выпуклость» */
+.blade-tab.active {
+  box-shadow:
+    0 -5px 22px var(--theme-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -8px 14px rgba(0, 0, 0, 0.28);
+}
+.blade-tab:hover::after { opacity: 1; }
+.blade-tab:hover {
+  --rest-rotx: 10deg;
+  --rest-tx: -2px;
+  color: #fff;
+  background: linear-gradient(180deg, #3d5244 0%, #1c2b21 100%);
+}
+.blade-tab.active {
+  --rest-rotx: 0deg;
+  --rest-tx: -4px;
+  color: #000;
+  background: var(--theme-blade-active);
+  border-color: #ffffff;
+  animation: bladeGlow 2.4s ease-in-out infinite;
+}
+.blade-tab.active::before {
+  animation: bladeSweep 1.15s var(--ease-out) both;
+}
+@keyframes bladeGlow {
+  0%, 100% { box-shadow: 0 -5px 22px var(--theme-glow); }
+  50% { box-shadow: 0 -5px 36px var(--theme-glow), 0 0 18px var(--theme-glow); }
+}
+@keyframes bladeSweep {
+  0% { background-position: 0 0, -150% 0; }
+  100% { background-position: 0 0, 150% 0; }
+}
+
+/* Переворот активированного лезвия (3D-глубина при переключении) */
+.blade-tab.just-activated {
+  animation: bladeFlipIn 0.48s var(--ease-pop) both;
+}
+@keyframes bladeFlipIn {
+  0% { transform: perspective(400px) rotateX(-62deg) translateY(16px); opacity: 0.15; }
+  60% { opacity: 1; }
+  100% { transform: perspective(400px) rotateX(var(--rest-rotx)) translateY(var(--rest-tx)); opacity: 1; }
+}
+
+/* ---------- 4. COVERFLOW STAGE ---------- */
+.stage-center {
+  position: relative;
+  z-index: var(--z-stage);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 0;
+  padding-top: calc(var(--blades-h) + 20px);
+}
+
+.carousel-stage {
+  position: relative;
+  width: 100%;
+  max-width: min(1500px, 100vw);
+  height: var(--stage-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  cursor: grab;
+  touch-action: pan-y;
+}
+.carousel-stage:active { cursor: grabbing; }
+.carousel-stage.is-dragging { cursor: grabbing; }
+.carousel-stage.is-dragging .xbox-case-anchor { transition: none; }
+
+.carousel-stage::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 2%;
+  width: 78%;
+  height: 90px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, var(--theme-glow) 0%, transparent 68%);
+  filter: blur(28px);
+  opacity: 0.42;
+  pointer-events: none;
+  animation: floorBreathe 4s ease-in-out infinite;
+}
+@keyframes floorBreathe {
+  0%, 100% { opacity: 0.28; transform: translateX(-50%) scaleX(0.92); }
+  50% { opacity: 0.5; transform: translateX(-50%) scaleX(1.06); }
+}
+.carousel-stage::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 3%;
+  width: 72%;
+  height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, var(--theme-toxic), transparent);
+  box-shadow: 0 0 18px var(--theme-glow);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* Chevron navigation */
+.carousel-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 60px;
+  height: 130px;
+  z-index: 70;
+  background: linear-gradient(180deg, rgba(28, 44, 32, 0.85) 0%, rgba(10, 16, 12, 0.85) 100%);
+  border: 2px solid var(--theme-border);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), inset 0 0 12px rgba(255, 255, 255, 0.06);
+  transition: background var(--dur-med) var(--ease-pop), color var(--dur-med) var(--ease-pop),
+    transform var(--dur-med) var(--ease-pop), box-shadow var(--dur-med) var(--ease-pop);
+}
+.carousel-nav-btn.prev {
+  left: 30px;
+  border-radius: 12px 6px 6px 12px;
+  border-left: 3px solid var(--theme-accent);
+}
+.carousel-nav-btn.next {
+  right: 30px;
+  border-radius: 6px 12px 12px 6px;
+  border-right: 3px solid var(--theme-accent);
+}
+.carousel-nav-btn:hover {
+  background: linear-gradient(180deg, var(--theme-accent) 0%, rgba(16, 124, 16, 0.8) 100%);
+  color: #000;
+  border-color: #fff;
+  transform: translateY(-50%) scale(1.08);
+  box-shadow: 0 0 28px var(--theme-glow);
+}
+.carousel-nav-btn:active { transform: translateY(-50%) scale(0.96); }
+.carousel-nav-btn.is-disabled {
+  opacity: 0.18;
+  pointer-events: none;
+  filter: grayscale(1);
+}
+.cnb-arrow {
+  font-size: 38px;
+  font-weight: 900;
+  line-height: 1;
+  font-family: monospace;
+}
+.cnb-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  margin-top: 4px;
+  font-family: var(--font-mono);
+}
+
+/* Paging dots */
+.carousel-pips-bar {
+  position: absolute;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 60;
+  background: rgba(10, 16, 12, 0.7);
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--theme-border);
+  backdrop-filter: blur(8px);
+}
+.carousel-pip {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #1e2c21;
+  border: 1px solid #3c5240;
+  cursor: pointer;
+  transition: background var(--dur-med) ease, transform var(--dur-med) ease, box-shadow var(--dur-med) ease;
+}
+.carousel-pip:hover {
+  background: var(--theme-accent);
+  transform: scale(1.25);
+}
+.carousel-pip.active {
+  background: var(--theme-toxic);
+  border-color: #fff;
+  box-shadow: 0 0 12px var(--theme-toxic);
+  transform: scale(1.35);
+}
+
+/* ---------- 5. CASE CARD ---------- */
+
+/* ---------- FLOOR REFLECTION (зеркальный пол премиум-уровня) ---------- */
+/* Отражение активного бокса в «полированном полу» дашборда.
+   -webkit-box-reflect рисует копию элемента ниже по оси Y с маской,
+   которая гасит отражение в темноту. */
+.xbox-case-anchor.is-active .case-face.front {
+  -webkit-box-reflect: below 4px linear-gradient(
+    transparent 42%,
+    rgba(124, 252, 0, 0.06) 58%,
+    rgba(124, 252, 0, 0.16) 76%,
+    rgba(124, 252, 0, 0.30) 92%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+}
+/* Глубокое отражение — размытая «лужа» света под боксом */
+.xbox-case-anchor.is-active .case-chassis-glow {
+  -webkit-box-reflect: below 2px linear-gradient(transparent 55%, rgba(124, 252, 0, 0.22) 100%);
+}
+/* Неоновый световой горизонт пола с пульсацией */
+.carousel-stage::before {
+  background:
+    radial-gradient(ellipse 40% 9% at center, rgba(157, 255, 0, 0.42) 0%, rgba(16, 113, 16, 0.18) 45%, transparent 72%),
+    radial-gradient(ellipse at center, var(--theme-glow) 0%, transparent 68%);
+  animation: floorBreathe 4s ease-in-out infinite;
+}
+@keyframes floorBreathe {
+  0%, 100% { opacity: 0.34; transform: translateX(-50%) scaleX(0.94); }
+  50% { opacity: 0.62; transform: translateX(-50%) scaleX(1.07); }
+}
+/* Линия пола — тонкий неоновый штрих */
+.carousel-stage::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 3%;
+  width: 72%;
+  height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, rgba(157, 255, 0, 0.85), transparent);
+  box-shadow:
+    0 0 18px var(--theme-glow),
+    0 0 44px rgba(157, 255, 0, 0.35);
+  opacity: 0.6;
+  pointer-events: none;
+  animation: floorBreathe 4s ease-in-out infinite;
+}
+.xbox-case-anchor {
+  position: absolute;
+  width: var(--case-w);
+  height: var(--case-h);
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.18, 1.05, 0.32, 1.14);
+  cursor: pointer;
+  will-change: transform;
+  animation: cardFadeIn 0.4s ease both;
+}
+@keyframes cardFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.xbox-case-anchor.is-active { z-index: 30; }
+.xbox-case-anchor.is-offscreen { pointer-events: none; }
+
+/* Полный 360°-спин коробки */
+.xbox-case-anchor.is-spinning {
+  animation: caseSpin360 0.9s cubic-bezier(0.3, 0.9, 0.25, 1) both;
+  z-index: 40;
+}
+@keyframes caseSpin360 {
+  0% { transform: var(--spin-from, none) rotateY(0deg); }
+  100% { transform: var(--spin-from, none) rotateY(360deg); }
+}
+
+/* Полупрозрачный зелёный кейс Xbox 360 с внутренней текстурой рёбер */
+.case-chassis-glow {
+  position: absolute;
+  inset: -16px -22px -18px -18px;
+  border-radius: 20px 30px 30px 20px;
+  z-index: -1;
+  background:
+    linear-gradient(118deg, var(--shell-tint) 0%, rgba(255, 255, 255, 0.05) 34%, transparent 58%),
+    linear-gradient(300deg, var(--shell-tint-deep) 0%, transparent 62%),
+    repeating-linear-gradient(94deg, var(--shell-rib) 0 2px, transparent 2px 10px);
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.7),
+    inset 0 -14px 26px rgba(0, 0, 0, 0.55),
+    0 12px 30px rgba(0, 0, 0, 0.9),
+    0 0 20px var(--case-glow);
+  pointer-events: none;
+  overflow: hidden;
+}
+/* Рёбра жёсткости — вертикальные канавки внутренней текстуры */
+.case-chassis-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    /* глубокий микрорельеф рёбер */
+    repeating-linear-gradient(90deg,
+      rgba(0, 0, 0, 0.42) 0 2px,
+      rgba(255, 255, 255, 0.09) 2px 3px,
+      rgba(255, 255, 255, 0.02) 3px 4px,
+      transparent 4px 13px),
+    /* акриловый скос по верхнему периметру */
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, transparent 14%);
+  opacity: 0.85;
+}
+/* Fresnel-подсветка по краю прозрачного пластика */
+.case-chassis-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(ellipse at var(--hx, 50%) var(--hy, 30%), rgba(255, 255, 255, 0.26) 0%, transparent 48%),
+    linear-gradient(115deg, rgba(255, 255, 255, 0.16) 0%, transparent 22%);
+  mix-blend-mode: screen;
+  transition: opacity var(--dur-med) ease;
+  opacity: 0.9;
+}
+
+/* Акриловый скос по периметру самого бокса */
+.case-face {
+  box-shadow:
+    0 20px 45px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset -14px 0 26px -14px rgba(255, 255, 255, 0.12),
+    inset 14px 0 22px -14px rgba(0, 0, 0, 0.5);
+}
+/* Микрорельеф рёбер на торцах бокса */
+.case-face::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  opacity: 0.5;
+  background:
+    repeating-linear-gradient(90deg,
+      rgba(0, 0, 0, 0.26) 0 1px,
+      rgba(255, 255, 255, 0.045) 1px 2px,
+      transparent 2px 9px);
+  -webkit-mask-image: linear-gradient(90deg, #000 0 7%, transparent 16% 84%, #000 93% 100%);
+  mask-image: linear-gradient(90deg, #000 0 7%, transparent 16% 84%, #000 93% 100%);
+}
+.xbox-case-anchor.is-active .case-chassis-glow {
+  animation: chassisPulse 3s ease-in-out infinite;
+}
+@keyframes chassisPulse {
+  0%, 100% { box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.7), inset 0 -14px 26px rgba(0, 0, 0, 0.55), 0 12px 30px rgba(0, 0, 0, 0.9), 0 0 18px var(--case-glow); }
+  50% { box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.7), inset 0 -14px 26px rgba(0, 0, 0, 0.55), 0 12px 30px rgba(0, 0, 0, 0.9), 0 0 44px var(--case-glow); }
+}
+
+.case-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  /* Жёсткий 3D-контекст: без preserve-3d поворот на 180° «схлопывает»
+     обе грани в плоскость и карточка визуально залипает. */
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  backface-visibility: visible;
+  transition: transform 0.68s cubic-bezier(0.18, 1.02, 0.3, 1.12);
+  will-change: transform;
+}
+.xbox-case-anchor.flipped .case-card-inner {
+  transform: rotateY(180deg) !important;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
+
+.case-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px 14px 14px 8px;
+  /* Обе грани одновременно не видны с одного ракурса — это и даёт
+     эффект настоящего переворота коробки. */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  /* ВАЖНО: preserve-3d здесь НЕ нужен и даже вредит.
+     3D-контекст нужен только на .case-card-inner (он вращает обе грани).
+     Если грань сама станет 3D-контекстом, её потомки (обложка с
+     translate3d и кнопки) начнут сортироваться по глубине, а не по
+     z-index — и картинка перекроет кнопку «Y 360°». */
+  transform-style: flat;
+  -webkit-transform-style: flat;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background-color: #0d120f;
+  background-image:
+    repeating-linear-gradient(118deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 8px),
+    radial-gradient(circle at 22% 8%, rgba(255, 255, 255, 0.06), transparent 42%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.9);
+}
+.xbox-case-anchor.is-active .case-face.front,
+.xbox-case-anchor.is-active .case-face.back {
+  border-color: var(--theme-accent);
+  box-shadow:
+    0 0 0 1px var(--theme-border),
+    0 24px 60px rgba(0, 0, 0, 0.95),
+    0 0 30px var(--theme-glow);
+}
+
+/* FRONT face */
+.case-face.front {
+  transform: rotateY(0deg);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.case-x360-header {
+  height: clamp(29px, calc(var(--case-w) * 0.145), 44px);
+  background: linear-gradient(180deg, #ffffff 0%, #d8e2dc 60%, #b2c2b7 100%);
+  border-top-left-radius: 6px;
+  border-top-right-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(6px, calc(var(--case-w) * 0.04), 13px);
+  position: relative;
+  border-bottom: 2px solid var(--case-rim);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.case-x360-header::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.75) 50%, transparent 65%);
+  transform: translateX(-120%);
+  mix-blend-mode: screen;
+  animation: headerShine 7s ease-in-out infinite;
+}
+@keyframes headerShine {
+  0%, 70% { transform: translateX(-120%); }
+  85%, 100% { transform: translateX(120%); }
+}
+
+.x360-logo-badge {
+  display: flex;
+  align-items: center;
+  gap: clamp(3px, calc(var(--case-w) * 0.02), 7px);
+  font-size: clamp(9px, calc(var(--case-w) * 0.047), 15px);
+  font-weight: 900;
+  color: #107c10;
+  letter-spacing: clamp(0.6px, calc(var(--case-w) * 0.006), 2px);
+}
+.xbox-logo-svg {
+  display: block;
+  flex: 0 0 auto;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 4px rgba(82, 176, 67, 0.45));
+  pointer-events: none;
+}
+.x360-logo-badge .xbox-logo-svg {
+  width: clamp(14px, calc(var(--case-w) * 0.075), 22px);
+  height: clamp(14px, calc(var(--case-w) * 0.075), 22px);
+}
+.press-guide .xbox-logo-svg {
+  width: 24px;
+  height: 24px;
+  filter: drop-shadow(0 0 7px rgba(124, 252, 0, 0.85));
+}
+.case-live-tag {
+  font-size: clamp(7px, calc(var(--case-w) * 0.03), 10px);
+  font-weight: 800;
+  color: #ff8500;
+  background: #000;
+  padding: 1px 5px;
+  border-radius: 2px;
+  letter-spacing: 1px;
+}
+
+.case-artwork-wrap {
+  position: relative;
+  flex: 1;
+  background: #000;
+  overflow: hidden;
+}
+.case-artwork-wrap::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 45%;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.72));
+}
+.case-artwork-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: contrast(1.1) brightness(0.95);
+  transform: translate3d(var(--tilt-x, 0px), var(--tilt-y, 0px), 0) scale(1.045);
+  transition: transform 0.18s ease-out, filter 0.4s ease;
+  will-change: transform;
+}
+.xbox-case-anchor:hover .case-artwork-wrap img { transform: scale(1.05); }
+.xbox-case-anchor.is-active:hover .case-artwork-wrap img {
+  transform: translate3d(var(--tilt-x, 0px), var(--tilt-y, 0px), 0) scale(1.075);
+  filter: contrast(1.12) brightness(1.02) saturate(1.06);
+}
+
+/* ---------- 6. HOLOGRAPHY / SPECULAR / FRESNEL ---------- */
+.case-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.38) 45%, transparent 60%);
+  background-size: 250% 100%;
+  opacity: 0.55;
+  animation: sheenSweep 5.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 4;
+}
+@keyframes sheenSweep {
+  0%, 55% { background-position: 150% 0; }
+  80%, 100% { background-position: -80% 0; }
+}
+
+.case-holo-sheen {
+  position: absolute;
+  inset: -18%;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(circle at var(--hx, 50%) var(--hy, 42%), rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.13) 16%, transparent 42%),
+    conic-gradient(from calc(var(--hang, 0) * 1deg) at var(--hx, 50%) var(--hy, 42%),
+      transparent 0deg,
+      rgba(255, 0, 128, 0.22) 46deg,
+      rgba(0, 255, 128, 0.28) 92deg,
+      rgba(0, 128, 255, 0.22) 138deg,
+      transparent 190deg,
+      transparent 360deg);
+  transition: opacity 0.28s ease;
+}
+.xbox-case-anchor.is-active:hover .case-holo-sheen,
+.xbox-case-anchor.is-active:focus-within .case-holo-sheen { opacity: 0.95; }
+@media (hover: none), (pointer: coarse) {
+  .xbox-case-anchor.is-active .case-holo-sheen { opacity: 0.5; }
+}
+
+/* Динамический зеркальный блик (Specular / Fresnel) */
+.case-specular {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(circle at var(--hx, 50%) var(--hy, 38%),
+      rgba(255, 255, 255, 0.85) 0%,
+      rgba(255, 255, 255, 0.22) 6%,
+      rgba(255, 255, 255, 0.05) 18%,
+      transparent 38%),
+    radial-gradient(ellipse 90% 60% at var(--gx, 50%) var(--gy, 50%),
+      rgba(190, 255, 210, 0.16) 0%, transparent 62%);
+  transition: opacity 0.3s ease;
+}
+.xbox-case-anchor.is-active .case-specular { opacity: 0.55; }
+.xbox-case-anchor.is-active:hover .case-specular { opacity: 1; }
+@media (hover: none), (pointer: coarse) {
+  .xbox-case-anchor.is-active .case-specular { opacity: 0.7; }
+}
+
+.case-emboss {
+  position: absolute;
+  right: 11px;
+  bottom: 58px;
+  z-index: 2;
+  pointer-events: none;
+  font-weight: 900;
+  font-size: clamp(9px, calc(var(--case-w) * 0.045), 14px);
+  letter-spacing: 3px;
+  color: rgba(124, 252, 0, 0.075);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.1), 0 -1px 0 rgba(0, 0, 0, 0.9), 0 0 14px rgba(124, 252, 0, 0.1);
+  transform: rotate(-90deg) translateX(50%);
+  transform-origin: right bottom;
+  white-space: nowrap;
+}
+
+/* Quick action bar */
+.case-hover-quick-bar {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* Поднимаем панель к зрителю по оси Z: в 3D-контексте обложки
+     картинка с translate3d иначе перекрывает кнопку. */
+  transform: translate3d(-50%, -50%, 30px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(5px, calc(var(--case-w) * 0.03), 10px);
+  z-index: 20;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.xbox-case-anchor.is-active:hover .case-hover-quick-bar {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate3d(-50%, -50%, 30px) scale(1.02);
+}
+@media (hover: none), (pointer: coarse) {
+  .xbox-case-anchor.is-active .case-hover-quick-bar {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate3d(-50%, -50%, 30px) scale(1);
+  }
+}
+.ch-btn {
+  background: rgba(14, 22, 16, 0.94);
+  border: 1px solid var(--theme-accent);
+  color: #fff;
+  font-size: clamp(8px, calc(var(--case-w) * 0.038), 12px);
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: clamp(5px, calc(var(--case-w) * 0.028), 9px) clamp(8px, calc(var(--case-w) * 0.05), 15px);
+  border-radius: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: clamp(4px, calc(var(--case-w) * 0.025), 8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8), 0 0 12px var(--theme-glow);
+  backdrop-filter: blur(8px);
+  transition: background var(--dur-fast) ease, color var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease, transform var(--dur-fast) ease;
+  white-space: nowrap;
+}
+.ch-btn:hover {
+  background: var(--theme-accent);
+  color: #000;
+  box-shadow: 0 0 20px var(--theme-glow);
+  transform: scale(1.06);
+}
+.case-hover-quick-bar .ch-btn { position: relative; z-index: 32; }
+
+/* Единственная кнопка переворота — круглый неоновый бейдж в углу бокса.
+   translateZ поднимает её над обложкой по оси Z (см. .case-face). */
+.case-flip-fab {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 32;
+  /* Явный flex: содержимое кнопки центрируется ВНУТРИ круга.
+     Иначе точка «Y» уезжает в угол, где круг не кликается. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(124, 252, 0, 0.28) 0%, rgba(6, 20, 10, 0.96) 62%),
+    linear-gradient(180deg, rgba(12, 26, 15, 0.96), rgba(3, 8, 5, 0.98));
+  border: 1px solid rgba(124, 252, 0, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 0 18px rgba(124, 252, 0, 0.45),
+    inset 0 0 14px rgba(124, 252, 0, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(0, 6px, 30px) scale(0.86);
+  transition: opacity 0.22s ease, transform 0.28s var(--ease-pop),
+    box-shadow 0.25s ease, border-color 0.25s ease;
+  backdrop-filter: none;
+}
+.xbox-case-anchor.is-active .case-flip-fab {
+  opacity: 0.94;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 30px) scale(1);
+}
+/* Мягкое неоновое свечение при наведении */
+.xbox-case-anchor.is-active:hover .case-flip-fab {
+  opacity: 1;
+  border-color: #d6ffce;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 0 26px rgba(124, 252, 0, 0.85),
+    0 0 52px rgba(0, 255, 65, 0.35),
+    inset 0 0 20px rgba(124, 252, 0, 0.3);
+  transform: translate3d(0, 0, 30px) scale(1.08);
+}
+.xbox-case-anchor.is-active .case-flip-fab .xbox-btn-dot {
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5), 0 0 10px rgba(255, 170, 0, 0.7);
+}
+.case-flip-fab .fab-label {
+  font-family: var(--font-mono);
+  font-size: 7.5px;
+  letter-spacing: 0.6px;
+  line-height: 1;
+  color: var(--theme-toxic);
+  text-shadow: 0 0 8px var(--theme-glow);
+  opacity: 0.95;
+}
+
+/* Stickers & badges */
+.market-sticker {
+  position: absolute;
+  padding: 3px 7px;
+  font-family: var(--font-hand);
+  font-size: clamp(8px, calc(var(--case-w) * 0.042), 13px);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  box-shadow: 2px 3px 6px rgba(0, 0, 0, 0.6);
+  z-index: 10;
+  transform: rotate(-10deg);
+  border: 1px dashed rgba(0, 0, 0, 0.3);
+  line-height: 1;
+}
+.market-sticker.discount {
+  top: 12px;
+  right: 12px;
+  background: #ffeb3b;
+  color: #000;
+  transform: rotate(8deg);
+}
+.market-sticker.busted {
+  top: 12px;
+  right: 12px;
+  background: #ff1744;
+  color: #fff;
+  transform: rotate(-6deg);
+  box-shadow: 0 0 12px #ff1744;
+}
+
+.heat-rating-badge {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  width: clamp(25px, calc(var(--case-w) * 0.12), 38px);
+  height: clamp(31px, calc(var(--case-w) * 0.15), 46px);
+  background: #000;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.8), 0 0 14px rgba(255, 133, 0, 0.35);
+  z-index: 10;
+}
+.heat-rating-badge .hr-val {
+  font-size: clamp(12px, calc(var(--case-w) * 0.06), 18px);
+  font-weight: 900;
+  color: #fff;
+  line-height: 1;
+}
+.heat-rating-badge .hr-lbl {
+  font-size: 7px;
+  font-weight: 900;
+  color: #000;
+  background: #ff8500;
+  width: 100%;
+  text-align: center;
+  margin-top: 2px;
+  letter-spacing: 0.5px;
+}
+
+/* Footer details */
+.case-footer-details {
+  background: #0c120e;
+  padding: clamp(6px, calc(var(--case-w) * 0.034), 11px) clamp(7px, calc(var(--case-w) * 0.045), 14px);
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 12px;
+  border-top: 1px solid #1a291e;
+  flex-shrink: 0;
+}
+.case-title {
+  font-size: clamp(11px, calc(var(--case-w) * 0.055), 17px);
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+.case-price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: clamp(8px, calc(var(--case-w) * 0.043), 13px);
+}
+.case-price-row .price {
+  color: var(--theme-toxic);
+  font-weight: bold;
+  font-size: clamp(10px, calc(var(--case-w) * 0.054), 17px);
+}
+.case-progress-track {
+  height: 4px;
+  margin-top: 6px;
+  background: #07100a;
+  border: 1px solid #1f3323;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.case-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--theme-accent), var(--theme-toxic));
+  box-shadow: 0 0 8px var(--theme-glow);
+  transition: width 0.5s ease;
+}
+.case-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: clamp(7px, calc(var(--case-w) * 0.029), 10px);
+  letter-spacing: 0.4px;
+  color: #78927c;
+  white-space: nowrap;
+}
+.case-progress-meta .pct { color: var(--theme-toxic); }
+
+/* BACK face */
+.case-face.back {
+  transform: rotateY(180deg);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  background-color: #101811;
+  background-image:
+    repeating-linear-gradient(118deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 8px),
+    radial-gradient(ellipse at 78% 10%, rgba(124, 252, 0, 0.07), transparent 50%),
+    linear-gradient(180deg, #18221b 0%, #0d130e 100%);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #d1ded4;
+}
+.back-header-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--theme-accent);
+  padding-bottom: 6px;
+  font-family: var(--font-display);
+  font-size: clamp(12px, calc(var(--case-w) * 0.066), 20px);
+  color: var(--theme-toxic);
+  letter-spacing: 1px;
+}
+.back-screens-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 10px 0;
+}
+.back-screen-pic {
+  height: 70px;
+  border: 1px solid #3d5244;
+  background: #000;
+  overflow: hidden;
+  border-radius: 3px;
+}
+.back-screen-pic img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(1.1);
+}
+.back-handwritten-note {
+  background: rgba(245, 230, 160, 0.95);
+  color: #1a1505;
+  padding: 6px 8px;
+  font-family: var(--font-hand);
+  font-size: clamp(8px, calc(var(--case-w) * 0.04), 12px);
+  line-height: 1.3;
+  transform: rotate(-1.5deg);
+  box-shadow: 2px 3px 6px rgba(0, 0, 0, 0.5);
+  border: 1px dashed rgba(0, 0, 0, 0.3);
+  margin: 6px 0;
+}
+.back-specs-table {
+  background: #080c09;
+  border: 1px solid #223326;
+  padding: 6px;
+  font-size: clamp(7px, calc(var(--case-w) * 0.036), 11px);
+  font-family: var(--font-mono);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.back-specs-table div { color: #8da491; }
+.back-specs-table div span { color: #fff; font-weight: bold; }
+.back-barcode-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-top: 6px;
+  border-top: 1px dashed #2d3d30;
+  font-family: var(--font-doom);
+  font-size: clamp(9px, calc(var(--case-w) * 0.045), 14px);
+  color: #708573;
+}
+.mini-barcode {
+  letter-spacing: 2px;
+  font-size: clamp(12px, calc(var(--case-w) * 0.06), 20px);
+  color: #fff;
+}
+.back-return-btn {
+  width: 100%;
+  justify-content: center;
+  margin: 7px 0 2px;
+  position: relative;
+  z-index: 8;
+  background: linear-gradient(180deg, rgba(255, 170, 0, 0.22), rgba(10, 16, 12, 0.95));
+  border-color: #ffaa00;
+  color: #ffe6a8;
+}
+.back-return-btn:hover { background: #ffaa00; color: #000; }
+/* ============================================================
+   XBOX 360 SYSTEM DASHBOARD · DVD DISC
+   ---------------------------------------------------------
+   Точная копия DVD Xbox 360 (референс: Minecraft Xbox 360 Edition):
+     0. Серебряное отражающее поле диска
+     1. ПРЯМОУГОЛЬНАЯ шелкография с артом (углы срезаны кругом)
+     2. Белая шапка: логотип XBOX 360 слева, зелёный мотив справа
+     3. Технические лейблы: рейтинг/стандарты слева, издатель справа
+     4. Круговой юридический копирайт по внешней кромке
+     5. Дифракционная радуга света по дорожкам
+     6. Прозрачная втулка с голографической лентой «XBOX 360»
+     7. Внешняя прозрачная фаска поликарбоната
+   ============================================================ */
+
+/* ---------- БАЗА ДИСКА ---------- */
+.tray-disc {
+  --disc-size: clamp(138px, calc(var(--case-w) * 0.78), 232px);
+  position: absolute;
+  top: calc(var(--case-h) * 0.1);
+  right: calc(var(--case-w) * -0.02);
+  width: var(--disc-size);
+  height: var(--disc-size);
+  border-radius: 50%;
+  box-shadow:
+    0 10px 34px rgba(0, 0, 0, 0.92),
+    0 0 30px var(--theme-glow);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  transform: translate3d(0, 0, -28px) rotate(-20deg) scale(0.76);
+  opacity: 0;
+  transition:
+    right 0.78s cubic-bezier(0.05, 0.72, 0.18, 1),
+    opacity 0.45s ease,
+    transform 0.78s cubic-bezier(0.05, 0.72, 0.18, 1);
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
+  will-change: right, transform, opacity;
+}
+.xbox-case-anchor.is-active .tray-disc {
+  /* Диск выезжает из лотка так, чтобы было видно бо́льшую часть лица */
+  right: calc(var(--case-w) * -0.78);
+  opacity: 1;
+  transform: translate3d(0, 0, -34px) rotate(0deg) scale(1);
+}
+.xbox-case-anchor.is-active.flipped .tray-disc {
+  right: calc(var(--case-w) * 0.03);
+  opacity: 0;
+  transform: translate3d(0, 0, -62px) rotate(-54deg) scale(0.58);
+}
+
+/* Ротор диска: угол задаётся из JS (--disc-spin) — инерция разгона. */
+.disc-rotor {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  transform: rotate(var(--disc-spin, 0deg)) rotate3d(1, 0.45, 0, var(--disc-wobble, 0deg));
+  will-change: transform;
+}
+.js-disc-motion .disc-rotor { animation: none; }
+body:not(.js-disc-motion) .disc-rotor {
+  animation: discRotorSpin 7.5s linear infinite;
+}
+@keyframes discRotorSpin {
+  0% { transform: rotate(0deg) rotate3d(1, 0.45, 0, 2.5deg); }
+  25% { transform: rotate(90deg) rotate3d(1, 0.45, 0, -1deg); }
+  50% { transform: rotate(180deg) rotate3d(1, 0.45, 0, -2.5deg); }
+  75% { transform: rotate(270deg) rotate3d(1, 0.45, 0, 1deg); }
+  100% { transform: rotate(360deg) rotate3d(1, 0.45, 0, 2.5deg); }
+}
+
+/* ---------- 0. СЕРЕБРЯНОЕ ОТРАЖАЮЩЕЕ ПОЛЕ ---------- */
+.disc-surface {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    /* холодный серебристый градиент */
+    radial-gradient(circle at 34% 24%, #ffffff 0%, #e9efec 22%, #c3ccc9 52%, #97a39f 78%, #6c7774 100%),
+    /* диагональный блик по поликарбонату */
+    linear-gradient(118deg, rgba(255, 255, 255, 0.85) 0%, transparent 28%, transparent 66%, rgba(255, 255, 255, 0.5) 88%, transparent 100%);
+  z-index: 0;
+}
+
+/* ---------- 1. ПРЯМОУГОЛЬНАЯ ШЕЛКОГРАФИЯ (PICTURE DISC) ---------- */
+/* Клип по кругу диска: углы прямоугольной печати срезаны. */
+.disc-print-clip {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  z-index: 1;
+}
+.disc-artwork {
+  position: absolute;
+  left: 13%;
+  right: 11%;
+  top: 29%;
+  bottom: 5%;
+  background-size: cover;
+  background-position: center;
+  filter: contrast(1.08) brightness(0.98) saturate(1.06);
+}
+/* Концентрические дорожки поверх зоны данных */
+.disc-artwork::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-radial-gradient(circle at 50% 50%,
+      rgba(0, 0, 0, 0.12) 0px,
+      rgba(255, 255, 255, 0.07) 1px,
+      transparent 2px,
+      rgba(0, 0, 0, 0.08) 3px,
+      transparent 4px);
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* ---------- 2. БЕЛАЯ ШАПКА + ЗЕЛЁНЫЙ МОТИВ XBOX ---------- */
+.disc-xbox-header {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 32%;
+  /* Нижний край — плавная дуга по форме диска.
+     Именно clip-path, а не border-radius: скругление радиусом 50%
+     «схлопывало» полосу до нуля по краям и обрезало логотип. */
+  clip-path: polygon(
+    0 0, 100% 0,
+    100% 52%, 90% 72%, 74% 87%, 50% 96%,
+    26% 87%, 10% 72%, 0 52%
+  );
+  background: linear-gradient(180deg, #ffffff 0%, #fdfffe 62%, #eef3f0 100%);
+  z-index: 5;
+  /* Тень отделяет белую полосу от зоны данных */
+  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.38));
+}
+
+/* Зелёный мотив Xbox справа — широкая полоса с тёмно-зелёными
+   диагональными полосами, как на фирменной графике Xbox 360. */
+.disc-header-green-swoosh {
+  position: absolute;
+  right: -3%;
+  top: -4%;
+  bottom: -14%;
+  width: 58%;
+  background:
+    repeating-linear-gradient(68deg,
+      rgba(16, 113, 16, 0.55) 0 4%,
+      rgba(16, 113, 16, 0) 4% 13%),
+    linear-gradient(158deg, #c2ff6a 0%, #8cff1a 26%, #52b043 62%, #107c10 100%);
+  transform: skewX(-9deg);
+  border-left: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+/* Логотип XBOX 360 — в левой части белой зоны, ниже кромки с копирайтом.
+   Смещён чуть вправо, чтобы не уходил под перекрывающий бокс коробки. */
+.disc-header-brand {
+  position: absolute;
+  left: 21%;
+  top: 26%;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--disc-size) * 0.034);
+  color: #46564c;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  font-weight: 300;
+  font-size: calc(var(--disc-size) * 0.078);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.disc-brand-logo {
+  width: calc(var(--disc-size) * 0.108);
+  height: calc(var(--disc-size) * 0.108);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+}
+
+/* ---------- 3. ТЕХНИЧЕСКИЕ ЛЕЙБЛЫ ---------- */
+.disc-meta-left {
+  position: absolute;
+  left: 3%;
+  top: 44%;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(var(--disc-size) * 0.018);
+  color: #1d2622;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+.disc-rating-box {
+  min-width: calc(var(--disc-size) * 0.12);
+  height: calc(var(--disc-size) * 0.12);
+  padding: 0 calc(var(--disc-size) * 0.014);
+  border: 2px solid #10160f;
+  border-radius: 2px;
+  background: #fff;
+  color: #10160f;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: calc(var(--disc-size) * 0.062);
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.disc-tech-row {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: calc(var(--disc-size) * 0.04);
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  line-height: 1.15;
+  opacity: 0.88;
+  white-space: nowrap;
+}
+.disc-tech-strong {
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  font-weight: 600;
+  font-size: calc(var(--disc-size) * 0.052);
+  letter-spacing: 0;
+  opacity: 1;
+}
+.dd-mark {
+  font-weight: 700;
+  padding: 0 1px;
+  border: 1px solid rgba(16, 22, 15, 0.75);
+  border-radius: 2px;
+  margin-right: 2px;
+}
+
+.disc-meta-right {
+  position: absolute;
+  right: 6%;
+  top: 47%;
+  z-index: 6;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: calc(var(--disc-size) * 0.014);
+  color: #1d2622;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  max-width: 40%;
+}
+.disc-studio-label {
+  font-family: 'Teko', 'Segoe UI', sans-serif;
+  font-size: calc(var(--disc-size) * 0.072);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  color: #10160f;
+  white-space: nowrap;
+}
+.disc-publisher {
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  font-size: calc(var(--disc-size) * 0.04);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+.disc-title-text {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: calc(var(--disc-size) * 0.038);
+  line-height: 1.15;
+  opacity: 0.8;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- 4. КРУГОВОЙ ЮРИДИЧЕСКИЙ КОПИРАЙТ ПО КРОМКЕ ---------- */
+.disc-edge-legal {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 7;
+  overflow: visible;
+  pointer-events: none;
+}
+.disc-edge-legal text {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 3.9px;
+  letter-spacing: 0.26px;
+  fill: rgba(40, 52, 45, 0.62);
+}
+
+/* ---------- 5. ДИФРАКЦИОННАЯ РАДУГА ПО ДОРОЖКАМ ---------- */
+.disc-holo-shine {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(255, 255, 255, 0.45) 16deg,
+    rgba(255, 205, 80, 0.38) 48deg,
+    transparent 88deg,
+    rgba(110, 210, 255, 0.36) 158deg,
+    transparent 208deg,
+    rgba(255, 140, 210, 0.36) 266deg,
+    transparent 318deg
+  );
+  mix-blend-mode: screen;
+  opacity: 0.5;
+  animation: discHoloSpin 6s linear infinite;
+  /* Белая шапка и зона этикетки остаются матовыми */
+  -webkit-mask-image: linear-gradient(180deg, transparent 0 28%, #000 46%);
+  mask-image: linear-gradient(180deg, transparent 0 28%, #000 46%);
+}
+@keyframes discHoloSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- 6. ПРОЗРАЧНАЯ ВТУЛКА + ГОЛОГРАММА ---------- */
+.disc-center-hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32%;
+  height: 32%;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Голографическая лента безопасности — кольцо с повторяющимся «XBOX 360» */
+.disc-holo-ring-svg {
+  position: absolute;
+  inset: -26%;
+  width: 152%;
+  height: 152%;
+  overflow: visible;
+  animation: holoRotate 9s linear infinite;
+}
+@keyframes holoRotate {
+  to { transform: rotate(360deg); }
+}
+.holo-band {
+  opacity: 0.75;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.65));
+}
+.holo-edge {
+  opacity: 0.5;
+}
+.holo-text {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  fill: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 0 3px rgba(140, 90, 255, 0.9);
+}
+
+/* Посадочное отверстие шпинделя */
+.disc-spindle-hole {
+  position: relative;
+  z-index: 12;
+  width: 34%;
+  height: 34%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 34%, #1b241e 0%, #070b08 62%, #000 100%);
+  border: 3px solid rgba(255, 255, 255, 0.62);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.95),
+    0 0 6px rgba(255, 255, 255, 0.35);
+}
+
+/* ---------- 7. ВНЕШНЯЯ ПРОЗРАЧНАЯ ФАСКА ---------- */
+.disc-outer-rim {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 3px rgba(245, 250, 246, 0.4),
+    inset 0 0 0 1.5px rgba(255, 255, 255, 0.75),
+    inset 0 3px 12px rgba(255, 255, 255, 0.28),
+    0 0 0 1px rgba(0, 0, 0, 0.55);
+  z-index: 11;
+  pointer-events: none;
+}
+/* ---------- 8. AURORA RIBBON + CRT OVERLAY ---------- */
+.aurora-ribbon {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-bg);
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.8;
+  mix-blend-mode: screen;
+  pointer-events: none !important;
+}
+.aurora-ribbon i {
+  position: absolute;
+  width: 72vw;
+  height: 46vh;
+  left: -8vw;
+  top: 22vh;
+  border-radius: 52% 48% 60% 40% / 48% 56% 44% 52%;
+  background: radial-gradient(ellipse at 46% 48%, var(--theme-ribbon) 0%, rgba(0, 255, 65, 0.06) 42%, transparent 72%);
+  filter: blur(46px);
+  animation: auroraFlow 17s ease-in-out infinite alternate;
+  will-change: transform, border-radius;
+}
+.aurora-ribbon i:nth-child(2) {
+  width: 58vw;
+  height: 38vh;
+  left: 32vw;
+  top: 8vh;
+  opacity: 0.65;
+  animation-duration: 23s;
+  animation-direction: alternate-reverse;
+  background: radial-gradient(ellipse at 50% 50%, rgba(0, 180, 255, 0.1), transparent 68%);
+}
+.aurora-ribbon i:nth-child(3) {
+  width: 64vw;
+  height: 40vh;
+  left: 16vw;
+  top: 48vh;
+  opacity: 0.55;
+  animation-duration: 29s;
+  background: radial-gradient(ellipse at 50% 50%, rgba(255, 0, 128, 0.07), transparent 68%);
+}
+@keyframes auroraFlow {
+  0% { transform: translate3d(-4%, -2%, 0) rotate(-8deg) scale(0.94); border-radius: 52% 48% 60% 40% / 48% 56% 44% 52%; }
+  50% { transform: translate3d(3%, 3%, 0) rotate(2deg) scale(1.06); border-radius: 42% 58% 46% 54% / 58% 42% 58% 42%; }
+  100% { transform: translate3d(7%, -3%, 0) rotate(9deg) scale(1.12); border-radius: 60% 40% 52% 48% / 42% 60% 40% 58%; }
+}
+
+#crtOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-crt);
+  pointer-events: none !important;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.24) 0 1px, transparent 1px 3px);
+  mix-blend-mode: multiply;
+}
+body.crt-on #crtOverlay { opacity: 0.55; }
+
+/* Бочкообразная дисторсия + хроматическая аберрация по краям */
+#crtOverlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 96% 96% at 50% 50%, transparent 52%, rgba(0, 0, 0, 0.34) 82%, rgba(0, 0, 0, 0.8) 100%);
+  mix-blend-mode: multiply;
+}
+/* Полоса «обратного хода» кадрового импульса */
+#crtOverlay::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 22%;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.035), transparent);
+  animation: crtRoll 7.5s linear infinite;
+  will-change: transform;
+}
+@keyframes crtRoll {
+  from { transform: translate3d(0, -140%, 0); }
+  to { transform: translate3d(0, 560%, 0); }
+}
+
+/* ---------- 9. BOTTOM CONTROLLER BAR ---------- */
+.bottom-controller-bar {
+  position: relative;
+  z-index: 900 !important;
+  pointer-events: auto !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 0 calc(24px + var(--safe-right)) var(--safe-bottom) calc(24px + var(--safe-left));
+  background: rgba(8, 12, 9, 0.95);
+  border-top: 1px solid #1a291e;
+  font-size: 12px;
+  color: #8da48e;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.55);
+}
+
+.controller-hints {
+  display: flex;
+  align-items: center;
+  gap: 8px 18px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.ctrl-hint-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+.ctrl-hint-item:hover { color: #fff; transform: translateY(-1px); }
+
+.footer-right {
+  position: relative;
+  z-index: 901 !important;
+  pointer-events: auto !important;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.footer-boot-btn {
+  position: relative;
+  z-index: 902 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  background: rgba(20, 32, 24, 0.8);
+  border: 1px solid var(--theme-border);
+  color: var(--theme-accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 5px 10px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: background var(--dur-fast) ease, color var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease, transform var(--dur-fast) ease;
+}
+.footer-boot-btn:hover {
+  background: var(--theme-accent);
+  color: #000;
+  border-color: #fff;
+  box-shadow: 0 0 14px var(--theme-glow);
+  transform: translateY(-1px);
+}
+.footer-boot-btn:active { transform: translateY(0) scale(0.97); }

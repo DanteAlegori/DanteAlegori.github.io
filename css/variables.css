@@ -1,0 +1,320 @@
+/* ============================================================
+   XBOX 360 SYSTEM DASHBOARD · VARIABLES, THEMES & RESET
+   ---------------------------------------------------------
+   1. Design tokens (safe areas, layout, motion, z-index)
+   2. Theme skins — FAT / ELITE / GEARS / HALO
+   3. Global reset & base typography
+   4. Shared primitives (Xbox button dots, scrollbars)
+   ============================================================ */
+
+/* ---------- 1. DESIGN TOKENS ---------- */
+:root {
+  /* Safe areas — notch / dynamic island / home indicator */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  /* Layout metrics */
+  --header-h: 76px;
+  --footer-h: 50px;
+  --blades-h: 56px;
+  --case-w: clamp(230px, 21vw, 300px);
+  --case-h: calc(var(--case-w) * 1.414);
+  --case-step: calc(var(--case-w) * 0.79);
+  --stage-h: clamp(350px, 55vh, 520px);
+
+  /* Motion */
+  --ease-blade: cubic-bezier(0.18, 0.89, 0.32, 1.15);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-pop: cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  --dur-fast: 160ms;
+  --dur-med: 320ms;
+  --dur-slow: 520ms;
+
+  /* Typography */
+  --font-ui: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --font-display: 'Teko', 'Segoe UI', sans-serif;
+  --font-mono: 'Share Tech Mono', ui-monospace, 'Courier New', monospace;
+  --font-hand: 'Permanent Marker', 'Segoe UI', cursive;
+  --font-doom: 'VT323', monospace;
+
+  /* Z-index ladder — single source of truth */
+  --z-bg: 1;
+  --z-scene: 10;
+  --z-stage: 50;
+  --z-ribbon: 95;
+  --z-header: 100;
+  --z-backdrop: 900;
+  --z-blade: 1000;
+  --z-crt: 9990;
+  --z-toast: 10000;
+  --z-boot: 10001;
+
+  /* ---------- Default skin: XBOX 360 FAT (2005) ---------- */
+  --theme-bg-1: #17241a;
+  --theme-bg-2: #0c120e;
+  --theme-bg-3: #050706;
+  --theme-ribbon: rgba(82, 176, 67, 0.22);
+  --theme-accent: #52b043;
+  --theme-toxic: #00ff41;
+  --theme-glow: rgba(82, 176, 67, 0.65);
+  --theme-header-bg: linear-gradient(180deg, rgba(30, 42, 33, 0.9) 0%, rgba(10, 15, 11, 0.75) 100%);
+  --theme-blade-active: linear-gradient(180deg, #7cfc00 0%, #52b043 60%, #307a23 100%);
+  --theme-border: rgba(82, 176, 67, 0.35);
+  --case-glow: rgba(82, 176, 67, 0.65);
+  --case-rim: #52b043;
+
+  /* Plastic shell translucency (Xbox 360 green "fat" case) */
+  --shell-tint: rgba(82, 176, 67, 0.26);
+  --shell-tint-deep: rgba(6, 42, 12, 0.55);
+  --shell-rib: rgba(255, 255, 255, 0.055);
+}
+
+/* ---------- 2. THEME SKINS ---------- */
+
+/* XBOX 360 ELITE (2007) — brushed black + ice blue */
+body.theme-elite {
+  --theme-bg-1: #1f2329;
+  --theme-bg-2: #101216;
+  --theme-bg-3: #060709;
+  --theme-ribbon: rgba(120, 140, 160, 0.16);
+  --theme-accent: #788fa6;
+  --theme-toxic: #8ce8ff;
+  --theme-glow: rgba(140, 232, 255, 0.45);
+  --theme-header-bg: linear-gradient(180deg, rgba(28, 33, 40, 0.95) 0%, rgba(10, 12, 15, 0.85) 100%);
+  --theme-blade-active: linear-gradient(180deg, #b0c8e0 0%, #68829e 60%, #3a4b5c 100%);
+  --theme-border: rgba(140, 180, 210, 0.3);
+  --case-glow: rgba(140, 232, 255, 0.45);
+  --case-rim: #788fa6;
+  --shell-tint: rgba(140, 180, 210, 0.2);
+  --shell-tint-deep: rgba(8, 20, 30, 0.55);
+  --shell-rib: rgba(255, 255, 255, 0.05);
+}
+
+/* GEARS OF WAR LIMITED EDITION — crimson */
+body.theme-gears {
+  --theme-bg-1: #301010;
+  --theme-bg-2: #180808;
+  --theme-bg-3: #080202;
+  --theme-ribbon: rgba(220, 30, 30, 0.26);
+  --theme-accent: #d91414;
+  --theme-toxic: #ff3b3b;
+  --theme-glow: rgba(230, 30, 30, 0.7);
+  --theme-header-bg: linear-gradient(180deg, rgba(46, 14, 14, 0.95) 0%, rgba(18, 5, 5, 0.85) 100%);
+  --theme-blade-active: linear-gradient(180deg, #ff4d4d 0%, #c41212 60%, #700606 100%);
+  --theme-border: rgba(220, 40, 40, 0.45);
+  --case-glow: rgba(230, 30, 30, 0.65);
+  --case-rim: #d91414;
+  --shell-tint: rgba(220, 40, 40, 0.24);
+  --shell-tint-deep: rgba(42, 6, 6, 0.55);
+  --shell-rib: rgba(255, 120, 120, 0.05);
+}
+
+/* HALO 3 SPARTAN EDITION — sand gold */
+body.theme-halo {
+  --theme-bg-1: #252b1b;
+  --theme-bg-2: #14170e;
+  --theme-bg-3: #070905;
+  --theme-ribbon: rgba(212, 160, 23, 0.22);
+  --theme-accent: #d4a017;
+  --theme-toxic: #ffbe1a;
+  --theme-glow: rgba(255, 190, 26, 0.65);
+  --theme-header-bg: linear-gradient(180deg, rgba(40, 46, 30, 0.95) 0%, rgba(15, 18, 10, 0.85) 100%);
+  --theme-blade-active: linear-gradient(180deg, #ffd700 0%, #d4a017 60%, #875f0a 100%);
+  --theme-border: rgba(212, 160, 23, 0.4);
+  --case-glow: rgba(255, 190, 26, 0.6);
+  --case-rim: #d4a017;
+  --shell-tint: rgba(212, 160, 23, 0.22);
+  --shell-tint-deep: rgba(38, 28, 6, 0.55);
+  --shell-rib: rgba(255, 235, 180, 0.05);
+}
+
+/* ---------- 3. GLOBAL RESET ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background: #000;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: #000;
+  color: #fff;
+  font-family: var(--font-ui);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: 0;
+}
+
+a {
+  color: inherit;
+}
+
+h1,
+h2,
+h3 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* Scrollbars — Xbox "thin dark" style */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--theme-accent) #050806;
+}
+*::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+*::-webkit-scrollbar-track {
+  background: #050806;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--theme-accent);
+  border-radius: 3px;
+}
+
+/* ---------- 4. SHARED PRIMITIVES ---------- */
+
+/* Xbox 360 coloured face-button dots */
+.xbox-btn-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 900;
+  color: #fff;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5), 0 0 8px rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+.xbox-btn-dot.btn-a { background: #107c10; }
+.xbox-btn-dot.btn-b { background: #d91414; }
+.xbox-btn-dot.btn-x { background: #0078d7; }
+.xbox-btn-dot.btn-y { background: #ffaa00; }
+
+/* Xbox-style action button */
+.btn-xbox {
+  flex: 1;
+  padding: 12px;
+  border-radius: 4px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background var(--dur-fast) ease, color var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease, transform var(--dur-fast) ease;
+  border: none;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+.btn-xbox::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.5s ease;
+}
+.btn-xbox:hover::after { transform: translateX(120%); }
+.btn-xbox.primary {
+  background: linear-gradient(180deg, var(--theme-toxic) 0%, var(--theme-accent) 100%);
+  color: #000;
+  box-shadow: 0 0 15px var(--theme-glow);
+}
+.btn-xbox.primary:hover {
+  background: #fff;
+  transform: translateY(-2px);
+}
+.btn-xbox.secondary {
+  background: #19261d;
+  color: #fff;
+  border: 1px solid #334d3a;
+}
+.btn-xbox--wide {
+  width: 100%;
+  margin-top: 10px;
+}
+.btn-xbox.secondary:hover { background: #263b2c; }
+.btn-xbox.is-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  filter: grayscale(1);
+}
+
+/* Visually hidden but screen-reader accessible */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Скрытый SVG-спрайт с символами */
+.svg-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Focus ring — accessible keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--theme-toxic);
+  outline-offset: 2px;
+}
+
+/* Reduced motion — global kill switch */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

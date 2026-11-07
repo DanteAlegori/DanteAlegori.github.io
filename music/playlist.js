@@ -1,0 +1,76 @@
+/* ============================================================
+   BRADYYCARDIA RADIO — ПЛЕЙЛИСТ САУНДТРЕКА
+   ---------------------------------------------------------
+   Плоский список названий файлов из папки music/.
+
+   Как добавить трек:
+     1. Киньте .mp3 (или .ogg/.wav/.m4a/.flac) в папку music/,
+        лежащую рядом с этим файлом.
+     2. Впишите его имя в список ниже — либо откройте
+        admin.html → вкладка «САУНДТРЕК» и нажмите
+        «Скачать playlist.js», чтобы обновить файл автоматически.
+
+   Имя файла указывается БЕЗ пути к папке music/:
+   витрина сама подставляет префикс music/.
+   ============================================================ */
+window.BRADYYCARDIA_PLAYLIST = [
+  'Avenged Sevenfold — Blined In Chains (NFS Most Wanted 2005 OST) (www.lightaudio.ru).mp3',
+  'bite59 — Босодзоку Импала (www.lightaudio.ru).mp3',
+  'bite59 — Глаза в сторону (www.lightaudio.ru).mp3',
+  'bite59 — Даркслайд (www.lightaudio.ru).mp3',
+  'bite59 — Лоу райд (www.lightaudio.ru).mp3',
+  'bite59 — На связи (www.lightaudio.ru).mp3',
+  'bite59 — Пока Санбой спал (www.lightaudio.ru).mp3',
+  'bite59, IZ YAN — Забей это сон (www.lightaudio.ru).mp3',
+  'bite59, Out Of Stock — Стритуха (www.lightaudio.ru).mp3',
+  'bite59, ЗАВТРА БРОШУ — ОНТК (www.lightaudio.ru).mp3',
+  'Feed The Addiction — OST NFS Most Wanted 2005 (www.lightaudio.ru).mp3',
+  'Hush — Fired Up 2005 (ost «NFS_ Most Wanted») (www.lightaudio.ru).mp3',
+  'Louna — Громче и злей! (www.lightaudio.ru).mp3',
+  'Louna — Дорога бойца (www.lightaudio.ru).mp3',
+  'Louna — Ночь, дорога и рок (www.lightaudio.ru).mp3',
+  'Louna — С нуля (www.lightaudio.ru).mp3',
+  'Louna — С тобой (www.lightaudio.ru).mp3',
+  'Louna — Сделай громче! (www.lightaudio.ru).mp3',
+  'Louna — Сердца из стали (www.lightaudio.ru).mp3',
+  'NFS — Most Wanted (www.lightaudio.ru) (1).mp3',
+  'nfs — Most Wanted (www.lightaudio.ru) (2).mp3',
+  'NFS — Most Wanted (www.lightaudio.ru) (3).mp3',
+  'NFS — Most wanted (www.lightaudio.ru) (4).mp3',
+  'NFS — Most Wanted (www.lightaudio.ru).mp3',
+  'NFS Most Wanted — NFS Most Wanted (www.lightaudio.ru).mp3',
+  'NFS Most Wanted — OST (www.lightaudio.ru).mp3',
+  'NFS Most Wanted OST — The Mann (www.lightaudio.ru).mp3',
+  'NFS_ — Most Wanted (www.lightaudio.ru).mp3',
+  'NRZ — NFS Most Wanted OST 6 (www.lightaudio.ru).mp3',
+  'NRZ — NFS Most Wanted OST 7 (www.lightaudio.ru) (1).mp3',
+  'NRZ — NFS Most Wanted OST 7 (www.lightaudio.ru).mp3',
+  'NRZ — NFS Most Wanted OST 8 (www.lightaudio.ru).mp3',
+  'Static-X — Bled for Days (www.lightaudio.ru).mp3',
+  'Static-X — Cold (www.lightaudio.ru).mp3',
+  'Static-X — Control It (www.lightaudio.ru).mp3',
+  'Static-X — New Pain (www.lightaudio.ru).mp3',
+  'Static-X — Otsegolectric (www.lightaudio.ru).mp3',
+  'Static-X — Push It (www.lightaudio.ru).mp3',
+  'Static-X — Terminal (www.lightaudio.ru).mp3',
+  'Static-X — The Only (www.lightaudio.ru).mp3',
+  'The Rasmus — First Day of My Life (www.lightaudio.ru).mp3',
+  'The Rasmus — In the Shadows (www.lightaudio.ru).mp3',
+  'The Rasmus — Livin\' in a World Without You (www.lightaudio.ru).mp3',
+  'The Rasmus — Night After Night (Out of the Shadows) (www.lightaudio.ru).mp3',
+  'The Rasmus — Shot (www.lightaudio.ru).mp3',
+  'UNDEAD CORPORATION — Embraced by the Flame (www.lightaudio.ru).mp3',
+  'UNDEAD CORPORATION — Everything will freeze (www.lightaudio.ru).mp3',
+  'Undead Corporation — Everything Will Freeze II (www.lightaudio.ru).mp3',
+  'Undead Corporation — Frozen (www.lightaudio.ru).mp3',
+  'UNDEAD CORPORATION — MEGALOMANIA (www.lightaudio.ru).mp3',
+  'UNDEAD CORPORATION — Necrophilia (www.lightaudio.ru).mp3',
+  'UNDEAD CORPORATION — Sad Dream (www.lightaudio.ru).mp3',
+  'Undead Corporation — The Empress (www.lightaudio.ru).mp3',
+  'Undead Corporation — Too Sweet (www.lightaudio.ru).mp3',
+  'UNDEAD CORPORATION — Xing Noises (www.lightaudio.ru).mp3',
+  'Undead Corporation — サニールチルフレクション (www.lightaudio.ru).mp3',
+  'Undead Corporation — ムラサ (www.lightaudio.ru).mp3',
+  'UNDEAD CORPORATION _ Ekoro — Everything will freeze (www.lightaudio.ru).mp3',
+  'UNDEAD CORPORATION DOUJIN WORKS — The Throne (feat. Andy Gillion, みぃ & Michael (Micu)) (www.lightaudio.ru).mp3',
+];
