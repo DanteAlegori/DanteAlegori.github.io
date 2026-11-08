@@ -307,9 +307,10 @@
 
 /* ---------- 7. УКАЗАТЕЛИ И ДОСТУПНОСТЬ ---------- */
 @media (hover: none), (pointer: coarse) {
-  .xbox-case-anchor.is-active .case-holo-sheen { opacity: 0.5; }
-  .xbox-case-anchor.is-active .case-specular { opacity: 0.7; }
+  .card-item.is-active .case-holo-sheen { opacity: 0.5; }
+  .card-item.is-active .case-specular { opacity: 0.7; }
   .carousel-stage { cursor: default; }
+  .carousel-track { cursor: default; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -322,10 +323,14 @@
   #crtOverlay::after {
     animation: none !important;
   }
-  .xbox-case-anchor,
+  .card-item,
   .case-card-inner,
   .blade-panel {
     transition-duration: 0.01ms !important;
+  }
+  /* Уважаем «уменьшить движение»: никакой плавной прокрутки */
+  .carousel-track {
+    scroll-behavior: auto !important;
   }
 }
 

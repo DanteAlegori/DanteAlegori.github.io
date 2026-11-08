@@ -230,7 +230,11 @@
         <span class="cnb-label">PREV</span>
       </button>
 
-      <div class="carousel-stage" id="carouselStage"><!-- JS --></div>
+      <div class="carousel-stage" id="carouselStage">
+        <!-- Нативный CSS Scroll Snap: инерцию, «резиновый» край и
+             долистывание до карточки считает сам браузер. -->
+        <div class="carousel-track" id="carouselTrack"><!-- JS --></div>
+      </div>
 
       <button class="carousel-nav-btn next" id="carouselNextBtn" type="button" title="Следующий диск" aria-label="Следующий диск">
         <span class="cnb-arrow" aria-hidden="true">›</span>

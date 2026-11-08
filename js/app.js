@@ -577,7 +577,7 @@
         }
 
         // Голографический sheen + parallax только у активной коробки.
-        const activeCase = dashboard.querySelector('.xbox-case-anchor.is-active');
+        const activeCase = dashboard.querySelector('.card-item.is-active');
         if (!activeCase) return;
         const ar = activeCase.getBoundingClientRect();
         if (!ar.width || !ar.height) return;
@@ -653,7 +653,7 @@
   function carouselAnchors() {
     const stage = el('carouselStage');
     if (!stage) return [];
-    return Array.prototype.slice.call(stage.querySelectorAll('.xbox-case-anchor'));
+    return Array.prototype.slice.call(stage.querySelectorAll('.card-item'));
   }
 
   /** Гироскоп смартфона — наклон двигает блик. */
@@ -664,7 +664,7 @@
       if (e.beta == null && e.gamma == null) return;
       const beta = Number(e.beta) || 0;   // наклон вперёд-назад
       const gamma = Number(e.gamma) || 0; // наклон влево-вправо
-      const activeCase = document.querySelector('.xbox-case-anchor.is-active');
+      const activeCase = document.querySelector('.card-item.is-active');
       if (!activeCase) return;
       // -45..45 градусов → 0..1
       const nx = utils.clamp((gamma + 45) / 90, 0, 1);
@@ -1155,6 +1155,7 @@
     // --- Карусель ---
     Carousel.init({
       stage: el('carouselStage'),
+      track: el('carouselTrack'),
       prevBtn: el('carouselPrevBtn'),
       nextBtn: el('carouselNextBtn'),
       pipsBox: el('carouselPipsBar'),

@@ -1,12 +1,24 @@
 /* ============================================================
    XBOX 360 SYSTEM DASHBOARD · COVERFLOW CAROUSEL
    ---------------------------------------------------------
-   • Математика 3D-раскладки, корректная для 0 / 1 / 2 / 5 / 20+ карточек
-   • Физика свайпа с инерцией и rubber-band
-   • Вращение обложек на 360°
-   • Расчёт глубины (z-index) по дистанции
-   • Разделение Drag vs Click: порог 10px, pointer events на
-     дочерних кнопках не перехватываются
+   АРХИТЕКТУРА: нативный CSS Scroll Snap.
+
+   • .carousel-track — настоящий скролл-контейнер браузера.
+     Инерцию, «резиновый» край, momentum и долистание до
+     ближайшей карточки считает САМ браузер (нативное ощущение
+     на iOS/Android — без единой строки JS-физики).
+
+   • JS больше НЕ двигает карточки. Он только:
+       – пересчитывает 3D-«веер» по текущей позиции скролла
+         (transform + z-index, без reflow);
+       – синхронизирует активный индекс и кол-во точек;
+       – эмулирует drag-to-scroll для МЫШИ (у тачскрина —
+         чистая нативка, браузер скроллит сам);
+       – переводит колесо мыши в «переключение карточки»
+         (snap-type: mandatory иначе гасит короткий скролл).
+
+   Бонус: карточки вне экрана выпадают из рендера автоматически
+   (content-visibility: auto), а не вручную — как раньше.
    ============================================================ */
 (function (global) {
   'use strict';
@@ -15,18 +27,21 @@
   const utils = X360.utils;
 
   /* ---------------------------------------------------------
-     КОНСТАНТЫ ФИЗИКИ
+     КОНСТАНТЫ
      --------------------------------------------------------- */
-  const CLICK_SLOP = 6;        // px — ниже этого жест считается кликом
-  const SWIPE_THRESHOLD = 48;  // px — порог переключения карточки
-  const FLICK_VELOCITY = 0.35; // px/ms — порог «флик»-свайпа
-  const WHEEL_STEP = 42;       // px накопленного колеса = одна карточка
-  const RUBBER_BAND = 0.42;       // коэффициент сопротивления за пределами
-  const MAX_VISIBLE = 7;          // максимум карточек в кадре (десктоп)
-  const MIN_NEAR = 1;             // минимум соседей у активной карточки
+  const CLICK_SLOP = 6;         // px — ниже этого жест считается кликом
+  const FLICK_VELOCITY = 0.35;  // px/ms — порог «флик»-свайпа мышью
+  const WHEEL_RATIO = 0.5;      // доля шага, при которой колесо «щёлкает» карточку
+  const FAN_RADIUS = 2;         // сколько соседей получают 3D-трансформацию
+  const PERSPECTIVE = 1000;     // px — перспектива «веера»
+  const FAN_ROT = 28;           // градусов наклона соседней карточки
+  const FAN_DEPTH = 110;        // px — уход вглубь на одну позицию
+  const FAN_LIFT = 160;         // px — выезд активной карточки вперёд
+  const FAN_SCALE = 1.15;       // масштаб активной карточки
 
   const carousel = {
     stage: null,
+    track: null,
     prevBtn: null,
     nextBtn: null,
     pipsBox: null,
@@ -38,7 +53,21 @@
     onOpenGuide: null,
     onToggleFlip: null,
     onSfx: null,
-    // drag state
+
+    //几何/geometрия
+    anchors: [],       // .card-item элементы (в порядке items)
+    cardWidth: 240,
+    caseStep: 268,    // расстояние между центрами соседних карточек
+
+    // scroll sync
+    scrollRaf: 0,
+    syncing: false,   // идёт программная прокрутка — индекс не трогаем
+    syncTimer: 0,
+
+    // wheel
+    wheelAccum: 0,
+
+    // мышь
     pointerId: null,
     startX: 0,
     startY: 0,
@@ -47,97 +76,106 @@
     velocity: 0,
     dragging: false,
     moved: false,
-    baseIndex: 0,
-    // PERF/UX: кеш DOM и геометрии — чтобы не пересчитывать
-    // layout на каждом кадре свайпа
-    anchors: [],
-    baseTransforms: [],
-    caseStep: 180,
-    nearRadius: 3,
-    farRadius: 5,
-    dragDx: 0,
-    dragRaf: 0,
-    inertiaRaf: 0,
-    swallowHandler: null,
+    startScroll: 0,
+
+    // защита от ложного клика после свайпа
+    downScroll: 0,
+    scrolledSinceDown: false,
+
     pips: [],
     pipSig: ''
   };
 
   /* ---------------------------------------------------------
-     МАТЕМАТИКА РАСКЛАДКИ
+     ГЕОМЕТРИЯ «ВЕЕРА»
      ---------------------------------------------------------
-
-     Ключевая проблема старого кода: сдвиг вычислялся как
-     ((idx - active) % total + total) % total, а затем «схлопывался»
-     в диапазон [-total/2, total/2]. Для total = 1 или 2 это давало
-     неверное позиционирование (карточки наезжали друг на друга).
-
-     Здесь используется «короткое круговое расстояние»: для каждой
-     карточки выбирается ближайшее к активной позиция в кольце, при
-     равенстве расстояний — предпочтение отдаётся левой стороне
-     (для чётного количества это даёт симметричную раскладку).
+     d — дробное расстояние от центра (0 = активная карточка).
+     Формулы подобраны так, чтобы при d = 0,1,2 получалось ровно
+     то же, что давала старая кольцевая раскладка, но без разрывов
+     в промежуточных точках (важно при плавном скролле).
      --------------------------------------------------------- */
-
-  /**
-   * Короткое знаковое расстояние от активной карточки.
-   *
-   * Кольцо всегда центрируется на активной карточке, а расстояния
-   * до соседей остаются сбалансированными при ЛЮБОМ количестве
-   * элементов (соседи ±1 и ±2 присутствуют всегда, когда есть чему):
-   *   n=1 → [0]
-   *   n=2 → [0, -1]
-   *   n=3 → [0, 1, -1]
-   *   n=4 → [0, 1, -2, -1]
-   *   n=5 → [0, 1, 2, -2, -1]
-   *   n=20 → [0, 1..9, -10..-1]
-   *
-   * @param {number} index — индекс карточки
-   * @param {number} active — индекс активной карточки
-   * @param {number} total — общее количество карточек
-   * @returns {number} смещение
-   */
-  function shortestOffset(index, active, total) {
-    if (total <= 1) return 0;
-
-    // Приводим разницу в диапазон [0, total)
-    const raw = (((index - active) % total) + total) % total;
-    // Половина кольца (с округлением вниз) уходит вправо, остальное — влево.
-    const half = Math.floor((total - 1) / 2);
-    return raw <= half ? raw : raw - total;
+  function fanFor(d) {
+    const ad = Math.abs(d);
+    // 0 — центр, 1 — «обычная» карточка, дальше — уход вглубь
+    const t = Math.min(1, ad / 0.55);
+    const deep = ad > 1 ? (ad - 1) * FAN_DEPTH : 0;
+    const z = FAN_LIFT * (1 - t) + (-FAN_DEPTH * ad) * t - deep;
+    const scale = FAN_SCALE * (1 - t) + Math.max(0.72, 1 - ad * 0.05) * t;
+    const ry = -FAN_ROT * Math.max(-2.4, Math.min(2.4, d));
+    const zi = Math.max(1, 30 - Math.round(ad * 3));
+    return { z: z, scale: scale, ry: ry, zi: zi };
   }
 
   /**
-   * Позиция карточки в 3D-пространстве.
+   * Пересчитывает 3D-трансформации видимых карточек.
+   * Работает ТОЛЬКО с transform/opacity — ни reflow, ни paint.
    */
-  function computeTransform(index, active, total, caseStep) {
-    const offset = shortestOffset(index, active, total);
-    const distance = Math.abs(offset);
-    const isActive = index === active;
+  function applyFan(frac) {
+    const anchors = carousel.anchors;
+    if (!anchors.length) return;
 
-    const posX = offset * caseStep;
-    // Активная карточка выезжает вперёд, остальные уходят вглубь.
-    const posZ = isActive ? 160 : -distance * 110;
-    // Угол поворота: чем дальше от центра, тем сильнее «заворачивается».
-    const rotY = offset * -28;
-    // Масштаб: активная крупнее, дальние мельче.
-    const scale = isActive ? 1.15 : Math.max(0.72, 1 - distance * 0.05);
+    const from = Math.max(0, Math.floor(frac) - FAN_RADIUS);
+    const to = Math.min(anchors.length - 1, Math.ceil(frac) + FAN_RADIUS);
 
-    return { offset, distance, isActive, posX, posZ, rotY, scale };
-  }
-
-  /**
-   * z-index: чем ближе к центру, тем выше. Глубина сцены
-   * рассчитывается от дистанции, а не от индекса в DOM.
-   */
-  function computeZIndex(distance, isActive) {
-    if (isActive) return 30;
-    return Math.max(1, 30 - Math.min(distance * 3, 29));
+    for (let i = 0; i < anchors.length; i++) {
+      const anchor = anchors[i];
+      if (i < from || i > to) {
+        // За кадром: снимаем 3D и слой, чтобы не жечь видеопамять.
+        if (anchor.classList.contains('is-near')) {
+          anchor.classList.remove('is-near');
+          anchor.style.transform = '';
+          anchor.style.zIndex = '';
+        }
+        continue;
+      }
+      const f = fanFor(i - frac);
+      anchor.style.transform =
+        'perspective(' + PERSPECTIVE + 'px) ' +
+        'translate3d(0, 0, ' + f.z.toFixed(1) + 'px) ' +
+        'rotateY(' + f.ry.toFixed(2) + 'deg) ' +
+        'scale(' + f.scale.toFixed(3) + ')';
+      anchor.style.zIndex = String(f.zi);
+      if (!anchor.classList.contains('is-near')) anchor.classList.add('is-near');
+    }
   }
 
   /* ---------------------------------------------------------
-     RENDERING
+     ИЗМЕРЕНИЯ
      --------------------------------------------------------- */
+  function measure() {
+    const track = carousel.track;
+    const anchors = carousel.anchors;
+    if (!track || !anchors.length) return;
 
+    // Ширина карточки — из вычисленных стилей (без transform),
+    // поэтому число дробное и точное.
+    const cs = getComputedStyle(anchors[0]);
+    const width = parseFloat(cs.width) || anchors[0].offsetWidth || 230;
+    const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
+
+    carousel.cardWidth = width;
+    carousel.caseStep = width + gap;
+  }
+
+  /** Индекс карточки по позиции скролла (дробный — для «веера»). */
+  function fracAt(scrollLeft) {
+    if (!carousel.caseStep) return 0;
+    return scrollLeft / carousel.caseStep;
+  }
+
+  function indexAt(scrollLeft) {
+    const raw = Math.round(fracAt(scrollLeft));
+    return utils.clamp(raw, 0, Math.max(0, carousel.items.length - 1));
+  }
+
+  /** scrollLeft, при котором карточка i оказывается по центру. */
+  function offsetOf(index) {
+    return index * carousel.caseStep;
+  }
+
+  /* ---------------------------------------------------------
+     СБОРКА КАРТОЧЕК
+     --------------------------------------------------------- */
   function buildCard(item, idx) {
     const isBusted = item.status === 'busted';
     const photoRaw = utils.safeUrl(item.photoUrl) || X360.FALLBACK_ART;
@@ -163,7 +201,7 @@
     const pct = max ? Math.round((saved / max) * 100) : (isBusted ? 100 : 0);
 
     const anchor = document.createElement('div');
-    anchor.className = 'xbox-case-anchor';
+    anchor.className = 'card-item';
     anchor.dataset.itemId = String(item.id || item.title || idx);
     anchor.setAttribute('role', 'group');
     anchor.setAttribute('aria-label', `Диск: ${item.title || 'без названия'}`);
@@ -271,7 +309,7 @@
             <span class="xbox-btn-dot btn-y">Y</span> ВЕРНУТЬ ОБЛОЖКУ
           </button>
         </div>
-        <!-- ============================================================        <!-- ============================================================
+        <!-- ============================================================
              CUSTOM PRINTED DVD DISC — Xbox 360 (Minecraft: Xbox 360 Edition)
              Референс: серебряное отражающее поле, ПРЯМОУГОЛЬНАЯ
              шелкография с артом (углы срезаны кругом диска),
@@ -289,7 +327,7 @@
               <div class="disc-artwork"></div>
             </div>
 
-            <!-- 2. Белая шапка: логотип слева, зелёный мотив Xbox справа -->
+            <!-- 2. Белая шапка: логотип XBOX 360 слева, зелёный мотив справа -->
             <div class="disc-xbox-header">
               <div class="disc-header-green-swoosh"></div>
               <div class="disc-header-brand">
@@ -362,7 +400,7 @@
     bindImageFallbacks(anchor);
 
     /* PERF: кешируем ссылки на узлы — вместо querySelector на каждом
-       layout() (десятки запросов к DOM на каждый свайп/перелистывание). */
+       layout() (десятки запросов к DOM на каждое перелистывание). */
     anchor._refs = {
       discArt: anchor.querySelector('.disc-artwork'),
       cover: anchor.querySelector('.case-artwork-wrap img'),
@@ -409,22 +447,21 @@
   /* ---------------------------------------------------------
      BUILD / LAYOUT
      --------------------------------------------------------- */
-
   function build() {
-    if (!carousel.stage) return;
+    const track = carousel.track;
+    if (!track) return;
     const items = carousel.items;
-    carousel.stage.innerHTML = '';
+    track.innerHTML = '';
     carousel.sig = signature(items);
 
     if (!items.length) {
-      carousel.stage.innerHTML = `
+      track.innerHTML = `
         <div class="empty-stage">
           <div class="empty-disc">◌</div>
           <strong>В ЭТОМ РАЗДЕЛЕ ПОКА ПУСТО</strong>
           <span>Добавь цель в мастерской NERO — и она появится на полке.</span>
         </div>`;
       carousel.anchors = [];
-      carousel.baseTransforms = [];
       updateNavState();
       return;
     }
@@ -439,20 +476,271 @@
       anchors.push(anchor);
       frag.appendChild(anchor);
     });
-    carousel.stage.appendChild(frag);
+    track.appendChild(frag);
 
     // PERF: кешируем ссылки — layout() больше не делает querySelectorAll.
     carousel.anchors = anchors;
-    carousel.baseTransforms = new Array(anchors.length);
 
     layout();
   }
 
+  /**
+   * Пересчитывает геометрию трека и «веер».
+   * Вызывается при сборке, ресайзе и смене скина.
+   */
+  function layout() {
+    const track = carousel.track;
+    if (!track) return;
+    const items = carousel.items;
+    if (!items.length || !carousel.anchors.length) {
+      updateNavState();
+      return;
+    }
+
+    measure();
+
+    // Гарантированный сброс перевоорота при смене активного диска.
+    const activeItem = items[carousel.activeIndex];
+    const activeId = activeItem ? String(activeItem.id || activeItem.title || carousel.activeIndex) : '';
+    if (activeId !== X360.state.lastActiveCaseId) {
+      X360.state.lastActiveCaseId = activeId;
+      carousel.isFlipped = false;
+      X360.state.isFlipped = false;
+    }
+
+    syncActiveClass();
+
+    // Первая карточка должна оказаться по центру — сбрасываем скролл.
+    const frac = fracAt(track.scrollLeft);
+    applyFan(frac);
+
+    // Ленивый арт диска: текущая карточка и её соседи.
+    const activeIdx = carousel.activeIndex;
+    [activeIdx - 1, activeIdx, activeIdx + 1].forEach((i) => {
+      if (i < 0 || i >= items.length) return;
+      applyDiscArt(carousel.anchors[i]);
+    });
+
+    bindDiscPhysics(carousel.activeIndex);
+    updateNavState();
+  }
+
+  function updateNavState() {
+    const items = carousel.items;
+    const count = items.length;
+
+    if (carousel.prevBtn) carousel.prevBtn.classList.toggle('is-disabled', count <= 1);
+    if (carousel.nextBtn) carousel.nextBtn.classList.toggle('is-disabled', count <= 1);
+
+    if (!carousel.pipsBox) return;
+    if (count <= 1) {
+      carousel.pipsBox.style.display = 'none';
+      carousel.pipsBox.innerHTML = '';
+      carousel.pips = [];
+      carousel.pipSig = '';
+      return;
+    }
+    carousel.pipsBox.style.display = 'flex';
+
+    /* PERF: точки навигации пересобираются ТОЛЬКО при изменении их
+       количества. Раньше innerHTML = '' + создание N кнопок выполнялось
+       на КАЖДОМ перелистывании. */
+    const sig = String(count);
+    if (carousel.pipSig !== sig) {
+      carousel.pipSig = sig;
+      carousel.pipsBox.innerHTML = '';
+      carousel.pips = [];
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < count; i++) {
+        const pip = document.createElement('button');
+        pip.type = 'button';
+        pip.className = 'carousel-pip';
+        pip.title = 'Диск ' + (i + 1);
+        pip.setAttribute('aria-label', 'Перейти к диску ' + (i + 1));
+        pip.addEventListener('click', (function (index) {
+          return function () { setActive(index); };
+        })(i));
+        carousel.pips.push(pip);
+        frag.appendChild(pip);
+      }
+      carousel.pipsBox.appendChild(frag);
+    }
+
+    for (let i = 0; i < carousel.pips.length; i++) {
+      carousel.pips[i].classList.toggle('active', i === carousel.activeIndex);
+    }
+  }
+
+  /* ---------------------------------------------------------
+     СИНХРОНИЗАЦИЯ СО СКРОЛЛОМ
+     --------------------------------------------------------- */
+  function onScroll() {
+    if (carousel.scrollRaf) return;
+    carousel.scrollRaf = requestAnimationFrame(function () {
+      carousel.scrollRaf = 0;
+      const track = carousel.track;
+      if (!track) return;
+
+      const frac = fracAt(track.scrollLeft);
+      applyFan(frac);
+
+      // Пока идёт НАША программная прокрутка — индекс не трогаем,
+      // иначе пролетаем через все промежуточные карточки.
+      if (carousel.syncing) {
+        if (Math.abs(track.scrollLeft - offsetOf(carousel.activeIndex)) < 1.5) {
+          carousel.syncing = false;   // доскроллили — синхронизация восстановлена
+        }
+        return;
+      }
+
+      const idx = indexAt(track.scrollLeft);
+      if (idx === carousel.activeIndex) return;
+
+      carousel.activeIndex = idx;
+      X360.state.activeIndex = idx;
+
+      carousel.isFlipped = false;
+      X360.state.isFlipped = false;
+      syncActiveClass();
+
+      if (carousel.onSfx) carousel.onSfx('nav');
+      if (carousel.onActivate) carousel.onActivate(carousel.items[idx], idx);
+    });
+  }
+
+  /** Проставляет .is-active / .flipped на нужных карточках. */
+  function syncActiveClass() {
+    const anchors = carousel.anchors;
+    for (let i = 0; i < anchors.length; i++) {
+      const isActive = i === carousel.activeIndex;
+      anchors[i].classList.toggle('is-active', isActive);
+      anchors[i].classList.toggle('flipped', isActive && carousel.isFlipped);
+    }
+  }
+
+  /* ---------------------------------------------------------
+     НАВИГАЦИЯ
+     --------------------------------------------------------- */
+  /**
+   * Прокручивает трек к карточке.
+   * behavior: 'smooth' — плавно (по умолчанию), 'instant' — мгновенно.
+   * ВАЖНО: опция 'auto' в scrollTo означает «использовать CSS
+   * scroll-behavior», а он у нас smooth — поэтому для мгновенного
+   * прыжка нужен именно 'instant' (+ подстраховка inline-стилем).
+   */
+  function scrollToIndex(index, behavior) {
+    const track = carousel.track;
+    if (!track) return;
+    carousel.syncing = true;
+    clearTimeout(carousel.syncTimer);
+    // Страховка: если прокрутка не доехала (пользователь перехватил
+    // трек), синхронизация всё равно восстановится.
+    carousel.syncTimer = setTimeout(function () {
+      carousel.syncing = false;
+    }, 1500);
+
+    const instant = behavior === 'instant';
+    if (instant) track.style.scrollBehavior = 'auto';
+    try {
+      track.scrollTo({ left: offsetOf(index), behavior: instant ? 'instant' : 'smooth' });
+    } catch (err) {
+      track.scrollLeft = offsetOf(index);
+    }
+    if (instant) {
+      // Возвращаем плавность после применения мгновенного прыжка.
+      requestAnimationFrame(function () { track.style.scrollBehavior = ''; });
+    }
+  }
+
+  function setActive(index, opts) {
+    const options = opts || {};
+    const count = carousel.items.length;
+    if (!count) return;
+
+    const next = utils.clamp(index, 0, count - 1);
+    const changed = next !== carousel.activeIndex;
+
+    carousel.activeIndex = next;
+    X360.state.activeIndex = next;
+
+    if (changed && !options.silent) {
+      carousel.isFlipped = false;
+      X360.state.isFlipped = false;
+    }
+
+    scrollToIndex(next, options.behavior || 'smooth');
+    syncActiveClass();
+    applyFan(next);
+
+    if (changed && carousel.onActivate) carousel.onActivate(carousel.items[next], next);
+  }
+
+  /** Циклический шаг (с первого — на последний). */
+  function step(delta) {
+    const count = carousel.items.length;
+    if (!count) return;
+    const next = ((carousel.activeIndex + delta) % count + count) % count;
+    // Перескок через весь список — мгновенный, плавная прокрутка
+    // через 30 карточек выглядела бы «полётом».
+    setActive(next, { behavior: (next === 0 || next === count - 1) ? 'instant' : 'smooth' });
+  }
+
+  /** Шаг с «залипанием» на краях. */
+  function stepClamped(delta) {
+    const count = carousel.items.length;
+    if (!count) return;
+    const next = carousel.activeIndex + delta;
+    if (next < 0 || next > count - 1) {
+      bounce();
+      return;
+    }
+    setActive(next);
+  }
+
+  function bounce() {
+    const stage = carousel.stage;
+    if (!stage) return;
+    stage.classList.add('is-bouncing');
+    setTimeout(() => stage.classList.remove('is-bouncing'), 220);
+  }
+
+  /* ---------------------------------------------------------
+     ПЕРЕВОРОТ КОРОБКИ
+     --------------------------------------------------------- */
+  function toggleFlip(force) {
+    const count = carousel.items.length;
+    if (!count) return;
+
+    const next = typeof force === 'boolean' ? force : !carousel.isFlipped;
+    carousel.isFlipped = next;
+    X360.state.isFlipped = next;
+
+    syncActiveClass();
+
+    if (carousel.onToggleFlip) carousel.onToggleFlip(next);
+  }
+
+  function unflipped() {
+    if (!carousel.isFlipped) return;
+    toggleFlip(false);
+  }
+
+  /** Полный оборот коробки на 360°. */
+  function spinActive() {
+    const anchor = carousel.anchors[carousel.activeIndex] || null;
+    if (!anchor) return;
+    anchor.classList.remove('is-spinning');
+    // Принудительный reflow, чтобы анимация перезапустилась.
+    void anchor.offsetWidth;
+    anchor.style.setProperty('--spin-from', anchor.style.transform || 'none');
+    anchor.classList.add('is-spinning');
+    setTimeout(() => anchor.classList.remove('is-spinning'), 950);
+    if (carousel.onSfx) carousel.onSfx('flip');
+  }
+
   /* ---------------------------------------------------------
      ФИЗИКА ДИСКА — мягкое вращение с инерцией
-     Угол задаётся CSS-переменной --disc-spin на активном роторе:
-     так анимация не конфликтует с CSS-анимацией и даёт
-     «разгон» после выезда диска из лотка.
+     Угол задаётся CSS-переменной --disc-spin на активном роторе.
      --------------------------------------------------------- */
   const discPhysics = {
     raf: null,
@@ -518,17 +806,17 @@
     if (rotor) startDiscPhysics();
   }
 
+  /* ---------------------------------------------------------
+     СОБЫТИЯ КАРТОЧЕК
+     --------------------------------------------------------- */
   function bindCardEvents(anchor, item, idx) {
     /**
      * Полная изоляция события кнопки — ТОЛЬКО на самом `click`.
      *
      * ВАЖНО: нельзя вызывать preventDefault() на pointerup/mousedown —
      * по спецификации Pointer Events отмена pointerup отменяет
-     * совместимостные mouse-события, а значит и браузер НЕ сгенерирует
+     * совместимостные mouse-событы, а значит и браузер НЕ сгенерирует
      * `click`. Кнопка «Y 360°» выглядела «мёртвой» именно из-за этого.
-     *
-     * stopPropagation останавливает всплытие до карточки,
-     * stopImmediatePropagation — до остальных слушателей на кнопке.
      */
     function isolateClick(e) {
       e.preventDefault();
@@ -548,14 +836,11 @@
         isolateClick(e);
         if (!anchor.classList.contains('is-active')) {
           setActive(idx, { silent: true });
-          // После активации сразу переворачиваем — гость нажал один раз.
           toggleFlip();
           return;
         }
         toggleFlip();
       });
-      // Гасим всплытие указателя, но НЕ отменяем default —
-      // иначе браузер не сгенерирует click.
       fabBtn.addEventListener('pointerdown', isolatePointer);
       fabBtn.addEventListener('pointerup', isolatePointer);
       fabBtn.addEventListener('mousedown', isolatePointer);
@@ -621,8 +906,8 @@
     anchor.addEventListener('click', (e) => {
       // Клик по дочерней кнопке обрабатывается её собственным хендлером.
       if (e.target.closest && e.target.closest('button, a, input, select, textarea')) return;
-      // Если это был свайп — клик проглатываем.
-      if (carousel.moved) return;
+      // После свайпа скролл изменился — клик проглатываем.
+      if (carousel.scrolledSinceDown) return;
 
       if (idx !== carousel.activeIndex) {
         setActive(idx);
@@ -634,544 +919,156 @@
     });
   }
 
-  /**
- * Радиус видимости подбирается под ширину экрана.
- * На телефоне в кадре живут 1–3 карточки, на десктопе — до 7.
- * Это главный рычаг по расходу видеопамяти на мобильном GPU.
- */
-function computeRadii(step) {
-  const stage = carousel.stage;
-  const width = stage ? stage.clientWidth : 800;
-  // Сколько карточек реально помещается по бокам от центра.
-  const fit = Math.max(MIN_NEAR, Math.floor((width / 2 + step * 0.65) / step));
-  const near = Math.min(MAX_VISIBLE - 1, Math.max(MIN_NEAR, fit));
-  const far = Math.min(MAX_VISIBLE + 1, near + 2);
-  return { near: near, far: far };
-}
-
-function layout() {
-    if (!carousel.stage) return;
-    const items = carousel.items;
-    const anchors = carousel.anchors;
-    if (!items.length || !anchors.length) {
-      updateNavState();
-      return;
-    }
-
-    // Шаг карусели зависит от реальной ширины коробки (адаптивность).
-    // ВАЖНО: меряем АКТИВНУЮ карточку — далёкие карточки сейчас
-    // в display:none и дают offsetWidth === 0.
-    const activeAnchor = anchors[carousel.activeIndex] || anchors[0];
-    const caseWidth = (activeAnchor && activeAnchor.offsetWidth) || 230;
-    const caseStep = Math.max(110, caseWidth * 0.79);
-    carousel.caseStep = caseStep;
-
-    const radii = computeRadii(caseStep);
-    carousel.nearRadius = radii.near;
-    carousel.farRadius = radii.far;
-
-    // Гарантированный сброс переворота при смене активного диска.
-    const activeItem = items[carousel.activeIndex];
-    const activeId = activeItem ? String(activeItem.id || activeItem.title || carousel.activeIndex) : '';
-    if (activeId !== X360.state.lastActiveCaseId) {
-      X360.state.lastActiveCaseId = activeId;
-      carousel.isFlipped = false;
-      X360.state.isFlipped = false;
-    }
-
-    const total = items.length;
-    const base = carousel.baseTransforms;
-
-    for (let idx = 0; idx < anchors.length; idx++) {
-      const anchor = anchors[idx];
-      const t = computeTransform(idx, carousel.activeIndex, total, caseStep);
-      const z = computeZIndex(t.distance, t.isActive);
-
-      anchor.style.transform = 'translate3d(' + t.posX.toFixed(2) + 'px, 0, ' + t.posZ.toFixed(1) + 'px) ' +
-        'rotateY(' + t.rotY.toFixed(2) + 'deg) scale(' + t.scale.toFixed(3) + ')';
-      anchor.style.zIndex = String(z);
-      anchor.classList.toggle('is-active', t.isActive);
-      anchor.classList.toggle('flipped', t.isActive && carousel.isFlipped);
-
-      /* МОБИЛЬНАЯ ВИРТУАЛИЗАЦИЯ (3 уровня):
-         is-near      — полноценный 3D + свой композитинг-слой;
-         is-offscreen — не рисуется (visibility:hidden), слоя нет;
-         is-far       — display:none, элемент вынут из дерева рендера. */
-      const isNear = t.distance <= radii.near;
-      anchor.classList.toggle('is-near', isNear);
-      anchor.classList.toggle('is-offscreen', !isNear);
-      anchor.classList.toggle('is-far', t.distance > radii.far);
-
-      // Базовая геометрия для drag-рендера (нужна только видимым).
-      base[idx] = isNear
-        ? { x: t.posX, z: t.posZ, rot: t.rotY, scale: t.scale }
-        : null;
-
-      anchor.setAttribute('aria-hidden', t.isActive ? 'false' : 'true');
-    }
-
-    /* Ленивый арт диска: подгружаем текущую карточку и её соседей,
-       чтобы перелистывание не ждало загрузки из сети. */
-    const activeIdx = carousel.activeIndex;
-    [activeIdx - 1, activeIdx, activeIdx + 1].forEach((i) => {
-      if (i < 0 || i >= total) return;
-      applyDiscArt(anchors[i]);
-    });
-
-    // Физика вращения диска привязана к активной карточке.
-    bindDiscPhysics(carousel.activeIndex);
-
-    updateNavState();
-  }
-
-  function updateNavState() {
-    const items = carousel.items;
-    const count = items.length;
-
-    if (carousel.prevBtn) carousel.prevBtn.classList.toggle('is-disabled', count <= 1);
-    if (carousel.nextBtn) carousel.nextBtn.classList.toggle('is-disabled', count <= 1);
-
-    if (!carousel.pipsBox) return;
-    if (count <= 1) {
-      carousel.pipsBox.style.display = 'none';
-      carousel.pipsBox.innerHTML = '';
-      carousel.pips = [];
-      carousel.pipSig = '';
-      return;
-    }
-    carousel.pipsBox.style.display = 'flex';
-
-    /* PERF: точки навигации пересобираются ТОЛЬКО при изменении их
-       количества. Раньше innerHTML = '' + создание N кнопок выполнялось
-       на КАЖДОМ перелистывании — лишний DOM- churn в каждом кадре. */
-    const sig = String(count);
-    if (carousel.pipSig !== sig) {
-      carousel.pipSig = sig;
-      carousel.pipsBox.innerHTML = '';
-      carousel.pips = [];
-      const frag = document.createDocumentFragment();
-      for (let i = 0; i < count; i++) {
-        const pip = document.createElement('button');
-        pip.type = 'button';
-        pip.className = 'carousel-pip';
-        pip.title = 'Диск ' + (i + 1);
-        pip.setAttribute('aria-label', 'Перейти к диску ' + (i + 1));
-        pip.addEventListener('click', (function (index) {
-          return function () { setActive(index); };
-        })(i));
-        carousel.pips.push(pip);
-        frag.appendChild(pip);
-      }
-      carousel.pipsBox.appendChild(frag);
-    }
-
-    // Обновляем только активную точку — без пересборки DOM.
-    for (let i = 0; i < carousel.pips.length; i++) {
-      carousel.pips[i].classList.toggle('active', i === carousel.activeIndex);
-    }
-  }
-
   /* ---------------------------------------------------------
-     НАВИГАЦИЯ
+     DRAG ДЛЯ МЫШИ (тачскрин скроллит нативно!)
      --------------------------------------------------------- */
-
-  function setActive(index, opts) {
-    const options = opts || {};
-    const count = carousel.items.length;
-    if (!count) return;
-
-    const next = utils.clamp(index, 0, count - 1);
-    const changed = next !== carousel.activeIndex;
-    carousel.activeIndex = next;
-    X360.state.activeIndex = next;
-
-    if (changed && !options.silent) {
-      carousel.isFlipped = false;
-      X360.state.isFlipped = false;
-      if (carousel.onSfx) carousel.onSfx('nav');
-    }
-    layout();
-    if (changed && carousel.onActivate) {
-      carousel.onActivate(carousel.items[next], next);
-    }
-  }
-
-  /** Циклический шаг (как в оригинале: с первого — на последний). */
-  function step(delta) {
-    const count = carousel.items.length;
-    if (!count) return;
-    const next = ((carousel.activeIndex + delta) % count + count) % count;
-    setActive(next);
-  }
-
-  /** Шаг с «залипанием» на краях — для физики свайпа. */
-  function stepClamped(delta) {
-    const count = carousel.items.length;
-    if (!count) return;
-    const next = carousel.activeIndex + delta;
-    if (next < 0 || next > count - 1) {
-      // Отскок: слегка подсвечиваем крайний элемент.
-      bounce();
-      return;
-    }
-    setActive(next);
-  }
-
-  function bounce() {
-    const stage = carousel.stage;
-    if (!stage) return;
-    stage.classList.add('is-bouncing');
-    setTimeout(() => stage.classList.remove('is-bouncing'), 220);
-  }
-
-  /**
-   * Переворот коробки.
-   *
-   * Переворот применяется ТОЛЬКО к активной карточке, и её класс
-   * .flipped ставится явно — поэтому состояние не может «залипнуть»
-   * (например, если layout() пересобрал карточки в другой момент).
-   */
-  function toggleFlip(force) {
-    const count = carousel.items.length;
-    if (!count) return;
-
-    const next = typeof force === 'boolean'
-      ? force
-      : !carousel.isFlipped;
-
-    carousel.isFlipped = next;
-    X360.state.isFlipped = next;
-
-    // Явно синхронизируем классы на всех карточках.
-    const anchors = carousel.anchors;
-    for (let idx = 0; idx < anchors.length; idx++) {
-      anchors[idx].classList.toggle('flipped', idx === carousel.activeIndex && next);
-    }
-
-    if (carousel.onToggleFlip) carousel.onToggleFlip(next);
-    layout();
-  }
-
-  /** Возвращает активную коробку обложкой (rotateY(0deg)). */
-  function unflipped() {
-    if (!carousel.isFlipped) return;
-    toggleFlip(false);
-  }
-
-  /** Полный оборот коробки на 360° (двойное нажатие по активной). */
-  function spinActive() {
-    const anchors = carousel.anchors;
-    const anchor = anchors[carousel.activeIndex] || null;
-    if (!anchor) return;
-    anchor.classList.remove('is-spinning');
-    // Принудительный reflow, чтобы анимация перезапустилась.
-    void anchor.offsetWidth;
-    anchor.style.setProperty('--spin-from', anchor.style.transform || 'none');
-    anchor.classList.add('is-spinning');
-    setTimeout(() => anchor.classList.remove('is-spinning'), 950);
-    if (carousel.onSfx) carousel.onSfx('flip');
-  }
-
-  /* ---------------------------------------------------------
-     POINTER / DRAG — без конфликта с кликами
-     --------------------------------------------------------- */
-
-  function isInteractive(target) {
-    return !!(target && target.closest && target.closest('button, a, input, select, textarea, label'));
-  }
-
-  /** Порог, ниже которого сдвиг считается «сопротивлением» на краю списка. */
-  function applyRubberBand(dx) {
-    const count = carousel.items.length;
-    if (!count) return 0;
-    const atStart = carousel.baseIndex <= 0;
-    const atEnd = carousel.baseIndex >= count - 1;
-    if (atStart && dx > 0) return dx * RUBBER_BAND;
-    if (atEnd && dx < 0) return dx * RUBBER_BAND;
-    return dx;
-  }
-
-  /** Пишет трансформации видимых карточек с учётом сдвига ленты. */
-  function renderDrag() {
-    const anchors = carousel.anchors;
-    const base = carousel.baseTransforms;
-    const dx = carousel.dragDx;
-    for (let i = 0; i < anchors.length; i++) {
-      const b = base[i];
-      if (!b) continue;   // карточка вне кадра — её не трогаем
-      anchors[i].style.transform =
-        'translate3d(' + (b.x + dx).toFixed(2) + 'px, 0, ' + b.z.toFixed(1) + 'px) ' +
-        'rotateY(' + b.rot.toFixed(2) + 'deg) scale(' + b.scale.toFixed(3) + ')';
-    }
-  }
-
-  /** Батчинг pointermove → максимум одна запись стилей за кадр. */
-  function scheduleDragRender() {
-    if (carousel.dragRaf) return;
-    carousel.dragRaf = requestAnimationFrame(function () {
-      carousel.dragRaf = 0;
-      renderDrag();
-    });
-  }
-
-  /**
-   * Перехватывает «залипающий» click после свайпа.
-   * Слушатель снимается после первого click — дальше клики работают
-   * как обычно.
-   */
-  function swallowNextClick() {
-    const stage = carousel.stage;
-    if (!stage) return;
-    clearSwallow();
-    const handler = function (ev) {
-      ev.preventDefault();
-      ev.stopPropagation();
-      ev.stopImmediatePropagation();
-      clearSwallow();
-    };
-    carousel.swallowHandler = handler;
-    stage.addEventListener('click', handler, true);
-    // Страховка: если click так и не придёт — снимаем перехват.
-    setTimeout(function () { clearSwallow(); }, 250);
-  }
-
-  /** Снимает перехват клика (вызывается при новом взаимодействии). */
-  function clearSwallow() {
-    const stage = carousel.stage;
-    if (stage && carousel.swallowHandler) {
-      stage.removeEventListener('click', carousel.swallowHandler, true);
-      carousel.swallowHandler = null;
-    }
-  }
-
   function onPointerDown(e) {
-    if (!carousel.stage) return;
-    // Открытые панели блокируют карусель.
+    const track = carousel.track;
+    if (!track) return;
     if (document.body.classList.contains('blade-open')) return;
     if (typeof e.button === 'number' && e.button !== 0) return;
-    // НЕ перехватываем указатель на дочерних кнопках —
-    // иначе клики по «Y (РАЗВЕРНУТЬ)» и «A (ДОСЬЕ)» проглатываются.
-    if (isInteractive(e.target)) return;
 
-    // Новое взаимодействие — снимаем возможный «залипший» перехват клика.
-    clearSwallow();
+    // Пользователь перехватил трек — наша программная прокрутка больше
+    // не мешает, индекс снова синхронизируется со скроллом.
+    // (в т.ч. для touch — он скроллит нативно)
+    carousel.syncing = false;
+
+    // Тачскрин: полностью отдаём жест браузеру — он скроллит
+    // нативно, с инерцией и долистыванием до карточки.
+    if (e.pointerType === 'touch') return;
+    // Клики по кнопкам карточки не должны начинать перетаскивание.
+    if (e.target && e.target.closest && e.target.closest('button, a, input, select, textarea')) return;
 
     carousel.pointerId = e.pointerId;
-    carousel.startX = e.clientX;    carousel.startY = e.clientY;
+    carousel.startX = e.clientX;
+    carousel.startY = e.clientY;
     carousel.lastX = e.clientX;
     carousel.lastT = e.timeStamp || performance.now();
     carousel.velocity = 0;
     carousel.dragging = true;
     carousel.moved = false;
-    carousel.baseIndex = carousel.activeIndex;
-    carousel.dragDx = 0;
+    carousel.startScroll = track.scrollLeft;
+
+    // Мгновенное следование за мышью (без smooth-прокрутки)
+    // и БЕЗ snap — иначе браузер «прилипает» к ближайшей карточке
+    // и лента не едет 1:1 за курсором. Snap возвращаем при отпускании.
+    track.style.scrollBehavior = 'auto';
+    track.style.scrollSnapType = 'none';
+    track.classList.add('is-dragging');
   }
 
   function onPointerMove(e) {
     if (!carousel.dragging || e.pointerId !== carousel.pointerId) return;
+    const track = carousel.track;
+    if (!track) return;
 
     const dx = e.clientX - carousel.startX;
     const dy = e.clientY - carousel.startY;
 
     if (!carousel.moved) {
-      // CLICK_SLOP — ниже него жест ещё считается кликом (6px).
       if (Math.abs(dx) < CLICK_SLOP && Math.abs(dy) < CLICK_SLOP) return;
-      // Вертикальный жест — отдаём его скроллу, карусель не трогаем.
+      // Вертикальный жест — не наше.
       if (Math.abs(dy) > Math.abs(dx)) {
-        carousel.dragging = false;
+        endDrag(false);
         return;
       }
       carousel.moved = true;
-      carousel.stage.classList.add('is-dragging');
-      // Захват указателя — только когда начался реальный драг.
-      try { carousel.stage.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      try { track.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
     }
 
     const now = e.timeStamp || performance.now();
     const dt = Math.max(1, now - carousel.lastT);
-    carousel.velocity = (e.clientX - carousel.lastX) / dt;
+    // Скорость ограничена: единичный «прыжок» мыши (или просевший
+    // timestamp) не должен унести гостя через весь список.
+    carousel.velocity = utils.clamp((e.clientX - carousel.lastX) / dt, -3, 3);
     carousel.lastX = e.clientX;
     carousel.lastT = now;
 
-    carousel.dragDx = applyRubberBand(dx);
-    scheduleDragRender();
+    // 1:1 — лента едет ровно за курсором.
+    track.scrollLeft = carousel.startScroll - dx;
     e.preventDefault();
   }
 
-  /**
-   * Порог переключения: фиксированные 48px + 6% ширины сцены.
-   */
-  function swipeThreshold() {
-    const width = carousel.stage ? carousel.stage.clientWidth : 800;
-    return Math.max(SWIPE_THRESHOLD, width * 0.06);
-  }
+  function endDrag(commit) {
+    const track = carousel.track;
+    if (!track) return;
+    const wasMoved = carousel.moved;
 
-  /**
-   * Инерция после отпускания: лента продолжает движение с затуханием.
-   * Как только сдвиг перевалил порог — переключаем карточку.
-   */
-  function startInertia(vx) {
-    if (carousel.inertiaRaf) cancelAnimationFrame(carousel.inertiaRaf);
-    let last = performance.now();
-
-    const tick = function (now) {
-      const dt = Math.min(32, now - last);
-      last = now;
-
-      // Трение: скорость плавно гаснет.
-      vx *= Math.pow(0.94, dt / 16.67);
-      carousel.dragDx = applyRubberBand(carousel.dragDx + vx * dt);
-      renderDrag();
-
-      if (Math.abs(carousel.dragDx) > swipeThreshold()) {
-        carousel.inertiaRaf = 0;
-        stopDragging();
-        finishDrag(carousel.dragDx < 0 ? 1 : -1);
-        return;
-      }
-      if (Math.abs(vx) < 0.02) {
-        carousel.inertiaRaf = 0;
-        stopDragging();
-        finishDrag(0);
-        return;
-      }
-      carousel.inertiaRaf = requestAnimationFrame(tick);
-    };
-
-    carousel.inertiaRaf = requestAnimationFrame(tick);
-  }
-
-  function stopDragging() {
-    if (carousel.stage) carousel.stage.classList.remove('is-dragging');
-  }
-
-  /**
-   * Завершает свайп: dir = -1 (назад) / 0 (вернуть на место) / 1 (вперёд).
-   */
-  function finishDrag(dir) {
-    const dx = carousel.dragDx;
-    carousel.dragDx = 0;
-
-    if (dir === 0 && Math.abs(dx) > swipeThreshold()) {
-      dir = dx < 0 ? 1 : -1;
+    /* Цель считаем ДО возврата snap: как только scroll-snap-type
+       снова станет mandatory, браузер сам переснапит к ближайшей
+       карточке и мы потеряем «бросок». */
+    let target = null;
+    if (wasMoved && commit) {
+      const current = indexAt(track.scrollLeft);
+      const projected = track.scrollLeft - carousel.velocity * 140;
+      target = utils.clamp(indexAt(projected), current - 3, current + 3);
     }
 
-    const count = carousel.items.length;
-    if (dir !== 0) {
-      const next = carousel.activeIndex + dir;
-      if (next < 0 || next > count - 1) {
-        // Край списка — отскок вместо перехода.
-        bounce();
-        layout();
-        return;
-      }
-      stepClamped(dir);
-      return;
-    }
-    // Возврат на место: layout() пересчитывает трансформации,
-    // CSS-transition плавно доводит ленту обратно.
-    layout();
+    carousel.dragging = false;
+    carousel.pointerId = null;
+    carousel.moved = false;
+
+    track.style.scrollBehavior = '';
+    track.style.scrollSnapType = '';
+    track.classList.remove('is-dragging');
+
+    if (target === null) return;
+
+    // Бросок мыши «долетает» до соседней карточки.
+    setActive(utils.clamp(target, 0, Math.max(0, carousel.items.length - 1)));
   }
 
   function onPointerUp(e) {
     if (!carousel.dragging) return;
     if (carousel.pointerId !== null && e.pointerId !== carousel.pointerId) return;
-
-    const wasMoved = carousel.moved;
-    const velocity = carousel.velocity;
-
-    carousel.dragging = false;
-    carousel.pointerId = null;
-
-    if (!wasMoved) {
-      // Это был обычный клик — ничего не делаем, клик сработает сам.
-      carousel.moved = false;
-      carousel.dragDx = 0;
-      stopDragging();
-      return;
-    }
-
-    // Гасим «залипающий» клик после свайпа: перехватываем ровно один
-    // click в capture-фазе на сцене (до обработчиков карточек).
-    swallowNextClick();
-    carousel.moved = false;
-
-    const count = carousel.items.length;
-    if (count <= 1) {
-      stopDragging();
-      finishDrag(0);
-      return;
-    }
-
-    // «Флик» (быстрое движение пальцем/мышью) — продолжаем по инерции.
-    // Плавное перетаскивание — сразу по порогу смещения.
-    if (Math.abs(velocity) > FLICK_VELOCITY) {
-      startInertia(velocity);
-      return;
-    }
-
-    stopDragging();
-    finishDrag(0);
+    endDrag(true);
   }
 
   function onPointerCancel() {
-    const wasActive = carousel.dragging || carousel.dragDx !== 0 || carousel.moved;
-    carousel.dragging = false;
-    carousel.pointerId = null;
-    carousel.moved = false;
-    carousel.dragDx = 0;
-    if (carousel.inertiaRaf) {
-      cancelAnimationFrame(carousel.inertiaRaf);
-      carousel.inertiaRaf = 0;
-    }
-    if (carousel.dragRaf) {
-      cancelAnimationFrame(carousel.dragRaf);
-      carousel.dragRaf = 0;
-    }
-    stopDragging();
-    // Пересчитываем раскладку только если свайп реально шёл —
-    // pointerleave может прилетать просто при уходе мыши со сцены.
-    if (wasActive) layout();
+    if (!carousel.dragging) return;
+    endDrag(false);
   }
 
   /* ---------------------------------------------------------
-     WHEEL — горизонтальная прокрутка колесом с троттлингом
+     КОЛЕСО МЫШИ
      ---------------------------------------------------------
-     Событие wheel только НАКАПЛИВАЕТ дельту; вся работа делается
-     в requestAnimationFrame. Так кадр не тратится на десятки
-     wheel-событий подряд (на тачпадах их бывает 60–120/сек).
+     При scroll-snap-type: mandatory короткий скролл «гасится»
+     снапом. Поэтому колесо переводим в дискретное переключение
+     карточек. Горизонтальный дельта (трекпад) уходит в нативную
+     прокрутку без вмешательства.
      --------------------------------------------------------- */
-  let wheelAccum = 0;
-  let wheelRaf = 0;
-
-  function flushWheel() {
-    wheelRaf = 0;
-    const delta = wheelAccum;
-    wheelAccum = 0;
-    if (!delta) return;
-
-    const steps = Math.trunc(delta / WHEEL_STEP);
-    if (!steps) return;
-    // Не больше 2 карточек за кадр — иначе лента «перепрыгивает».
-    const n = Math.max(-2, Math.min(2, steps));
-    const dir = n > 0 ? 1 : -1;
-    for (let i = 0; i < Math.abs(n); i++) stepClamped(dir);
-  }
-
   function onWheel(e) {
     if (!X360.state.booted) return;
     if (document.body.classList.contains('blade-open')) return;
-    if (e.target && e.target.closest && e.target.closest('.media-stations-list, .blade-panel')) return;
+    if (e.target && e.target.closest && e.target.closest('.media-stations-list, .blade-panel, .blades-nav-bar')) return;
 
     const count = carousel.items.length;
     if (count <= 1) return;
 
-    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    const track = carousel.track;
+    if (!track) return;
+
+    // Горизонтальный дельта (трекпад/Shift+колесо) — нативная прокрутка.
+    const horizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+    const delta = horizontal ? e.deltaX : e.deltaY;
     if (!delta) return;
 
-    wheelAccum += delta;
-    if (wheelRaf) return;
-    wheelRaf = requestAnimationFrame(flushWheel);
+    // Если колесо над самим треком — перехватываем, иначе получим
+    // двойное движение (нативный скролл + наш шаг).
+    const overTrack = e.target && e.target.closest && e.target.closest('.carousel-track');
+    if (overTrack) {
+      if (horizontal) return;      // трекпад — не мешаем
+      e.preventDefault();
+    }
+
+    carousel.wheelAccum += delta;
+    const threshold = Math.max(24, carousel.caseStep * WHEEL_RATIO);
+    if (Math.abs(carousel.wheelAccum) < threshold) return;
+
+    const dir = carousel.wheelAccum > 0 ? 1 : -1;
+    carousel.wheelAccum = 0;
+    carousel.syncing = false;
+    stepClamped(dir);
   }
 
   /* ---------------------------------------------------------
@@ -1201,6 +1098,7 @@ function layout() {
     init(options) {
       const opts = options || {};
       carousel.stage = opts.stage;
+      carousel.track = opts.track || (opts.stage ? opts.stage.querySelector('.carousel-track') : null);
       carousel.prevBtn = opts.prevBtn;
       carousel.nextBtn = opts.nextBtn;
       carousel.pipsBox = opts.pipsBox;
@@ -1212,14 +1110,22 @@ function layout() {
       // JS управляет вращением диска — отключаем CSS-фоллбэк.
       document.body.classList.add('js-disc-motion');
 
-      if (carousel.stage) {
-        carousel.stage.addEventListener('pointerdown', onPointerDown);
-        carousel.stage.addEventListener('pointermove', onPointerMove, { passive: false });
-        carousel.stage.addEventListener('pointerup', onPointerUp);
-        carousel.stage.addEventListener('pointercancel', onPointerCancel);
-        carousel.stage.addEventListener('pointerleave', onPointerCancel);
+      const track = carousel.track;
+      if (track) {
+        track.addEventListener('scroll', onScroll, { passive: true });
+        track.addEventListener('pointerdown', onPointerDown);
+        track.addEventListener('pointermove', onPointerMove, { passive: false });
+        track.addEventListener('pointerup', onPointerUp);
+        track.addEventListener('pointercancel', onPointerCancel);
         // Блокируем перетаскивание картинок внутри карусели.
-        carousel.stage.addEventListener('dragstart', (e) => e.preventDefault());
+        track.addEventListener('dragstart', (e) => e.preventDefault());
+
+        // Запоминаем позицию в начале жеста: по ней отличаем
+        // «свайп» от «клика» (в т.ч. после нативного скролла пальцем).
+        track.addEventListener('pointerdown', () => {
+          carousel.downScroll = track.scrollLeft;
+          carousel.scrolledSinceDown = false;
+        }, true);
       }
 
       if (carousel.prevBtn) {
@@ -1229,7 +1135,7 @@ function layout() {
         carousel.nextBtn.addEventListener('click', () => step(1));
       }
 
-      global.addEventListener('wheel', onWheel, { passive: true });
+      global.addEventListener('wheel', onWheel, { passive: false });
       global.addEventListener('keydown', onKeyDown);
     },
 
@@ -1242,6 +1148,15 @@ function layout() {
 
       if (changed || !carousel.anchors.length) {
         build();
+        // Новая категория — начинаем с первой карточки по центру.
+        // Мгновенно (иначе CSS scroll-behavior: smooth заставил бы
+        // ленту «доезжать» из конца списка к началу).
+        if (carousel.track) {
+          carousel.track.style.scrollBehavior = 'auto';
+          carousel.track.scrollLeft = 0;
+          carousel.track.style.scrollBehavior = '';
+        }
+        applyFan(0);
       } else {
         layout();
       }
@@ -1269,6 +1184,16 @@ function layout() {
     getActiveItem: () => carousel.items[carousel.activeIndex] || null,
     getItems: () => carousel.items,
     isFlipped: () => carousel.isFlipped,
-    shortestOffset
+
+    /* Диагностика (используется в devtools/автотестах) */
+    getState: () => ({
+      activeIndex: carousel.activeIndex,
+      scrollLeft: carousel.track ? carousel.track.scrollLeft : 0,
+      caseStep: carousel.caseStep,
+      syncing: carousel.syncing,
+      scrollRaf: carousel.scrollRaf,
+      items: carousel.items.length,
+      near: carousel.anchors.filter((a) => a.classList.contains('is-near')).length
+    })
   };
 })(window);

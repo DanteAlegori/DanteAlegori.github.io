@@ -698,14 +698,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   width: 100%;
   max-width: min(1500px, 100vw);
   height: var(--stage-h);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform-style: preserve-3d;
-  /* PERF/UX: интерактивная зона карусели — «хватабельный» курсор.
-     TOUCH: pan-y = горизонтальные свайпы наши, вертикальные — скролл. */
+  /* PERF/UX: интерактивная зона карусели — «хватабельный» курсор. */
   cursor: grab;
-  touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -715,7 +709,64 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 .carousel-stage.is-dragging { cursor: grabbing; }
 /* Во время перетаскивания курсор не должен «моргать» над кнопками карточки */
 .carousel-stage.is-dragging * { cursor: grabbing !important; }
-.carousel-stage.is-dragging .xbox-case-anchor { transition: none; }
+
+/* ==========================================================================
+   НАТИВНЫЙ CSS SCROLL SNAP
+   --------------------------------------------------------------------------
+   Трек — обычный скролл-контейнер браузера. Он сам считает:
+     • инерцию (momentum) после броска пальцем;
+     • «резиновый» край в начале/конце списка;
+     • долистывание до ближайшей карточки (scroll-snap);
+     • кадры анимации скролла (в т.ч. на iOS — без лагов).
+   JS не трогает scrollLeft во время свайпа пальцем вообще.
+   ========================================================================== */
+.carousel-track {
+  position: absolute;
+  /* Вертикальный запас — под внешнее свечение корпуса коробки,
+     которое выходит за габариты карточки на ~20px. */
+  inset: -30px 0;
+  display: flex;
+  align-items: center;
+  gap: var(--case-gap);
+  overflow-x: scroll;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* pan-x pan-y: горизонтальный скролл и вертикальный — оба наши,
+     но вертикальный у нас нигде не используется, поэтому вернём
+     его скроллу страницы при вертикальном свайпе. */
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  cursor: grab;
+}
+.carousel-track::-webkit-scrollbar { display: none; }
+.carousel-track.is-dragging { cursor: grabbing; }
+.carousel-track.is-dragging * { cursor: grabbing !important; }
+
+/* Отступы-«распорки» перед первой и после последней карточки:
+   без них первую карточку нельзя «припарковать» по центру.
+   Передняя распорка на один gap короче (gap тоже стоит между
+   распоркой и первой карточкой) — иначе snap-смещение
+   «уезжает» на величину зазора. */
+.carousel-track::before {
+  content: "";
+  flex: 0 0 calc(50% - var(--case-w) / 2 - var(--case-gap));
+  height: 1px;
+  pointer-events: none;
+}
+.carousel-track::after {
+  content: "";
+  flex: 0 0 calc(50% - var(--case-w) / 2);
+  height: 1px;
+  pointer-events: none;
+}
 
 .carousel-stage::before {
   content: "";
@@ -853,7 +904,7 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 /* Отражение активного бокса в «полированном полу» дашборда.
    -webkit-box-reflect рисует копию элемента ниже по оси Y с маской,
    которая гасит отражение в темноту. */
-.xbox-case-anchor.is-active .case-face.front {
+.card-item.is-active .case-face.front {
   -webkit-box-reflect: below 4px linear-gradient(
     transparent 42%,
     rgba(124, 252, 0, 0.06) 58%,
@@ -863,7 +914,7 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   );
 }
 /* Глубокое отражение — размытая «лужа» света под боксом */
-.xbox-case-anchor.is-active .case-chassis-glow {
+.card-item.is-active .case-chassis-glow {
   -webkit-box-reflect: below 2px linear-gradient(transparent 55%, rgba(124, 252, 0, 0.22) 100%);
 }
 /* Неоновый световой горизонт пола с пульсацией */
@@ -894,52 +945,64 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   pointer-events: none;
   animation: floorBreathe 4s ease-in-out infinite;
 }
-.xbox-case-anchor {
-  position: absolute;
+.card-item {
+  /* Флекс-элемент нативного скролл-трека. Ширина фиксирована —
+     поэтому scroll-snap и content-visibility работают корректно. */
+  flex: 0 0 var(--case-w);
   width: var(--case-w);
   height: var(--case-h);
+  position: relative;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
   transform-style: preserve-3d;
-  transition: transform 0.6s cubic-bezier(0.18, 1.05, 0.32, 1.14);
   cursor: grab;
-  /* TOUCH: горизонтальный свайп забираем себе, вертикальный — отдаём
-     скроллу. Без этого iOS Safari пытается «откатить страницу»,
-     а Android Chrome показывает подсветку выделения текста. */
-  touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
-  /* PERF: will-change УДАЛЁН из базового правила.
-     Он создавал композитинг-слой для КАЖДОЙ карточки (40+ слоёв,
-     на мобильном GPU — переполнение видеопамяти и микрофризы).
-     Теперь слой получает только активная карточка и её соседи
-     (см. .is-near ниже). */
+  /* PERF: карточки вне экрана браузер выкидывает из рендера сам
+     (content-visibility: auto) — ручная виртуализация больше не
+     нужна и невозможна: display:none ломает геометрию скролла. */
+  content-visibility: auto;
+  contain-intrinsic-size: var(--case-w) var(--case-h);
   animation: cardFadeIn 0.4s ease both;
 }
 @keyframes cardFadeIn { from { opacity: 0; } to { opacity: 1; } }
-.xbox-case-anchor.is-active { z-index: 30; }
+.card-item.is-active { z-index: 30; }
 
-/* ---------- МОБИЛЬНАЯ ВИРТУАЛИЗАЦИЯ КАРТОЧЕК ----------
-   Три уровня:
-     .is-near      (|d| <= near) — полноценный 3D, свой слой GPU
-     .is-offscreen (|d| >  near) — не рисуется вообще (visibility:hidden)
-                                   и не имеет will-change -> слой снят
-     .is-far       (|d| >  far)  — display:none -> элемент вынут из
-                                   дерева рендера целиком
-   Итог: на слабом мобильном GPU в кадре живут 3–5 карточек
-   вместо сорока. */
-.xbox-case-anchor.is-near {
+/* Активная карточка и её соседи получают 3D-трансформацию и свой
+   композитинг-слой. Всё остальное — обычный flex-элемент без слоя. */
+.card-item.is-near {
   will-change: transform;
 }
-.xbox-case-anchor.is-offscreen {
-  pointer-events: none;
-  visibility: hidden;
+
+/* Пустая вкладка */
+.empty-stage {
+  flex: 0 0 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  color: #8da491;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-align: center;
 }
-.xbox-case-anchor.is-far {
-  display: none !important;
+.empty-stage strong {
+  color: var(--theme-toxic);
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+.empty-disc {
+  font-size: 48px;
+  color: var(--theme-accent);
+  opacity: 0.5;
 }
 
 /* Полный 360°-спин коробки */
-.xbox-case-anchor.is-spinning {
+.card-item.is-spinning {
   animation: caseSpin360 0.9s cubic-bezier(0.3, 0.9, 0.25, 1) both;
   z-index: 40;
 }
@@ -1024,7 +1087,7 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 /* PERF: box-shadow больше не анимируется (каждый кадр = перерисовка
    тени у большого элемента). Пульсация «живого» пластика теперь —
    отдельный слой с тенью, анимируемый только через opacity. */
-.xbox-case-anchor.is-active .case-chassis-glow::after {
+.card-item.is-active .case-chassis-glow::after {
   animation: chassisPulse 3s ease-in-out infinite;
   will-change: opacity;
 }
@@ -1046,7 +1109,7 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   /* PERF: will-change только на переворачиваемой карточке (1 слой,
      а не 40). Сам переворот длится < 1с — хватает transition. */
 }
-.xbox-case-anchor.flipped .case-card-inner {
+.card-item.flipped .case-card-inner {
   transform: rotateY(180deg) !important;
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
@@ -1082,8 +1145,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   border: 1px solid rgba(255, 255, 255, 0.22);
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.9);
 }
-.xbox-case-anchor.is-active .case-face.front,
-.xbox-case-anchor.is-active .case-face.back {
+.card-item.is-active .case-face.front,
+.card-item.is-active .case-face.back {
   border-color: var(--theme-accent);
   box-shadow:
     0 0 0 1px var(--theme-border),
@@ -1189,12 +1252,12 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   transform: translate3d(var(--tilt-x, 0px), var(--tilt-y, 0px), 0) scale(1.045);
   transition: transform 0.18s ease-out;
 }
-.xbox-case-anchor.is-active .case-artwork-wrap img {
+.card-item.is-active .case-artwork-wrap img {
   filter: contrast(1.1) brightness(0.95);
   transition: transform 0.18s ease-out, filter 0.4s ease;
 }
-.xbox-case-anchor:hover .case-artwork-wrap img { transform: scale(1.05); }
-.xbox-case-anchor.is-active:hover .case-artwork-wrap img {
+.card-item:hover .case-artwork-wrap img { transform: scale(1.05); }
+.card-item.is-active:hover .case-artwork-wrap img {
   transform: translate3d(var(--tilt-x, 0px), var(--tilt-y, 0px), 0) scale(1.075);
   filter: contrast(1.12) brightness(1.02) saturate(1.06);
 }
@@ -1223,7 +1286,7 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   opacity: 0.9;
   will-change: transform;
 }
-.xbox-case-anchor.is-active .case-sheen::before {
+.card-item.is-active .case-sheen::before {
   animation: sheenSweep 5.5s ease-in-out infinite;
 }
 @keyframes sheenSweep {
@@ -1249,10 +1312,10 @@ body.crt-on #dashboard::before { opacity: 0.75; }
       transparent 360deg);
   transition: opacity 0.28s ease;
 }
-.xbox-case-anchor.is-active:hover .case-holo-sheen,
-.xbox-case-anchor.is-active:focus-within .case-holo-sheen { opacity: 0.95; }
+.card-item.is-active:hover .case-holo-sheen,
+.card-item.is-active:focus-within .case-holo-sheen { opacity: 0.95; }
 @media (hover: none), (pointer: coarse) {
-  .xbox-case-anchor.is-active .case-holo-sheen { opacity: 0.5; }
+  .card-item.is-active .case-holo-sheen { opacity: 0.5; }
 }
 
 /* Динамический зеркальный блик (Specular / Fresnel) */
@@ -1273,10 +1336,10 @@ body.crt-on #dashboard::before { opacity: 0.75; }
       rgba(190, 255, 210, 0.16) 0%, transparent 62%);
   transition: opacity 0.3s ease;
 }
-.xbox-case-anchor.is-active .case-specular { opacity: 0.55; }
-.xbox-case-anchor.is-active:hover .case-specular { opacity: 1; }
+.card-item.is-active .case-specular { opacity: 0.55; }
+.card-item.is-active:hover .case-specular { opacity: 1; }
 @media (hover: none), (pointer: coarse) {
-  .xbox-case-anchor.is-active .case-specular { opacity: 0.7; }
+  .card-item.is-active .case-specular { opacity: 0.7; }
 }
 
 .case-emboss {
@@ -1311,13 +1374,13 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   pointer-events: none;
   transition: opacity 0.25s ease, transform 0.25s ease;
 }
-.xbox-case-anchor.is-active:hover .case-hover-quick-bar {
+.card-item.is-active:hover .case-hover-quick-bar {
   opacity: 1;
   pointer-events: auto;
   transform: translate3d(-50%, -50%, 30px) scale(1.02);
 }
 @media (hover: none), (pointer: coarse) {
-  .xbox-case-anchor.is-active .case-hover-quick-bar {
+  .card-item.is-active .case-hover-quick-bar {
     opacity: 1;
     pointer-events: auto;
     transform: translate3d(-50%, -50%, 30px) scale(1);
@@ -1387,13 +1450,13 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   transition: opacity 0.22s ease, transform 0.28s var(--ease-pop),
     box-shadow 0.25s ease, border-color 0.25s ease;
 }
-.xbox-case-anchor.is-active .case-flip-fab {
+.card-item.is-active .case-flip-fab {
   opacity: 0.94;
   pointer-events: auto;
   transform: translate3d(0, 0, 30px) scale(1);
 }
 /* Мягкое неоновое свечение при наведении */
-.xbox-case-anchor.is-active:hover .case-flip-fab {
+.card-item.is-active:hover .case-flip-fab {
   opacity: 1;
   border-color: #d6ffce;
   box-shadow:
@@ -1403,7 +1466,7 @@ body.crt-on #dashboard::before { opacity: 0.75; }
     inset 0 0 20px rgba(124, 252, 0, 0.3);
   transform: translate3d(0, 0, 30px) scale(1.08);
 }
-.xbox-case-anchor.is-active .case-flip-fab .xbox-btn-dot {
+.card-item.is-active .case-flip-fab .xbox-btn-dot {
   width: 20px;
   height: 20px;
   font-size: 10px;
@@ -1680,11 +1743,11 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   overflow: hidden;
   will-change: transform, opacity;
 }
-.xbox-case-anchor.is-active .tray-disc {
+.card-item.is-active .tray-disc {
   opacity: 1;
   transform: translate3d(calc(var(--case-w) * 0.76), 0, -34px) rotate(0deg) scale(1);
 }
-.xbox-case-anchor.is-active.flipped .tray-disc {
+.card-item.is-active.flipped .tray-disc {
   opacity: 0;
   transform: translate3d(calc(var(--case-w) * -0.05), 0, -62px) rotate(-54deg) scale(0.58);
 }
@@ -1697,7 +1760,7 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   transform: rotate(var(--disc-spin, 0deg)) rotate3d(1, 0.45, 0, var(--disc-wobble, 0deg));
 }
 /* PERF: will-change только у активного диска (1 слой вместо 40) */
-.xbox-case-anchor.is-active .disc-rotor {
+.card-item.is-active .disc-rotor {
   will-change: transform;
 }
 .js-disc-motion .disc-rotor { animation: none; }
@@ -1960,7 +2023,7 @@ body:not(.js-disc-motion) .disc-rotor {
   -webkit-mask-image: linear-gradient(180deg, transparent 0 28%, #000 46%);
   mask-image: linear-gradient(180deg, transparent 0 28%, #000 46%);
 }
-.xbox-case-anchor.is-active .disc-holo-shine {
+.card-item.is-active .disc-holo-shine {
   animation: discHoloSpin 6s linear infinite;
   will-change: transform;
 }
@@ -1991,7 +2054,7 @@ body:not(.js-disc-motion) .disc-rotor {
   overflow: visible;
 }
 /* PERF: вращение кольца — только у активного диска */
-.xbox-case-anchor.is-active .disc-holo-ring-svg {
+.card-item.is-active .disc-holo-ring-svg {
   animation: holoRotate 9s linear infinite;
   will-change: transform;
 }

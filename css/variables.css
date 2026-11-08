@@ -21,7 +21,9 @@
   --blades-h: 56px;
   --case-w: clamp(230px, 21vw, 300px);
   --case-h: calc(var(--case-w) * 1.414);
-  --case-step: calc(var(--case-w) * 0.79);
+  /* Зазор между карточками в нативном скролл-треке.
+     Шаг = --case-w + --case-gap; измеряется в JS (carousel.js). */
+  --case-gap: clamp(16px, 2.4vw, 46px);
   --stage-h: clamp(350px, 55vh, 520px);
 
   /* Motion */
