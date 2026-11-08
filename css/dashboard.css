@@ -1106,33 +1106,29 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   position: relative;
   width: 100%;
   height: 100%;
-  /* PERF/КОРРЕКТНОСТЬ: здесь намеренно transform-style: flat.
-     Раньше стоял preserve-3d — но вращается теперь .case-flip-rotor,
-     а .tray-disc обязан остаться в ОБЫЧНОМ paint-order (z-index:-1).
-     В preserve-3d контексте Chrome сортирует диск по 3D-глубине
-     и прячет его за гранями коробки — диск просто не виден. */
-  transform-style: flat;
-  -webkit-transform-style: flat;
+  /* 3D-контекст карточки: без preserve-3d перспектива карточки
+     (.card-item → perspective(1000px)) не доходит до граней, и
+     выступающие по Z кнопки (Y 360°, A ДОСЬЕ) выпадают из
+     2D-клипа обложки — их перестаёт видеть и хит-тест. */
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
   backface-visibility: visible;
 }
 /* ПЕРЕВОРАЧИВАЕМЫЙ СЛОЙ — только две грани коробки.
    Диск намеренно остаётся СНАРУЖИ (.case-card-inner → .tray-disc):
    так при развороте он не зеркалится и его копирайт по кромке
-   остаётся читаемым.
-   Перспектива задаётся САМОМУ ротору: .case-card-inner теперь flat,
-   поэтому перспектива карточки до граней не доходит. */
+   остаётся читаемым. */
 .case-flip-rotor {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
-  transform: perspective(1000px);
   transition: transform 0.68s cubic-bezier(0.18, 1.02, 0.3, 1.12);
   /* PERF: will-change только на переворачиваемой карточке (1 слой,
      а не 40). Сам переворот длится < 1с — хватает transition. */
 }
 .card-item.flipped .case-flip-rotor {
-  transform: perspective(1000px) rotateY(180deg) !important;
+  transform: rotateY(180deg) !important;
   will-change: transform;
 }
 
@@ -1269,7 +1265,7 @@ body.crt-on #dashboard::before { opacity: 0.75; }
      поверхностей (видеопамять + перерисовка). Дорогой фильтр
      остаётся только у активной карточки.
      will-change убран — он давал слой на каждую карточку. */
-  transform: translate3d(var(--tilt-x, 0px), var(--tilt-y, 0px), 0) scale(1.045);
+  transform: translate(var(--tilt-x, 0px), var(--tilt-y, 0px)) scale(1.045);
   transition: transform 0.18s ease-out;
 }
 .card-item.is-active .case-artwork-wrap img {
@@ -1278,7 +1274,7 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 }
 .card-item:hover .case-artwork-wrap img { transform: scale(1.05); }
 .card-item.is-active:hover .case-artwork-wrap img {
-  transform: translate3d(var(--tilt-x, 0px), var(--tilt-y, 0px), 0) scale(1.075);
+  transform: translate(var(--tilt-x, 0px), var(--tilt-y, 0px)) scale(1.075);
   filter: contrast(1.12) brightness(1.02) saturate(1.06);
 }
 
@@ -1383,9 +1379,14 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   position: absolute;
   top: 50%;
   left: 50%;
-  /* Поднимаем панель к зрителю по оси Z: в 3D-контексте обложки
-     картинка с translate3d иначе перекрывает кнопку. */
-  transform: translate3d(-50%, -50%, 30px);
+  /* PERF: transform ТОЛЬКО 2D. Раньше здесь был translate3d(-50%,-50%,30px)
+     — «подъём по Z к зрителю». Но .case-artwork-wrap имеет
+     overflow:hidden, а значит transform-style:flat: подъём по Z там
+     НЕ работал никогда, а вот 3D-трансформация ломала попадание
+     под курсор (кнопка «Y 360°» переставала ловить клик, и
+     срабатывал клик по карточке → открывалось досье «КУПИТЬ»).
+     Порядок теперь гарантирует z-index: quick-bar 20 < fab 32. */
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   gap: clamp(5px, calc(var(--case-w) * 0.03), 10px);
@@ -1397,13 +1398,13 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 .card-item.is-active:hover .case-hover-quick-bar {
   opacity: 1;
   pointer-events: auto;
-  transform: translate3d(-50%, -50%, 30px) scale(1.02);
+  transform: translate(-50%, -50%) scale(1.02);
 }
 @media (hover: none), (pointer: coarse) {
   .card-item.is-active .case-hover-quick-bar {
     opacity: 1;
     pointer-events: auto;
-    transform: translate3d(-50%, -50%, 30px) scale(1);
+    transform: translate(-50%, -50%) scale(1);
   }
 }
 .ch-btn {
@@ -1466,14 +1467,14 @@ body.crt-on #dashboard::before { opacity: 0.75; }
     inset 0 0 14px rgba(124, 252, 0, 0.18);
   opacity: 0;
   pointer-events: none;
-  transform: translate3d(0, 6px, 30px) scale(0.86);
+  transform: translate(0, 6px) scale(0.86);
   transition: opacity 0.22s ease, transform 0.28s var(--ease-pop),
     box-shadow 0.25s ease, border-color 0.25s ease;
 }
 .card-item.is-active .case-flip-fab {
   opacity: 0.94;
   pointer-events: auto;
-  transform: translate3d(0, 0, 30px) scale(1);
+  transform: translate(0, 0) scale(1);
 }
 /* Мягкое неоновое свечение при наведении */
 .card-item.is-active:hover .case-flip-fab {
@@ -1484,7 +1485,7 @@ body.crt-on #dashboard::before { opacity: 0.75; }
     0 0 26px rgba(124, 252, 0, 0.85),
     0 0 52px rgba(0, 255, 65, 0.35),
     inset 0 0 20px rgba(124, 252, 0, 0.3);
-  transform: translate3d(0, 0, 30px) scale(1.08);
+  transform: translate(0, 0) scale(1.08);
 }
 .card-item.is-active .case-flip-fab .xbox-btn-dot {
   width: 20px;
@@ -1751,20 +1752,30 @@ body.crt-on #dashboard::before { opacity: 0.75; }
     0 10px 34px rgba(0, 0, 0, 0.92),
     0 0 30px var(--theme-glow);
   border: 1px solid rgba(255, 255, 255, 0.35);
-  /* Спрятан в лотке: повёрнут, уменьшен, уведён вглубь. */
-  transform: translate3d(0, 0, -28px) rotate(-20deg) scale(0.76);
+  /* Спрятан в лотке: повёрнут, уменьшен.
+     PERF: трансформация ТОЛЬКО 2D (без translate3d) — намеренно.
+     Диск лежит в общем 3D-контексте карточки, и 3D-трансформация
+     отправила бы его в сортировку по глубине: Chrome спрятал бы
+     диск за гранями коробки. Плоский элемент рисуется по обычному
+     paint-order, поэтому z-index:-1 честно кладёт его ЗА обложкой,
+     а за её пределами он виден. */
+  transform: translate(0, 0) rotate(-20deg) scale(0.76);
   opacity: 0;
   /* PERF: visibility:hidden — диск вообще НЕ рисуется, пока коробка
      не развёрнута. У него внутри SVG с textPath, голограмма и
      blend-режимы — это самый дорогой элемент карточки. */
   visibility: hidden;
-  /* PERF: анимация `right` (layout-свойство) заменена на translate3d.
+  /* PERF: анимация `right` (layout-свойство) заменена на translate.
      Диск выезжает из лотка по оси X без единого reflow. */
   transition:
     opacity 0.45s ease,
     transform 0.78s cubic-bezier(0.05, 0.72, 0.18, 1);
   pointer-events: none;
-  z-index: -1;
+  /* PERF: z-index — диск выезжает ЗА правый край коробки (x = cardRight),
+     поэтому перекрывать обложку ему нечего. Ставим его ВЫШЕ граней:
+     в preserve-3d контексте Chrome сортирует элементы по 3D-глубине,
+     и с z-index:-1 диск уходил за грани коробки и не рисовался. */
+  z-index: 2;
   overflow: hidden;
   will-change: transform, opacity;
 }
@@ -1772,7 +1783,7 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 .card-item.flipped .tray-disc {
   opacity: 1;
   visibility: visible;
-  transform: translate3d(calc(var(--case-w) * 0.76), 0, -34px) rotate(0deg) scale(1);
+  transform: translate(calc(var(--case-w) * 0.76), 0) rotate(0deg) scale(1);
 }
 
 /* Ротор диска: угол задаётся из JS (--disc-spin) — инерция разгона. */
