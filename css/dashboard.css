@@ -99,15 +99,25 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 }
 
 /* Фоновые слои */
+/* PERF: раньше градиент перерисовывался на каждом pointermove
+   (background-position + radial-gradient = полная перерисовка слоя).
+   Теперь это маленький блок 960x960, который просто ТРАНСФОРМИРУЕТСЯ
+   за курсором — перерисовки нет, только композиция (GPU). */
 .bg-spotlight {
   position: absolute;
-  inset: 0;
+  left: 50%;
+  top: 40%;
+  width: 960px;
+  height: 960px;
+  margin: -480px 0 0 -480px;
   z-index: var(--z-bg);
   pointer-events: none;
-  background: radial-gradient(circle 480px at var(--mx, 50%) var(--my, 40%), var(--theme-glow) 0%, transparent 70%);
+  background: radial-gradient(circle 480px at 50% 50%, var(--theme-glow) 0%, transparent 70%);
   opacity: 0.16;
   mix-blend-mode: screen;
-  transition: background 0.16s linear;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.14s linear;
 }
 
 .bg-ribbon {
@@ -118,7 +128,9 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   left: -20vw;
   background: radial-gradient(ellipse at center, var(--theme-ribbon) 0%, rgba(0, 0, 0, 0.05) 50%, transparent 75%);
   transform: rotate(-8deg) skewX(-20deg);
-  filter: blur(45px);
+  /* PERF: filter: blur(45px) на элементе с бесконечной анимацией
+     заставлял браузер пересчитывать размытие каждый кадр (дорого
+     и не параллелится). Мягкие края уже заданы радиальным градиентом. */
   pointer-events: none !important;
   z-index: var(--z-bg);
   transition: background 0.5s ease;
@@ -129,9 +141,9 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   inset: -12%;
   background: radial-gradient(ellipse at 30% 50%, var(--theme-ribbon) 0%, transparent 62%);
   transform: rotate(18deg) skewX(24deg);
-  filter: blur(34px);
   opacity: 0.7;
   animation: ambientDrift 14s ease-in-out infinite alternate;
+  will-change: transform;
 }
 @keyframes ambientDrift {
   0% { transform: translate3d(-2%, -1%, 0) rotate(14deg) skewX(20deg); opacity: 0.5; }
@@ -147,11 +159,14 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   align-items: center;
   min-width: 0;
   padding: var(--safe-top) calc(30px + var(--safe-right)) 0 calc(30px + var(--safe-left));
-  background: var(--theme-header-bg);
+  /* PERF: backdrop-filter удалён. Размытие фона шапки — это отдельный
+     проход композитора на каждый кадр (особенно при прокрутке/анимации).
+     Вместо него — плотный полупрозрачный градиент + непрозрачная подложка. */
+  background-color: #0b100c;
+  background-image: var(--theme-header-bg);
   border-bottom: 2px solid var(--theme-border);
-  backdrop-filter: blur(12px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.85);
-  transition: background 0.4s ease, border-color 0.4s ease;
+  transition: background-color 0.4s ease, border-color 0.4s ease;
 }
 .top-gamer-bar::after {
   content: "";
@@ -190,11 +205,25 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   justify-content: center;
   position: relative;
   transition: border-color 0.4s;
+}
+/* PERF: пульсация аватара переведена с анимации box-shadow
+   (перерисовка + re-rasterization тени каждый кадр) на анимацию
+   opacity отдельного слоя — чистая композиция на GPU. */
+.gamerpic-box::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  border: 1px solid var(--theme-toxic);
+  box-shadow: 0 0 12px var(--theme-glow), inset 0 0 10px rgba(124, 252, 0, 0.35);
+  opacity: 0.22;
+  pointer-events: none;
   animation: avatarPulse 3.2s ease-in-out infinite;
+  will-change: opacity;
 }
 @keyframes avatarPulse {
-  0%, 100% { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18), 0 0 14px var(--theme-glow), inset 0 0 14px rgba(0, 0, 0, 0.8); }
-  50% { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.38), 0 0 28px var(--theme-glow), inset 0 0 14px rgba(0, 0, 0, 0.8); }
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.92; }
 }
 .gamerpic-box .initial {
   font-size: 26px;
@@ -383,11 +412,16 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   pointer-events: none;
 }
 .header-progress-fill {
-  width: 0%;
+  /* PERF: width -> transform: scaleX(). Анимация width вызывает
+     relayout/layout на каждом кадре; scaleX — только композиция. */
+  width: 100%;
   height: 100%;
+  transform-origin: left center;
+  transform: scaleX(var(--p, 0));
   background: linear-gradient(90deg, var(--theme-accent), var(--theme-toxic));
   box-shadow: 0 0 12px var(--theme-glow);
-  transition: width 0.8s var(--ease-out);
+  transition: transform 0.8s var(--ease-out);
+  will-change: transform;
 }
 
 /* ---------- 3. BLADES RIBBON ---------- */
@@ -610,14 +644,27 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   color: #000;
   background: var(--theme-blade-active);
   border-color: #ffffff;
+}
+/* PERF: свечение активного лезвия больше не анимирует box-shadow
+   (перерисовка тени каждый кадр). Вместо неё — отдельный слой
+   с box-shadow, анимируемый только через opacity (чистый GPU). */
+.blade-tab.active .blade-gloss::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 -8px 22px var(--theme-glow), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  opacity: 0.25;
+  pointer-events: none;
   animation: bladeGlow 2.4s ease-in-out infinite;
+  will-change: opacity;
+}
+@keyframes bladeGlow {
+  0%, 100% { opacity: 0.22; }
+  50% { opacity: 1; }
 }
 .blade-tab.active::before {
   animation: bladeSweep 1.15s var(--ease-out) both;
-}
-@keyframes bladeGlow {
-  0%, 100% { box-shadow: 0 -5px 22px var(--theme-glow); }
-  50% { box-shadow: 0 -5px 36px var(--theme-glow), 0 0 18px var(--theme-glow); }
 }
 @keyframes bladeSweep {
   0% { background-position: 0 0, -150% 0; }
@@ -655,11 +702,16 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   align-items: center;
   justify-content: center;
   transform-style: preserve-3d;
+  /* PERF/UX: интерактивная зона карусели — «хватабельный» курсор. */
   cursor: grab;
   touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .carousel-stage:active { cursor: grabbing; }
 .carousel-stage.is-dragging { cursor: grabbing; }
+/* Во время перетаскивания курсор не должен «моргать» над кнопками карточки */
+.carousel-stage.is-dragging * { cursor: grabbing !important; }
 .carousel-stage.is-dragging .xbox-case-anchor { transition: none; }
 
 .carousel-stage::before {
@@ -670,11 +722,13 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   width: 78%;
   height: 90px;
   transform: translateX(-50%);
+  /* PERF: filter: blur(28px) + анимация transform/opacity = пересчёт
+     размытия на каждом кадре. Мягкое пятно задаёт сам радиальный градиент. */
   background: radial-gradient(ellipse at center, var(--theme-glow) 0%, transparent 68%);
-  filter: blur(28px);
   opacity: 0.42;
   pointer-events: none;
   animation: floorBreathe 4s ease-in-out infinite;
+  will-change: transform, opacity;
 }
 @keyframes floorBreathe {
   0%, 100% { opacity: 0.28; transform: translateX(-50%) scaleX(0.92); }
