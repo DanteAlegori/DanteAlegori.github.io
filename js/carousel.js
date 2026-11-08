@@ -210,6 +210,12 @@
       <div class="case-card-inner">
         <div class="case-chassis-glow" aria-hidden="true"></div>
 
+        <!-- ПЕРЕВОРАЧИВАЕМЫЙ СЛОЙ: только две грани коробки.
+             Диск лежит рядом (вне .case-flip-rotor) — иначе при
+             развороте коробки он зеркалится и копирайт по кромке
+             читался бы справа налево. -->
+        <div class="case-flip-rotor">
+
         <!-- FRONT COVER -->
         <div class="case-face front">
           <div class="case-x360-header">
@@ -309,6 +315,8 @@
             <span class="xbox-btn-dot btn-y">Y</span> ВЕРНУТЬ ОБЛОЖКУ
           </button>
         </div>
+        </div>
+
         <!-- ============================================================
              CUSTOM PRINTED DVD DISC — Xbox 360 (Minecraft: Xbox 360 Edition)
              Референс: серебряное отражающее поле, ПРЯМОУГОЛЬНАЯ
@@ -324,6 +332,13 @@
 
             <!-- 1. Прямоугольная печать (Picture Disc). Углы срезаны кругом диска. -->
             <div class="disc-print-clip">
+              <!-- PERF/НАДЁЖНОСТЬ: печать — это настоящий <img>, а не
+                   background-image. У фона нет «размеров»: пока картинка
+                   не загрузилась, окно печати пустует и рисунок не виден.
+                   <img> резервирует место и рисуется сразу, плюс
+                   поддерживает loading="lazy" + decoding="async". -->
+              <img class="disc-artwork-img" src="${photoSrc}" alt=""
+                   draggable="false" loading="lazy" decoding="async">
               <div class="disc-artwork"></div>
             </div>
 
@@ -402,6 +417,7 @@
     /* PERF: кешируем ссылки на узлы — вместо querySelector на каждом
        layout() (десятки запросов к DOM на каждое перелистывание). */
     anchor._refs = {
+      discArtImg: anchor.querySelector('.disc-artwork-img'),
       discArt: anchor.querySelector('.disc-artwork'),
       cover: anchor.querySelector('.case-artwork-wrap img'),
       backImgs: anchor.querySelectorAll('.back-screen-pic img'),
@@ -419,9 +435,9 @@
     if (!anchor) return;
     const refs = anchor._refs;
     if (!refs) return;
-    if (refs.discArt && !refs.discArt.style.backgroundImage) {
-      const src = anchor.dataset.discArt;
-      if (src) refs.discArt.style.backgroundImage = utils.cssUrl(src);
+    // Печать на диске — обычный <img>, ей ленивый режим тоже мешает.
+    if (refs.discArtImg && refs.discArtImg.loading === 'lazy') {
+      refs.discArtImg.loading = 'eager';
     }
     if (refs.cover && refs.cover.loading === 'lazy') refs.cover.loading = 'eager';
     // Оборотная сторона использует ту же картинку — она уже в кэше.
@@ -717,6 +733,10 @@
 
     syncActiveClass();
 
+    // Диск выезжает из лотка только при развороте — запускаем его
+    // вращение (и останавливаем, когда коробка закрыта).
+    bindDiscPhysics(carousel.activeIndex);
+
     if (carousel.onToggleFlip) carousel.onToggleFlip(next);
   }
 
@@ -803,7 +823,11 @@
         rotor.style.setProperty('--disc-spin', discPhysics.angle.toFixed(2) + 'deg');
       }
     }
-    if (rotor) startDiscPhysics();
+    /* PERF: диск крутится только когда он ВИДИМ (коробка развёрнута).
+       Иначе rAF-цикл крутился бы впустую 60 раз в секунду ради
+       элемента, который не отрисован. */
+    if (rotor && carousel.isFlipped) startDiscPhysics();
+    else stopDiscPhysics();
   }
 
   /* ---------------------------------------------------------

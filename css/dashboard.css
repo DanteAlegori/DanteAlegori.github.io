@@ -959,12 +959,18 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
-  /* PERF: карточки вне экрана браузер выкидывает из рендера сам
-     (content-visibility: auto) — ручная виртуализация больше не
-     нужна и невозможна: display:none ломает геометрию скролла. */
-  content-visibility: auto;
-  contain-intrinsic-size: var(--case-w) var(--case-h);
-  animation: cardFadeIn 0.4s ease both;
+  /* PERF: content-visibility: auto ЗДЕСЬ НЕЛЬЗЯ.
+     Он тянет за собой paint containment и клипает всё, что выходит
+     за габариты карточки: выезжающий DVD-диск (+283px вправо) и
+     свечение корпуса (.case-chassis-glow, inset: -16px -22px).
+     Culling за пределами экрана браузер делает сам (это горизонтальный
+     скролл-контейнер), а картинки не грузятся заранее благодаря
+     loading="lazy" + decoding="async". */
+  /* PERF: у карточки animation без fill-mode "both" — иначе, если
+     анимация появления не стартовала (фоновая вкладка, быстрое
+     переключение категории), карточка навсегда остаётся с opacity:0
+     и весь её контент — включая диск — не рисуется. */
+  animation: cardFadeIn 0.4s ease;
 }
 @keyframes cardFadeIn { from { opacity: 0; } to { opacity: 1; } }
 .card-item.is-active { z-index: 30; }
@@ -1100,19 +1106,33 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   position: relative;
   width: 100%;
   height: 100%;
-  /* Жёсткий 3D-контекст: без preserve-3d поворот на 180° «схлопывает»
-     обе грани в плоскость и карточка визуально залипает. */
+  /* PERF/КОРРЕКТНОСТЬ: здесь намеренно transform-style: flat.
+     Раньше стоял preserve-3d — но вращается теперь .case-flip-rotor,
+     а .tray-disc обязан остаться в ОБЫЧНОМ paint-order (z-index:-1).
+     В preserve-3d контексте Chrome сортирует диск по 3D-глубине
+     и прячет его за гранями коробки — диск просто не виден. */
+  transform-style: flat;
+  -webkit-transform-style: flat;
+  backface-visibility: visible;
+}
+/* ПЕРЕВОРАЧИВАЕМЫЙ СЛОЙ — только две грани коробки.
+   Диск намеренно остаётся СНАРУЖИ (.case-card-inner → .tray-disc):
+   так при развороте он не зеркалится и его копирайт по кромке
+   остаётся читаемым.
+   Перспектива задаётся САМОМУ ротору: .case-card-inner теперь flat,
+   поэтому перспектива карточки до граней не доходит. */
+.case-flip-rotor {
+  position: absolute;
+  inset: 0;
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
-  backface-visibility: visible;
+  transform: perspective(1000px);
   transition: transform 0.68s cubic-bezier(0.18, 1.02, 0.3, 1.12);
   /* PERF: will-change только на переворачиваемой карточке (1 слой,
      а не 40). Сам переворот длится < 1с — хватает transition. */
 }
-.card-item.flipped .case-card-inner {
-  transform: rotateY(180deg) !important;
-  transform-style: preserve-3d;
-  -webkit-transform-style: preserve-3d;
+.card-item.flipped .case-flip-rotor {
+  transform: perspective(1000px) rotateY(180deg) !important;
   will-change: transform;
 }
 
@@ -1731,8 +1751,13 @@ body.crt-on #dashboard::before { opacity: 0.75; }
     0 10px 34px rgba(0, 0, 0, 0.92),
     0 0 30px var(--theme-glow);
   border: 1px solid rgba(255, 255, 255, 0.35);
+  /* Спрятан в лотке: повёрнут, уменьшен, уведён вглубь. */
   transform: translate3d(0, 0, -28px) rotate(-20deg) scale(0.76);
   opacity: 0;
+  /* PERF: visibility:hidden — диск вообще НЕ рисуется, пока коробка
+     не развёрнута. У него внутри SVG с textPath, голограмма и
+     blend-режимы — это самый дорогой элемент карточки. */
+  visibility: hidden;
   /* PERF: анимация `right` (layout-свойство) заменена на translate3d.
      Диск выезжает из лотка по оси X без единого reflow. */
   transition:
@@ -1743,13 +1768,11 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   overflow: hidden;
   will-change: transform, opacity;
 }
-.card-item.is-active .tray-disc {
+/* Диск выезжает из лотка ТОЛЬКО при развороте коробки (Y / 360°). */
+.card-item.flipped .tray-disc {
   opacity: 1;
+  visibility: visible;
   transform: translate3d(calc(var(--case-w) * 0.76), 0, -34px) rotate(0deg) scale(1);
-}
-.card-item.is-active.flipped .tray-disc {
-  opacity: 0;
-  transform: translate3d(calc(var(--case-w) * -0.05), 0, -62px) rotate(-54deg) scale(0.58);
 }
 
 /* Ротор диска: угол задаётся из JS (--disc-spin) — инерция разгона. */
@@ -1759,12 +1782,12 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   border-radius: 50%;
   transform: rotate(var(--disc-spin, 0deg)) rotate3d(1, 0.45, 0, var(--disc-wobble, 0deg));
 }
-/* PERF: will-change только у активного диска (1 слой вместо 40) */
-.card-item.is-active .disc-rotor {
+/* PERF: will-change только у видимого диска (развёрнутая коробка) */
+.card-item.flipped .disc-rotor {
   will-change: transform;
 }
 .js-disc-motion .disc-rotor { animation: none; }
-body:not(.js-disc-motion) .disc-rotor {
+body:not(.js-disc-motion) .card-item.flipped .disc-rotor {
   animation: discRotorSpin 7.5s linear infinite;
 }
 @keyframes discRotorSpin {
@@ -1789,23 +1812,42 @@ body:not(.js-disc-motion) .disc-rotor {
 }
 
 /* ---------- 1. ПРЯМОУГОЛЬНАЯ ШЕЛКОГРАФИЯ (PICTURE DISC) ---------- */
-/* Клип по кругу диска: углы прямоугольной печати срезаны. */
+/* Круглая маска ВРАЩАЕТСЯ вместе с печатью (она внутри .disc-rotor) —
+   поэтому рисунок всегда остаётся целиком в круге, при любом угле
+   поворота диска. Если убрать маску, печать начнёт «уезжать» за
+   неподвижный круг диска и при повороте пропадать совсем.
+   Тёмная подложка — чтобы фотография читалась на любом фоне. */
 .disc-print-clip {
   position: absolute;
   inset: 0;
   border-radius: 50%;
   overflow: hidden;
+  background: #0c1114;
   z-index: 1;
 }
+.disc-artwork-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Рисунок лежит В ПЛОСКОСТИ ДИСКА, а не вместе с его 3D-наклоном:
+     ротор крутит диск через rotate3d(1, 0.45, 0, wobble) — без этой
+     компенсации печать «уезжает» из круга. Вращение (--disc-spin)
+     сохраняется: рисунок крутится вместе с диском, как на
+     настоящем picture disc. */
+  transform: rotate3d(1, 0.45, 0, calc(-1 * var(--disc-wobble, 0deg)));
+  transform-origin: center;
+}
+/* Слой «дорожек» поверх печати — концентрические кольца данных. */
 .disc-artwork {
   position: absolute;
-  left: 13%;
-  right: 11%;
-  top: 29%;
+  left: 9%;
+  right: 9%;
+  top: 30%;
   bottom: 5%;
-  background-size: cover;
-  background-position: center;
-  filter: contrast(1.08) brightness(0.98) saturate(1.06);
+  /* PERF: фильтр убран — он создавал отдельную поверхность на каждый
+     диск (31 штука) и ничего не давал на фото предмета. */
 }
 /* Концентрические дорожки поверх зоны данных */
 .disc-artwork::after {
@@ -2023,7 +2065,7 @@ body:not(.js-disc-motion) .disc-rotor {
   -webkit-mask-image: linear-gradient(180deg, transparent 0 28%, #000 46%);
   mask-image: linear-gradient(180deg, transparent 0 28%, #000 46%);
 }
-.card-item.is-active .disc-holo-shine {
+.card-item.flipped .disc-holo-shine {
   animation: discHoloSpin 6s linear infinite;
   will-change: transform;
 }
@@ -2054,7 +2096,7 @@ body:not(.js-disc-motion) .disc-rotor {
   overflow: visible;
 }
 /* PERF: вращение кольца — только у активного диска */
-.card-item.is-active .disc-holo-ring-svg {
+.card-item.flipped .disc-holo-ring-svg {
   animation: holoRotate 9s linear infinite;
   will-change: transform;
 }
