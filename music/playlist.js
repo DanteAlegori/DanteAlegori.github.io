@@ -33,6 +33,7 @@ window.BRADYYCARDIA_PLAYLIST = [
   'Louna — С тобой (www.lightaudio.ru).mp3',
   'Louna — Сделай громче! (www.lightaudio.ru).mp3',
   'Louna — Сердца из стали (www.lightaudio.ru).mp3',
+  'Louna — Мой рок-н-ролл (www.lightaudio.ru).mp3',
   'NFS — Most Wanted (www.lightaudio.ru) (1).mp3',
   'nfs — Most Wanted (www.lightaudio.ru) (2).mp3',
   'NFS — Most Wanted (www.lightaudio.ru) (3).mp3',

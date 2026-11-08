@@ -26,8 +26,12 @@
     unlocked: false,
     fanNodes: null,
     fanGain: null,
+    fanPending: false,
     sfxEnabled: true,
     fanEnabled: true,
+    pendingSfx: [],
+    readyCbs: [],
+    bound: false,
     lastPlayAt: 0
   };
 
@@ -39,6 +43,11 @@
    * Создаёт AudioContext. Никогда не бросает исключений наружу —
    * любые проблемы (отсутствие API, политика автозапуска)
    * тихо деградируют в «звук выключен».
+   *
+   * ВАЖНО: вызывается ТОЛЬКО из unlock(), то есть из обработчика
+   * пользовательского жеста. Создание контекста без жеста —
+   * ровно та причина, по которой Chrome писал
+   * «The AudioContext was not allowed to start…».
    */
   function createContext() {
     if (audio.ctx) return audio.ctx;
@@ -79,36 +88,95 @@
     audio.analyser.smoothingTimeConstant = 0.75;
     audio.analyser.connect(audio.master);
 
-    // Начальное состояние может быть 'suspended' — пробуем разбудить.
-    if (audio.ctx.state === 'suspended') {
-      const p = audio.ctx.resume();
-      if (p && typeof p.catch === 'function') p.catch(() => { /* тихо */ });
-    }
-
     return audio.ctx;
   }
 
   /**
-   * Возобновляет контекст. Вызывается на каждом пользовательском
+   * Отложенные эффекты: звук, запрошенный ДО жеста, не теряется —
+   * он проигрывается сразу после разблокировки контекста.
+   * Одинаковые ключи перезаписываются (не наслаиваются).
+   */
+  function queuePending(key, fn) {
+    for (let i = 0; i < audio.pendingSfx.length; i++) {
+      if (audio.pendingSfx[i].key === key) {
+        audio.pendingSfx[i].fn = fn;
+        return;
+      }
+    }
+    if (audio.pendingSfx.length > 3) audio.pendingSfx.shift();
+    audio.pendingSfx.push({ key: key, fn: fn });
+  }
+
+  function flushPending() {
+    if (!audio.pendingSfx.length) return;
+    const ctx = audio.ctx;
+    if (!ctx || ctx.state !== 'running') return;
+
+    const list = audio.pendingSfx.slice();
+    audio.pendingSfx.length = 0;
+    list.forEach((entry) => {
+      try { entry.fn.call(null, ctx); } catch (err) { /* ignore */ }
+    });
+  }
+
+  function notifyReady() {
+    if (!audio.readyCbs.length) return;
+    const cbs = audio.readyCbs.slice();
+    audio.readyCbs.length = 0;
+    cbs.forEach((cb) => {
+      try { cb(); } catch (err) { /* ignore */ }
+    });
+  }
+
+  /**
+   * Возобновляет контекст. Вызывается на первом пользовательском
    * взаимодействии — безопасно, если контекст ещё не создан.
    */
   function unlock() {
-    // Контекст создаётся только после жеста — иначе Chrome выдаёт
-    // предупреждение об autoplay-политике в консоли.
+    // Уже разблокировано — просто доигрываем отложенное.
+    if (audio.ctx && audio.ctx.state === 'running') {
+      audio.unlocked = true;
+      flushPending();
+      notifyReady();
+      return true;
+    }
+
+    // Контекст создаётся только здесь — из жеста пользователя.
     const ctx = createContext();
-    if (!ctx) return false;
+    if (!ctx) {
+      // Не получилось — пробуем снова при следующем жесте.
+      armUnlockListeners();
+      return false;
+    }
+
+    const onRunning = () => {
+      audio.unlocked = true;
+      if (audio.fanPending && audio.fanEnabled) {
+        audio.fanPending = false;
+        startFanHum();
+      }
+      flushPending();
+      notifyReady();
+    };
 
     if (ctx.state === 'suspended') {
       try {
         const p = ctx.resume();
         if (p && typeof p.then === 'function') {
-          p.then(() => { audio.unlocked = true; }).catch(() => { audio.unlocked = ctx.state === 'running'; });
+          p.then(onRunning).catch(() => {
+            // Политика всё ещё не пускает — пробуем при следующем жесте.
+            audio.unlocked = ctx.state === 'running';
+            armUnlockListeners();
+          });
+        } else {
+          onRunning();
         }
       } catch (err) {
         /* resume() бросает только в экзотических случаях */
+        armUnlockListeners();
       }
     } else {
-      audio.unlocked = true;
+      onRunning();
     }
     return audio.unlocked;
   }
@@ -120,25 +188,30 @@
   /**
    * Безопасный запуск: если звук запрещён политикой браузера —
    * тихо выходим, без ошибок в консоли.
+   *
+   * Ключевое отличие от старой версии: guard() НИКОГДА не создаёт
+   * AudioContext. Если контекста ещё нет — эффект откладывается
+   * до первого жеста (queuePending). Это убирает предупреждение
+   * «The AudioContext was not allowed to start…».
    */
-  function guard(fn) {
+  function guard(key, fn) {
     return function () {
       try {
         if (!audio.sfxEnabled) return;
-        const ctx = audio.ctx || createContext();
-        if (!ctx) return;
-        if (ctx.state === 'suspended') {
+        const ctx = audio.ctx;
+        if (!ctx) {
+          // Жеста ещё не было — откладываем эффект.
+          queuePending(key || 'sfx', fn);
+          return;
+        }
+        if (ctx.state !== 'running') {
           const p = ctx.resume();
-          if (p && typeof p.catch === 'function') p.catch(() => { /* ignore */ });
-          // Если контекст ещё не проснулся — отложим звук до resume().
-          if (ctx.state !== 'running') {
-            if (p && typeof p.then === 'function') {
-              p.then(() => {
-                try { fn.call(null, ctx); } catch (err) { /* ignore */ }
-              }).catch(() => { /* ignore */ });
-            }
-            return;
+          if (p && typeof p.then === 'function') {
+            p.then(() => {
+              try { fn.call(null, ctx); } catch (err) { /* ignore */ }
+            }).catch(() => { /* ignore */ });
           }
+          return;
         }
         fn.call(null, ctx);
       } catch (err) {
@@ -165,7 +238,7 @@
     return impulse;
   }
 
-  const playStartup = guard(function (ctx) {
+  const playStartup = guard('startup', function (ctx) {
     const t = ctx.currentTime;
 
     // Компрессор + «зальный» ревер.
@@ -280,8 +353,13 @@
      --------------------------------------------------------- */
 
   function startFanHum() {
-    const ctx = audio.ctx || createContext();
-    if (!ctx) return;
+    const ctx = audio.ctx;
+    if (!ctx) {
+      // Контекста ещё нет (жеста не было) — гул запустится автоматически
+      // сразу после разблокировки. Никаких createContext() вне жеста!
+      audio.fanPending = true;
+      return;
+    }
     if (audio.fanNodes) return;
 
     try {
@@ -354,7 +432,7 @@
      --------------------------------------------------------- */
 
   /** Свист лезвий Blades. */
-  const playBladeSwoosh = guard(function (ctx) {
+  const playBladeSwoosh = guard('swoosh', function (ctx) {
     const t = ctx.currentTime;
     const len = Math.floor(ctx.sampleRate * 0.18);
     const buffer = ctx.createBuffer(1, len, ctx.sampleRate);
@@ -383,7 +461,7 @@
   });
 
   /** Щелчок пластика (переворот коробки). */
-  const playPlasticClick = guard(function (ctx) {
+  const playPlasticClick = guard('click', function (ctx) {
     const t = ctx.currentTime;
 
     const osc = ctx.createOscillator();
@@ -422,7 +500,7 @@
   });
 
   /** Achievement Unlocked. */
-  const playAchievement = guard(function (ctx) {
+  const playAchievement = guard('achieve', function (ctx) {
     const t = ctx.currentTime;
     const tones = [1396.91, 2093.0, 2637.02];
 
@@ -445,7 +523,7 @@
   });
 
   /** Мягкий «клик» навигации (категория/диск). */
-  const playNavTick = guard(function (ctx) {
+  const playNavTick = guard('tick', function (ctx) {
     const t = ctx.currentTime;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -462,17 +540,27 @@
 
   /* ---------------------------------------------------------
      ТОЧКИ ПОДКЛЮЧЕНИЯ (глобальные обработчики)
+     ---------------------------------------------------------
+     Ленивая разблокировка: обработчики одноразовые ({ once: true }).
+     До первого жеста AudioContext НЕ существует — значит браузеру
+     нечего ругаться в консоли.
      --------------------------------------------------------- */
+  function armUnlockListeners() {
+    const passiveOnce = { passive: true, once: true };
+    document.addEventListener('pointerdown', unlock, passiveOnce);
+    document.addEventListener('touchstart', unlock, passiveOnce);
+    document.addEventListener('mousedown', unlock, passiveOnce);
+    document.addEventListener('keydown', unlock, { once: true });
+  }
+
   function bindUnlockHandlers() {
-    const opts = { passive: true };
-    global.addEventListener('pointerdown', unlock, opts);
-    global.addEventListener('touchstart', unlock, opts);
-    global.addEventListener('keydown', unlock);
-    global.addEventListener('mousedown', unlock, opts);
-    global.addEventListener('wheel', unlock, opts);
-    // Возвращаем звук после переключения вкладки.
+    if (audio.bound) return;
+    audio.bound = true;
+    armUnlockListeners();
+
+    // Возвращаем звук после переключения вкладки (контекст уже создан).
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) unlock();
+      if (!document.hidden && audio.ctx) unlock();
     });
   }
 
@@ -488,6 +576,21 @@
     },
     unlock,
     isRunning,
+    isUnlocked: () => audio.unlocked,
+
+    /**
+     * Подписка на момент разблокировки звука.
+     * Используется плеером: музыка стартует после первого жеста.
+     */
+    onReady(cb) {
+      if (typeof cb !== 'function') return;
+      if (audio.unlocked && isRunning()) {
+        try { cb(); } catch (err) { /* ignore */ }
+        return;
+      }
+      audio.readyCbs.push(cb);
+    },
+
     getContext: () => audio.ctx,
     getAnalyser: () => audio.analyser,
     getMusicBus: () => audio.musicBus,

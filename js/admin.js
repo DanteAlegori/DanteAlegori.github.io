@@ -199,7 +199,7 @@
     set('#statPct', pct + '%');
     set('#statScore', (Number(state.profile.gamerscore) || 0) + ' G');
     const bar = $('#statBar');
-    if (bar) bar.style.width = Math.min(100, Math.max(0, pct)) + '%';
+    if (bar) bar.style.setProperty('--p', (Math.min(100, Math.max(0, pct)) / 100).toFixed(4));
     const badge = $('#countBadge');
     if (badge) badge.textContent = items.length;
   }
@@ -266,7 +266,7 @@
               '<span>из ' + esc(money(price)) + '</span>' +
             '</div>' +
           '</div>' +
-          '<div class="progress-track"><div class="progress-fill ' + (busted ? 'busted' : '') + '" style="width:' + Math.min(100, Math.max(0, pct)) + '%"></div></div>' +
+          '<div class="progress-track"><div class="progress-fill ' + (busted ? 'busted' : '') + '" style="--p:' + (Math.min(100, Math.max(0, pct)) / 100).toFixed(4) + '"></div></div>' +
           '<div class="item-progress-meta"><span data-saved-label>Накоплено ' + esc(money(saved)) + '</span><span class="pct" data-pct>' + pct + '%</span></div>' +
           '<input class="slider" type="range" min="0" max="' + Math.max(1, price) + '" value="' + saved + '" data-slider="' + i + '" aria-label="Накоплено для ' + esc(it.title || '') + '">' +
           '<div class="item-actions">' +
@@ -297,7 +297,7 @@
         const pct = price ? Math.round((it.collected / price) * 100) : 0;
         card.querySelector('[data-pct]').textContent = pct + '%';
         const fill = card.querySelector('.progress-fill');
-        if (fill) fill.style.width = Math.min(100, Math.max(0, pct)) + '%';
+        if (fill) fill.style.setProperty('--p', (Math.min(100, Math.max(0, pct)) / 100).toFixed(4));
         markDirty();
       });
       input.addEventListener('change', () => {

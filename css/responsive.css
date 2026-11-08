@@ -91,7 +91,7 @@
   .blade-scroll-btn { min-width: 32px; height: 31px; padding: 0 5px; font-size: 8px; }
 
   .stage-center { padding-top: calc(var(--blades-h) + 12px); }
-  .carousel-nav-btn { width: 30px; height: 62px; opacity: 0.5; backdrop-filter: none; }
+  .carousel-nav-btn { width: 30px; height: 62px; opacity: 0.5; }
   .carousel-nav-btn.prev { left: 2px; }
   .carousel-nav-btn.next { right: 2px; }
   .cnb-arrow { font-size: 20px; }
@@ -334,4 +334,65 @@
   .blade-tab { color: #d8e8dc; border-color: #6f8a74; }
   .guide-quote,
   .mnp-artist { color: #d8e8dc; }
+}
+
+/* ==========================================================================
+   8. MOBILE PERFORMANCE FIRST
+   --------------------------------------------------------------------------
+   На слабых мобильных GPU (iOS Safari, Android Chrome) главные тормоза —
+   НЕ JS, а compositing:
+     • mix-blend-mode на полноэкранных слоях заставляет браузер читать
+       back-buffer и смешивать его (двойная/тройная отрисовка кадра);
+     • backdrop-filter — отдельный проход размытия по всему экрану;
+     • filter: blur() — пересчёт размытия покадрово;
+     • большое число композитинг-слой (3D-карточки) → переполнение
+       видеопамяти и микрофризы.
+   Ниже — «дешёвый» режим: те же цвета и композиция, но без тяжёлых
+   проходов композитора.
+   ========================================================================== */
+@media (max-width: 900px), (pointer: coarse) {
+  /* Полноэкранное смешивание -> обычное наложение (визуально ~1:1). */
+  .bg-spotlight,
+  .aurora-ribbon,
+  #crtOverlay,
+  #crtOverlay::before {
+    mix-blend-mode: normal;
+  }
+  .bg-spotlight { opacity: 0.2; }
+  .aurora-ribbon { opacity: 0.55; }
+
+  /* Голографические слои карточки: оставляем эффект, но без blending. */
+  .case-holo-sheen,
+  .case-specular {
+    mix-blend-mode: normal;
+  }
+  .case-holo-sheen { opacity: 0.42; }
+  .case-specular { opacity: 0.42; }
+
+  /* Свечение лезвий/аватара — дешевле (без второй тени в каждом кадре). */
+  .gamerpic-box { animation: none; }
+
+  /* Пол floor: без размытия (уже убрано), уменьшаем площадь. */
+  .carousel-stage::before {
+    height: 60px;
+    opacity: 0.34;
+  }
+
+  /* Тост достижений: анимация только transform (без opacity-ре-layout). */
+  #achievementToast {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85);
+  }
+
+  /* Панели-шторки: убираем внутренние перерисовки теней. */
+  .blade-panel {
+    box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.9);
+  }
+}
+
+/* Совсем слабые девайсы / экономия батареи: глушим «дышащие» слои. */
+@media (max-width: 480px), (pointer: coarse) and (max-height: 700px) {
+  .case-sheen { opacity: 0.35; }
+  .carousel-stage::before,
+  .carousel-stage::after { animation: none; }
+  #dashboard::after { animation: none; }
 }

@@ -121,7 +121,10 @@
 
     const node = new Audio();
     node.id = 'bradyycardiaAudio';
-    node.preload = 'auto';
+    // PERF: preload="none" — 59 треков НЕ должны качаться заранее.
+    // Файл скачивается только после явного play() выбранного трека.
+    node.preload = 'none';
+    node.autoplay = false;
     // crossOrigin НЕ выставляем: на file:// это ломает загрузку локальных
     // треков (непрозрачный origin → CORS-ошибка → тишина).
     node.crossOrigin = null;
@@ -187,7 +190,18 @@
     }
 
     const ctx = X360.Audio.getContext();
-    if (!ctx) return;
+    if (!ctx) {
+      // Web Audio ещё не разблокирован — подключимся после первого жеста.
+      player.graphReady = false;
+      player.audioEl.volume = clampVolume(player.volume);
+      X360.Audio.onReady(() => {
+        if (player.isPlaying) {
+          connectGraph();
+          setVolume(player.volume, false);
+        }
+      });
+      return;
+    }
     try {
       const source = ctx.createMediaElementSource(player.audioEl);
       const gain = ctx.createGain();
@@ -732,63 +746,115 @@
     player.toxic = cs.getPropertyValue('--theme-toxic').trim() || '#7cfc00';
   }
 
-  function startVisualizer() {
-    const canvas = el('mediaVisualizer');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  /* PERF: визуализатор больше не крутит rAF-цикл постоянно.
+     Раньше он работал даже при закрытой шторке — 60 вызовов drawImage
+     в секунду впустую, что на мобильных съедало батарею и кадры.
+     Теперь цикл живёт только пока шторка плеера открыта. */
+  let visualRaf = 0;
+  let visualRunning = false;
+  let visualGradient = null;
 
-    const bars = 24;
-    const heights = new Array(bars).fill(4);
-    const freqData = new Uint8Array(32);
+  // Буферы визуализатора живут на уровне модуля, чтобы при каждом
+  // старте/остановке не пересоздавать массивы.
+  const bars = 24;
+  const heights = new Array(bars).fill(4);
+  const freqData = new Uint8Array(32);
 
-    function frame() {
-      player.visualFrame++;
-      if (player.visualFrame % 60 === 0) readTheme();
+  function buildGradient(canvas) {
+    const grad = canvas.getContext('2d').createLinearGradient(0, canvas.height, 0, 0);
+    grad.addColorStop(0, player.accent);
+    grad.addColorStop(0.7, player.toxic);
+    grad.addColorStop(1, '#ffffff');
+    return grad;
+  }
 
-      ctx.fillStyle = '#040605';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Анализатор доступен только когда элемент играет через Web Audio.
-      // На file:// (и без графа) рисуем псевдоспектр — визуал не должен «замирать».
-      const analyser = player.graphReady ? X360.Audio.getAnalyser() : null;
-      let freq = null;
-      if (player.isPlaying && analyser) {
-        analyser.getByteFrequencyData(freqData);
-        freq = freqData;
-      }
-
-      const barWidth = (canvas.width / bars) - 2;
-      for (let i = 0; i < bars; i++) {
-        let target;
-        if (freq) {
-          const bin = Math.min(freq.length - 1, Math.floor((i / bars) * freq.length));
-          target = 2 + (freq[bin] / 255) * (canvas.height - 6);
-        } else if (player.isPlaying) {
-          // Псевдоспектр: сумма нескольких синусов + шум — выглядит как музыка.
-          const t = player.visualFrame * 0.06 + i * 0.42;
-          target = 3 + (Math.sin(t) * 0.5 + 0.5) * (canvas.height - 10) * 0.75
-            + Math.random() * 4;
-        } else {
-          target = 2;
-        }
-
-        heights[i] += (target - heights[i]) * (freq ? 0.45 : 0.2);
-        const h = Math.max(2, heights[i]);
-        const x = i * (barWidth + 2);
-        const y = canvas.height - h;
-
-        const grad = ctx.createLinearGradient(0, canvas.height, 0, 0);
-        grad.addColorStop(0, player.accent);
-        grad.addColorStop(0.7, player.toxic);
-        grad.addColorStop(1, '#ffffff');
-
-        ctx.fillStyle = grad;
-        ctx.fillRect(x, y, barWidth, h);
-      }
-      requestAnimationFrame(frame);
+  function visualFrame() {
+    if (!visualRunning) {
+      visualRaf = 0;
+      return;
     }
-    requestAnimationFrame(frame);
+    const canvas = el('mediaVisualizer');
+    if (!canvas) {
+      visualRaf = requestAnimationFrame(visualFrame);
+      return;
+    }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      visualRaf = requestAnimationFrame(visualFrame);
+      return;
+    }
+
+    player.visualFrame++;
+    // Тема меняется редко — читаем computed-стили раз в 2 секунды,
+    // а не раз в секунду (getComputedStyle форсирует style recalc).
+    if (player.visualFrame % 120 === 0) {
+      readTheme();
+      visualGradient = null;
+    }
+
+    ctx.fillStyle = '#040605';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Анализатор доступен только когда элемент играет через Web Audio.
+    // На file:// (и без графа) рисуем псевдоспектр — визуал не должен «замирать».
+    const analyser = player.graphReady ? X360.Audio.getAnalyser() : null;
+    let freq = null;
+    if (player.isPlaying && analyser) {
+      analyser.getByteFrequencyData(freqData);
+      freq = freqData;
+    }
+
+    // PERF: градиент создаётся ОДИН раз, а не 24 раза на кадр
+    // (createLinearGradient в цикле — лишние аллокации каждый кадр).
+    if (!visualGradient) visualGradient = buildGradient(canvas);
+
+    const barWidth = (canvas.width / bars) - 2;
+    for (let i = 0; i < bars; i++) {
+      let target;
+      if (freq) {
+        const bin = Math.min(freq.length - 1, Math.floor((i / bars) * freq.length));
+        target = 2 + (freq[bin] / 255) * (canvas.height - 6);
+      } else if (player.isPlaying) {
+        // Псевдоспектр: сумма нескольких синусов + шум — выглядит как музыка.
+        const t = player.visualFrame * 0.06 + i * 0.42;
+        target = 3 + (Math.sin(t) * 0.5 + 0.5) * (canvas.height - 10) * 0.75
+          + Math.random() * 4;
+      } else {
+        target = 2;
+      }
+
+      heights[i] += (target - heights[i]) * (freq ? 0.45 : 0.2);
+      const h = Math.max(2, heights[i]);
+      const x = i * (barWidth + 2);
+      const y = canvas.height - h;
+
+      ctx.fillStyle = visualGradient;
+      ctx.fillRect(x, y, barWidth, h);
+    }
+    visualRaf = requestAnimationFrame(visualFrame);
+  }
+
+  function startVisualizer() {
+    if (visualRunning) return;
+    visualRunning = true;
+    if (!visualRaf) visualRaf = requestAnimationFrame(visualFrame);
+  }
+
+  function stopVisualizer() {
+    visualRunning = false;
+    if (visualRaf) cancelAnimationFrame(visualRaf);
+    visualRaf = 0;
+  }
+
+  /** Включает/выключает визуализатор (вызывается при открытии шторки). */
+  function setVisualizerActive(active) {
+    if (active) {
+      readTheme();
+      visualGradient = null;
+      startVisualizer();
+    } else {
+      stopVisualizer();
+    }
   }
 
   /* ---------------------------------------------------------
@@ -821,13 +887,15 @@
       updateFolderStatus();
       updateDisplay();
       updateChip();
-      startVisualizer();
+      // Визуализатор НЕ запускается сразу: он включается при открытии
+      // шторки плеера (см. X360.Player.setVisualizerActive).
 
       // Гостю доступен только встроенный плейлист music/playlist.js.
       loadManifest();
     },
 
     loadManifest,
+    setVisualizerActive,
     toggle,
     start,
     pause,

@@ -26,10 +26,16 @@
   gap: 10px;
   padding: 22px 22px 20px;
   overflow: hidden;
-  background: linear-gradient(135deg, rgba(16, 26, 18, 0.98) 0%, rgba(8, 12, 9, 0.985) 100%);
+  /* PERF: backdrop-filter удалён. Панель ВЫЕЗЖАЕТ на transform — блюр
+     фона пересчитывался на каждом кадре анимации (самый дорогой
+     backdrop-filter в проекте). Вместо него — плотный градиент
+     с «шумом» через повторяющийся градиент. */
+  background-color: #0a100c;
+  background-image:
+    repeating-linear-gradient(118deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 7px),
+    linear-gradient(135deg, rgba(16, 26, 18, 0.99) 0%, rgba(8, 12, 9, 0.995) 100%);
   border: 1px solid var(--theme-border);
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), 0 0 25px var(--theme-glow);
-  backdrop-filter: blur(16px);
   /* Единственная система позиционирования: translate3d + will-change */
   transform: translate3d(0, 0, 0);
   transition: transform var(--dur-slow) var(--ease-blade), opacity var(--dur-med) ease;
@@ -118,17 +124,20 @@
 }
 .blade-sheet-handle:active { cursor: grabbing; }
 
-/* Затемняющий блюр-оверлей под панелями: клик по нему закрывает шторку.
-   z-index строго ниже --z-blade, поэтому панель всегда поверх. */
+/* Затемняющий оверлей под панелями: клик по нему закрывает шторку.
+   z-index строго ниже --z-blade, поэтому панель всегда поверх.
+   PERF: backdrop-filter(blur) на полноэкранном слое — самый дорогой
+   блюр в проекте (пересчёт на весь вьюпорт). Заменён плотным
+   затемнением без размытия. */
 #sheetBackdrop {
   position: fixed;
   inset: 0;
   z-index: var(--z-backdrop);
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.68);
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--dur-med) ease;
+  will-change: opacity;
 }
 #sheetBackdrop.show {
   opacity: 1;
@@ -202,15 +211,19 @@
   85%, 100% { transform: translateX(100%); }
 }
 .gps-fill {
-  width: 0%;
+  /* PERF: width -> transform: scaleX() (нет layout на каждом кадре) */
+  width: 100%;
   height: 100%;
+  transform-origin: left center;
+  transform: scaleX(var(--p, 0));
   background-image:
     linear-gradient(90deg, var(--theme-accent), var(--theme-toxic)),
     repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.16) 0 6px, transparent 6px 12px);
   background-blend-mode: overlay;
   background-size: auto, 24px 24px;
   box-shadow: 0 0 12px var(--theme-glow);
-  transition: width 0.6s ease;
+  transition: transform 0.6s ease;
+  will-change: transform;
   animation: progressStripes 1.2s linear infinite;
 }
 @keyframes progressStripes { to { background-position: 0 0, 24px 0; } }
@@ -399,9 +412,12 @@
 /* ---------- 5. TOASTS & BADGES ---------- */
 #achievementToast {
   position: fixed;
-  bottom: -100px;
+  /* PERF: bottom -> transform. Анимация bottom — layout-свойство,
+     вызывавшая reflow всей страницы. Теперь только композиция. */
+  bottom: calc(40px + var(--safe-bottom));
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate3d(-50%, calc(100% + 80px), 0);
+  opacity: 0;
   background: linear-gradient(180deg, #2b3930 0%, #111a13 100%);
   border: 2px solid var(--theme-accent);
   border-radius: 40px;
@@ -411,11 +427,15 @@
   gap: 14px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 25px var(--theme-glow);
   z-index: var(--z-toast);
-  transition: bottom 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.25);
+  transition: transform 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.25), opacity 0.35s ease;
   pointer-events: none;
   max-width: min(92vw, 460px);
+  will-change: transform, opacity;
 }
-#achievementToast.show { bottom: calc(40px + var(--safe-bottom)); }
+#achievementToast.show {
+  transform: translate3d(-50%, 0, 0);
+  opacity: 1;
+}
 .achieve-icon-circle {
   width: 44px;
   height: 44px;

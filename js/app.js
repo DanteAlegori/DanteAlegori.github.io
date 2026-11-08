@@ -139,7 +139,7 @@
     const headerPct = el('headerProgressText');
     if (headerPct) headerPct.textContent = clampedPct + '% COLLECTED';
     const headerFill = el('headerProgressFill');
-    if (headerFill) headerFill.style.width = clampedPct + '%';
+    if (headerFill) headerFill.style.setProperty('--p', (clampedPct / 100).toFixed(4));
   }
 
   /* =========================================================
@@ -342,7 +342,7 @@
     const pctText = el('guidePercentText');
     if (pctText) pctText.textContent = pct + '%';
     const fill = el('guideFillBar');
-    if (fill) fill.style.width = pct + '%';
+    if (fill) fill.style.setProperty('--p', (pct / 100).toFixed(4));
     const savedText = el('guideSavedText');
     if (savedText) savedText.textContent = 'Отложено: ' + utils.formatMoney(saved);
     const priceText = el('guidePriceText');
@@ -420,6 +420,12 @@
     else app.mediaOpen = open;
 
     updateBackdrop();
+
+    /* PERF: визуализатор спектра живёт только пока шторка открыта.
+       Раньше rAF-цикл крутился постоянно и съедал батарею на телефоне. */
+    if (Player && Player.setVisualizerActive) {
+      Player.setVisualizerActive(isGuide ? false : open);
+    }
   }
 
   function updateBackdrop() {
@@ -549,6 +555,8 @@
     const dashboard = el('dashboard');
     if (!dashboard) return;
 
+    const spotlight = el('bgSpotlight');
+
     dashboard.addEventListener('pointermove', (e) => {
       if (app.pointerRaf) return;
       app.pointerRaf = requestAnimationFrame(() => {
@@ -557,8 +565,16 @@
         if (!rect.width || !rect.height) return;
         const x = ((e.clientX - rect.left) / rect.width) * 100;
         const y = ((e.clientY - rect.top) / rect.height) * 100;
-        dashboard.style.setProperty('--mx', utils.clamp(x, 0, 100) + '%');
-        dashboard.style.setProperty('--my', utils.clamp(y, 0, 100) + '%');
+
+        /* PERF: прожектор двигается ТРАНСФОРМОМ маленького блока,
+           а не перерисовкой полноэкранного радиального градиента.
+           Раньше каждый pointermove пересобирал background-position
+           у слоя на весь экран — это главный источник микрофризов. */
+        if (spotlight) {
+          const dx = ((x - 50) / 100) * rect.width;
+          const dy = ((y - 40) / 100) * rect.height;
+          spotlight.style.transform = 'translate3d(' + dx.toFixed(1) + 'px, ' + dy.toFixed(1) + 'px, 0)';
+        }
 
         // Голографический sheen + parallax только у активной коробки.
         const activeCase = dashboard.querySelector('.xbox-case-anchor.is-active');
@@ -572,7 +588,7 @@
     }, { passive: true });
 
     dashboard.addEventListener('pointerleave', () => {
-      const anchors = dashboard.querySelectorAll('.xbox-case-anchor');
+      const anchors = carouselAnchors();
       anchors.forEach((anchor) => {
         anchor.style.setProperty('--tilt-x', '0px');
         anchor.style.setProperty('--tilt-y', '0px');
@@ -581,18 +597,63 @@
     });
   }
 
+  /** Кеш последних значений — не пишем в DOM, если ничего не изменилось. */
+  const sheenCache = new WeakMap();
+
   /** Прописывает CSS-переменные блика на карточку. */
   function applySheen(anchor, nx, ny) {
     const hx = utils.clamp(nx, -0.4, 1.4) * 100;
     const hy = utils.clamp(ny, -0.4, 1.4) * 100;
-    anchor.style.setProperty('--hx', hx.toFixed(2) + '%');
-    anchor.style.setProperty('--hy', hy.toFixed(2) + '%');
-    anchor.style.setProperty('--hang', ((nx - 0.5) * 54).toFixed(1));
-    anchor.style.setProperty('--tilt-x', ((nx - 0.5) * 12).toFixed(2) + 'px');
-    anchor.style.setProperty('--tilt-y', ((ny - 0.5) * 9).toFixed(2) + 'px');
-    // Отдельные переменные для «зеркального» блика (Fresnel).
-    anchor.style.setProperty('--gx', (utils.clamp(nx, 0, 1) * 100).toFixed(2) + '%');
-    anchor.style.setProperty('--gy', (utils.clamp(ny, 0, 1) * 100).toFixed(2) + '%');
+    const gx = utils.clamp(nx, 0, 1) * 100;
+    const gy = utils.clamp(ny, 0, 1) * 100;
+    const hang = (nx - 0.5) * 54;
+    const tx = (nx - 0.5) * 12;
+    const ty = (ny - 0.5) * 9;
+
+    /* PERF: 7 custom-property на каждый pointermove = 7 style-recalc
+       поддерева карточки. Пишем только реально изменившиеся значения
+       (округление до 0.1%) — обычно это 1–2 записи за кадр. */
+    let prev = sheenCache.get(anchor);
+    if (!prev) {
+      prev = { hx: -1, hy: -1, gx: -1, gy: -1, hang: -1, tx: -1, ty: -1 };
+      sheenCache.set(anchor, prev);
+    }
+
+    if (Math.abs(hx - prev.hx) > 0.1) {
+      anchor.style.setProperty('--hx', hx.toFixed(1) + '%');
+      prev.hx = hx;
+    }
+    if (Math.abs(hy - prev.hy) > 0.1) {
+      anchor.style.setProperty('--hy', hy.toFixed(1) + '%');
+      prev.hy = hy;
+    }
+    if (Math.abs(gx - prev.gx) > 0.1) {
+      anchor.style.setProperty('--gx', gx.toFixed(1) + '%');
+      prev.gx = gx;
+    }
+    if (Math.abs(gy - prev.gy) > 0.1) {
+      anchor.style.setProperty('--gy', gy.toFixed(1) + '%');
+      prev.gy = gy;
+    }
+    if (Math.abs(hang - prev.hang) > 0.1) {
+      anchor.style.setProperty('--hang', hang.toFixed(1));
+      prev.hang = hang;
+    }
+    if (Math.abs(tx - prev.tx) > 0.05) {
+      anchor.style.setProperty('--tilt-x', tx.toFixed(2) + 'px');
+      prev.tx = tx;
+    }
+    if (Math.abs(ty - prev.ty) > 0.05) {
+      anchor.style.setProperty('--tilt-y', ty.toFixed(2) + 'px');
+      prev.ty = ty;
+    }
+  }
+
+  /** Список карточек карусели (через публичный API Carousel). */
+  function carouselAnchors() {
+    const stage = el('carouselStage');
+    if (!stage) return [];
+    return Array.prototype.slice.call(stage.querySelectorAll('.xbox-case-anchor'));
   }
 
   /** Гироскоп смартфона — наклон двигает блик. */
@@ -687,7 +748,7 @@
     const status = el('bootStatusText');
     const screen = el('bootScreen');
 
-    if (fill) fill.style.width = '0%';
+    if (fill) fill.style.setProperty('--p', '0');
     if (pct) pct.textContent = '0%';
     if (status) status.textContent = BOOT_LOG[0];
     if (screen) screen.classList.remove('ready');
@@ -695,7 +756,7 @@
     app.boot.progressTimer = setInterval(() => {
       app.boot.progress = Math.min(100, app.boot.progress + 2 + Math.random() * 8);
       const rounded = Math.round(app.boot.progress);
-      if (fill) fill.style.width = app.boot.progress + '%';
+      if (fill) fill.style.setProperty('--p', (app.boot.progress / 100).toFixed(4));
       if (pct) pct.textContent = rounded + '%';
       const lineIndex = Math.min(BOOT_LOG.length - 1, Math.floor((app.boot.progress / 100) * BOOT_LOG.length));
       if (status) status.textContent = BOOT_LOG[lineIndex];
@@ -743,14 +804,10 @@
 
     try { Audio.playBladeSwoosh(); } catch (e) { /* ignore */ }
 
-    // Гостю музыка играет сразу — без кнопок и файловых диалогов.
-    try {
-      if (Player.getTracks().length) {
-        Player.start(false);
-      }
-    } catch (err) {
-      /* ignore */
-    }
+    /* PERF/AUTOPOLICY: музыку здесь НЕ запускаем.
+       До первого жеста браузер всё равно заблокирует play(), а файл
+       при этом успевает скачаться впустую. Старт происходит в
+       Audio.onReady() — строго после жеста гостя. */
   }
 
   /**
@@ -833,7 +890,7 @@
     const fill = el('bootProgressFill');
     const pct = el('bootProgressPct');
     const status = el('bootStatusText');
-    if (fill) fill.style.width = '0%';
+    if (fill) fill.style.setProperty('--p', '0');
     if (pct) pct.textContent = '0%';
     if (status) status.textContent = BOOT_LOG[0];
 
@@ -1075,6 +1132,19 @@
     Audio.init();
     Audio.setSfx(X360.state.sfxEnabled);
     X360.state.sfxEnabled = Audio.isSfxEnabled();
+
+    /* Звук появляется только после первого жеста гостя (autoplay-policy).
+       Музыка стартует в тот же момент — иначе плеер молчал бы
+       до первого клика, а preload="none" не даёт ничего скачать заранее. */
+    Audio.onReady(() => {
+      try {
+        if (X360.prefs.music && Player.getTracks().length && !Player.isPlaying()) {
+          Player.start(true);
+        }
+      } catch (err) {
+        /* ignore */
+      }
+    });
 
     // --- Темы / CRT ---
     applyTheme(X360.prefs.theme);

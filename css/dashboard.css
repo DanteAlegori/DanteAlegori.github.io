@@ -702,11 +702,14 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   align-items: center;
   justify-content: center;
   transform-style: preserve-3d;
-  /* PERF/UX: интерактивная зона карусели — «хватабельный» курсор. */
+  /* PERF/UX: интерактивная зона карусели — «хватабельный» курсор.
+     TOUCH: pan-y = горизонтальные свайпы наши, вертикальные — скролл. */
   cursor: grab;
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  overscroll-behavior: contain;
 }
 .carousel-stage:active { cursor: grabbing; }
 .carousel-stage.is-dragging { cursor: grabbing; }
@@ -756,7 +759,7 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   width: 60px;
   height: 130px;
   z-index: 70;
-  background: linear-gradient(180deg, rgba(28, 44, 32, 0.85) 0%, rgba(10, 16, 12, 0.85) 100%);
+  background: linear-gradient(180deg, rgba(28, 44, 32, 0.94) 0%, rgba(10, 16, 12, 0.94) 100%);
   border: 2px solid var(--theme-border);
   color: #fff;
   display: flex;
@@ -764,7 +767,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  backdrop-filter: blur(10px);
+  /* PERF: backdrop-filter удалён — размытие пересчитывалось при каждом
+     hover-трансформе кнопки. Плотный фон выглядит так же. */
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), inset 0 0 12px rgba(255, 255, 255, 0.06);
   transition: background var(--dur-med) var(--ease-pop), color var(--dur-med) var(--ease-pop),
     transform var(--dur-med) var(--ease-pop), box-shadow var(--dur-med) var(--ease-pop);
@@ -816,11 +820,12 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   align-items: center;
   gap: 10px;
   z-index: 60;
-  background: rgba(10, 16, 12, 0.7);
+  /* PERF: backdrop-filter удалён (полупрозрачная полоса + блюр = лишний
+     проход композитора на каждом кадре анимации точек). */
+  background: rgba(8, 13, 10, 0.9);
   padding: 6px 16px;
   border-radius: 20px;
   border: 1px solid var(--theme-border);
-  backdrop-filter: blur(8px);
 }
 .carousel-pip {
   width: 12px;
@@ -895,13 +900,43 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   height: var(--case-h);
   transform-style: preserve-3d;
   transition: transform 0.6s cubic-bezier(0.18, 1.05, 0.32, 1.14);
-  cursor: pointer;
-  will-change: transform;
+  cursor: grab;
+  /* TOUCH: горизонтальный свайп забираем себе, вертикальный — отдаём
+     скроллу. Без этого iOS Safari пытается «откатить страницу»,
+     а Android Chrome показывает подсветку выделения текста. */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  /* PERF: will-change УДАЛЁН из базового правила.
+     Он создавал композитинг-слой для КАЖДОЙ карточки (40+ слоёв,
+     на мобильном GPU — переполнение видеопамяти и микрофризы).
+     Теперь слой получает только активная карточка и её соседи
+     (см. .is-near ниже). */
   animation: cardFadeIn 0.4s ease both;
 }
 @keyframes cardFadeIn { from { opacity: 0; } to { opacity: 1; } }
 .xbox-case-anchor.is-active { z-index: 30; }
-.xbox-case-anchor.is-offscreen { pointer-events: none; }
+
+/* ---------- МОБИЛЬНАЯ ВИРТУАЛИЗАЦИЯ КАРТОЧЕК ----------
+   Три уровня:
+     .is-near      (|d| <= near) — полноценный 3D, свой слой GPU
+     .is-offscreen (|d| >  near) — не рисуется вообще (visibility:hidden)
+                                   и не имеет will-change -> слой снят
+     .is-far       (|d| >  far)  — display:none -> элемент вынут из
+                                   дерева рендера целиком
+   Итог: на слабом мобильном GPU в кадре живут 3–5 карточек
+   вместо сорока. */
+.xbox-case-anchor.is-near {
+  will-change: transform;
+}
+.xbox-case-anchor.is-offscreen {
+  pointer-events: none;
+  visibility: hidden;
+}
+.xbox-case-anchor.is-far {
+  display: none !important;
+}
 
 /* Полный 360°-спин коробки */
 .xbox-case-anchor.is-spinning {
@@ -986,12 +1021,16 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   -webkit-mask-image: linear-gradient(90deg, #000 0 7%, transparent 16% 84%, #000 93% 100%);
   mask-image: linear-gradient(90deg, #000 0 7%, transparent 16% 84%, #000 93% 100%);
 }
-.xbox-case-anchor.is-active .case-chassis-glow {
+/* PERF: box-shadow больше не анимируется (каждый кадр = перерисовка
+   тени у большого элемента). Пульсация «живого» пластика теперь —
+   отдельный слой с тенью, анимируемый только через opacity. */
+.xbox-case-anchor.is-active .case-chassis-glow::after {
   animation: chassisPulse 3s ease-in-out infinite;
+  will-change: opacity;
 }
 @keyframes chassisPulse {
-  0%, 100% { box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.7), inset 0 -14px 26px rgba(0, 0, 0, 0.55), 0 12px 30px rgba(0, 0, 0, 0.9), 0 0 18px var(--case-glow); }
-  50% { box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.7), inset 0 -14px 26px rgba(0, 0, 0, 0.55), 0 12px 30px rgba(0, 0, 0, 0.9), 0 0 44px var(--case-glow); }
+  0%, 100% { opacity: 0.42; }
+  50% { opacity: 1; }
 }
 
 .case-card-inner {
@@ -1004,12 +1043,14 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   -webkit-transform-style: preserve-3d;
   backface-visibility: visible;
   transition: transform 0.68s cubic-bezier(0.18, 1.02, 0.3, 1.12);
-  will-change: transform;
+  /* PERF: will-change только на переворачиваемой карточке (1 слой,
+     а не 40). Сам переворот длится < 1с — хватает transition. */
 }
 .xbox-case-anchor.flipped .case-card-inner {
   transform: rotateY(180deg) !important;
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
+  will-change: transform;
 }
 
 .case-face {
@@ -1030,6 +1071,10 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* PERF: contain отсекает перерисовку/лейаут грани от остального
+     документа. Безопасно: грань и так transform-style: flat + overflow:hidden,
+     то есть уже изолирована. */
+  contain: layout style paint;
   background-color: #0d120f;
   background-image:
     repeating-linear-gradient(118deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 8px),
@@ -1137,10 +1182,16 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: contrast(1.1) brightness(0.95);
+  /* PERF: CSS-фильтр на 40 обложках = 40 отдельных фильтрованных
+     поверхностей (видеопамять + перерисовка). Дорогой фильтр
+     остаётся только у активной карточки.
+     will-change убран — он давал слой на каждую карточку. */
   transform: translate3d(var(--tilt-x, 0px), var(--tilt-y, 0px), 0) scale(1.045);
+  transition: transform 0.18s ease-out;
+}
+.xbox-case-anchor.is-active .case-artwork-wrap img {
+  filter: contrast(1.1) brightness(0.95);
   transition: transform 0.18s ease-out, filter 0.4s ease;
-  will-change: transform;
 }
 .xbox-case-anchor:hover .case-artwork-wrap img { transform: scale(1.05); }
 .xbox-case-anchor.is-active:hover .case-artwork-wrap img {
@@ -1152,16 +1203,32 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 .case-sheen {
   position: absolute;
   inset: 0;
-  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.38) 45%, transparent 60%);
-  background-size: 250% 100%;
+  overflow: hidden;
   opacity: 0.55;
-  animation: sheenSweep 5.5s ease-in-out infinite;
   pointer-events: none;
   z-index: 4;
 }
+/* PERF: блик раньше «полз» через background-position — это перерисовка
+   градиента на каждой из 40 карточек в каждом кадре. Теперь это
+   transform-полоса (чистая композиция на GPU) и только у активной
+   карточки — остальные статичны. */
+.case-sheen::before {
+  content: "";
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  left: -80%;
+  width: 260%;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.38) 46%, transparent 62%);
+  opacity: 0.9;
+  will-change: transform;
+}
+.xbox-case-anchor.is-active .case-sheen::before {
+  animation: sheenSweep 5.5s ease-in-out infinite;
+}
 @keyframes sheenSweep {
-  0%, 55% { background-position: 150% 0; }
-  80%, 100% { background-position: -80% 0; }
+  0%, 55% { transform: translate3d(38%, 0, 0); }
+  80%, 100% { transform: translate3d(-38%, 0, 0); }
 }
 
 .case-holo-sheen {
@@ -1270,7 +1337,9 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   align-items: center;
   gap: clamp(4px, calc(var(--case-w) * 0.025), 8px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8), 0 0 12px var(--theme-glow);
-  backdrop-filter: blur(8px);
+  /* PERF: backdrop-filter удалён — он был внутри 3D-карточки, которая
+     двигается: размытие пересчитывалось на каждом кадре анимации.
+     Плотный rgba-фон даёт тот же вид. */
   transition: background var(--dur-fast) ease, color var(--dur-fast) ease,
     box-shadow var(--dur-fast) ease, transform var(--dur-fast) ease;
   white-space: nowrap;
@@ -1317,7 +1386,6 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   transform: translate3d(0, 6px, 30px) scale(0.86);
   transition: opacity 0.22s ease, transform 0.28s var(--ease-pop),
     box-shadow 0.25s ease, border-color 0.25s ease;
-  backdrop-filter: none;
 }
 .xbox-case-anchor.is-active .case-flip-fab {
   opacity: 0.94;
@@ -1454,9 +1522,15 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 }
 .case-progress-fill {
   height: 100%;
+  /* PERF: width -> transform: scaleX(). Переход width вызывал layout
+     на каждой карточке при каждом обновлении прогресса. */
+  width: 100%;
+  transform-origin: left center;
+  transform: scaleX(var(--p, 0));
   background: linear-gradient(90deg, var(--theme-accent), var(--theme-toxic));
   box-shadow: 0 0 8px var(--theme-glow);
-  transition: width 0.5s ease;
+  transition: transform 0.5s ease;
+  will-change: transform;
 }
 .case-progress-meta {
   display: flex;
@@ -1596,25 +1670,23 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   border: 1px solid rgba(255, 255, 255, 0.35);
   transform: translate3d(0, 0, -28px) rotate(-20deg) scale(0.76);
   opacity: 0;
+  /* PERF: анимация `right` (layout-свойство) заменена на translate3d.
+     Диск выезжает из лотка по оси X без единого reflow. */
   transition:
-    right 0.78s cubic-bezier(0.05, 0.72, 0.18, 1),
     opacity 0.45s ease,
     transform 0.78s cubic-bezier(0.05, 0.72, 0.18, 1);
   pointer-events: none;
   z-index: -1;
   overflow: hidden;
-  will-change: right, transform, opacity;
+  will-change: transform, opacity;
 }
 .xbox-case-anchor.is-active .tray-disc {
-  /* Диск выезжает из лотка так, чтобы было видно бо́льшую часть лица */
-  right: calc(var(--case-w) * -0.78);
   opacity: 1;
-  transform: translate3d(0, 0, -34px) rotate(0deg) scale(1);
+  transform: translate3d(calc(var(--case-w) * 0.76), 0, -34px) rotate(0deg) scale(1);
 }
 .xbox-case-anchor.is-active.flipped .tray-disc {
-  right: calc(var(--case-w) * 0.03);
   opacity: 0;
-  transform: translate3d(0, 0, -62px) rotate(-54deg) scale(0.58);
+  transform: translate3d(calc(var(--case-w) * -0.05), 0, -62px) rotate(-54deg) scale(0.58);
 }
 
 /* Ротор диска: угол задаётся из JS (--disc-spin) — инерция разгона. */
@@ -1623,6 +1695,9 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   inset: 0;
   border-radius: 50%;
   transform: rotate(var(--disc-spin, 0deg)) rotate3d(1, 0.45, 0, var(--disc-wobble, 0deg));
+}
+/* PERF: will-change только у активного диска (1 слой вместо 40) */
+.xbox-case-anchor.is-active .disc-rotor {
   will-change: transform;
 }
 .js-disc-motion .disc-rotor { animation: none; }
@@ -1879,10 +1954,15 @@ body:not(.js-disc-motion) .disc-rotor {
   );
   mix-blend-mode: screen;
   opacity: 0.5;
-  animation: discHoloSpin 6s linear infinite;
+  /* PERF: бесконечная анимация была на КАЖДОМ диске (40 слоёв).
+     Оставляем только активному диску. */
   /* Белая шапка и зона этикетки остаются матовыми */
   -webkit-mask-image: linear-gradient(180deg, transparent 0 28%, #000 46%);
   mask-image: linear-gradient(180deg, transparent 0 28%, #000 46%);
+}
+.xbox-case-anchor.is-active .disc-holo-shine {
+  animation: discHoloSpin 6s linear infinite;
+  will-change: transform;
 }
 @keyframes discHoloSpin {
   to { transform: rotate(360deg); }
@@ -1909,7 +1989,11 @@ body:not(.js-disc-motion) .disc-rotor {
   width: 152%;
   height: 152%;
   overflow: visible;
+}
+/* PERF: вращение кольца — только у активного диска */
+.xbox-case-anchor.is-active .disc-holo-ring-svg {
   animation: holoRotate 9s linear infinite;
+  will-change: transform;
 }
 @keyframes holoRotate {
   to { transform: rotate(360deg); }
@@ -1975,10 +2059,12 @@ body:not(.js-disc-motion) .disc-rotor {
   left: -8vw;
   top: 22vh;
   border-radius: 52% 48% 60% 40% / 48% 56% 44% 52%;
+  /* PERF: filter: blur(46px) + анимация transform = пересчёт размытия
+     на каждом кадре (плюс анимировавшийся border-radius = paint).
+     Мягкость задаёт сам радиальный градиент, а скругление статично. */
   background: radial-gradient(ellipse at 46% 48%, var(--theme-ribbon) 0%, rgba(0, 255, 65, 0.06) 42%, transparent 72%);
-  filter: blur(46px);
   animation: auroraFlow 17s ease-in-out infinite alternate;
-  will-change: transform, border-radius;
+  will-change: transform;
 }
 .aurora-ribbon i:nth-child(2) {
   width: 58vw;
@@ -2000,9 +2086,9 @@ body:not(.js-disc-motion) .disc-rotor {
   background: radial-gradient(ellipse at 50% 50%, rgba(255, 0, 128, 0.07), transparent 68%);
 }
 @keyframes auroraFlow {
-  0% { transform: translate3d(-4%, -2%, 0) rotate(-8deg) scale(0.94); border-radius: 52% 48% 60% 40% / 48% 56% 44% 52%; }
-  50% { transform: translate3d(3%, 3%, 0) rotate(2deg) scale(1.06); border-radius: 42% 58% 46% 54% / 58% 42% 58% 42%; }
-  100% { transform: translate3d(7%, -3%, 0) rotate(9deg) scale(1.12); border-radius: 60% 40% 52% 48% / 42% 60% 40% 58%; }
+  0% { transform: translate3d(-4%, -2%, 0) rotate(-8deg) scale(0.94); }
+  50% { transform: translate3d(3%, 3%, 0) rotate(2deg) scale(1.06); }
+  100% { transform: translate3d(7%, -3%, 0) rotate(9deg) scale(1.12); }
 }
 
 #crtOverlay {
