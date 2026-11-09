@@ -848,9 +848,12 @@
       screen.classList.remove('boot-sphere');
     }
 
-    // Fallback: если рендер лент недоступен — всё равно открываем дашборд.
+    // Fallback: если сфера собралась, но гость не нажал вторую кнопку —
+    // всё равно открываем дашборд. Раньше условие проверяло только
+    // фазу 'launching', и после сборки сферы (фаза 'sphere') автозапуск
+    // НЕ срабатывал — гость мог застрять на заставке навсегда.
     setTimeout(() => {
-      if (!X360.state.booted && app.boot.phase === 'launching') {
+      if (!X360.state.booted && app.boot.phase !== 'done') {
         app.boot.phase = 'done';
         revealDashboard();
       }

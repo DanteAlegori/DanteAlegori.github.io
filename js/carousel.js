@@ -31,7 +31,7 @@
      --------------------------------------------------------- */
   const CLICK_SLOP = 6;         // px — ниже этого жест считается кликом
   const FLICK_VELOCITY = 0.35;  // px/ms — порог «флик»-свайпа мышью
-  const WHEEL_RATIO = 0.5;      // доля шага, при которой колесо «щёлкает» карточку
+  const WHEEL_RATIO = 0.28;     // доля шага, при которой колесо «щёлкает» карточку
   const FAN_RADIUS = 2;         // сколько соседей получают 3D-трансформацию
   const PERSPECTIVE = 1000;     // px — перспектива «веера»
   const FAN_ROT = 28;           // градусов наклона соседней карточки
@@ -206,6 +206,54 @@
     anchor.setAttribute('role', 'group');
     anchor.setAttribute('aria-label', `Диск: ${item.title || 'без названия'}`);
 
+    /* PERF: тыльная сторона коробки и печать на диске НЕ создаются
+       заранее — они материализуются только когда карточку реально
+       разворачивают. Иначе 31 карточка тащила с собой 93 лишних <img>
+       и ~1500 DOM-узлов, которых никто никогда не видел. */
+    const backHtml = `
+          <div class="case-holo-sheen" aria-hidden="true"></div>
+          <div>
+            <div class="back-header-line">
+              <span>${category} // DOSSIER</span>
+              <span>PAL // 60HZ</span>
+            </div>
+
+            <div class="back-screens-row">
+              <div class="back-screen-pic">
+                <img src="${photoSrc}" alt="Screen 1" draggable="false" loading="lazy" decoding="async">
+              </div>
+              <div class="back-screen-pic back-screen-pic--alt">
+                <img src="${photoSrc}" alt="Screen 2" draggable="false" loading="lazy" decoding="async">
+              </div>
+            </div>
+
+            <div class="back-handwritten-note">«${slogan}»</div>
+          </div>
+
+          <div>
+            <div class="back-specs-table">
+              <div>HEAT LVL: <span>${heat} / 5</span></div>
+              <div>ONLINE: <span>ENABLED</span></div>
+              <div>STATUS: <span>${isBusted ? 'ACQUIRED' : 'WANTED'}</span></div>
+              <div>SAVE SIZE: <span>512 KB</span></div>
+            </div>
+
+            <div class="back-barcode-row">
+              <div class="mini-barcode">||| | | |||| || | ||</div>
+              <span>XBOX-360-2005-STASH</span>
+            </div>
+          </div>
+
+          <!-- Быстрый возврат обложки: доступен даже когда front скрыт -->
+          <button class="ch-btn back-return-btn ch-back-btn" type="button" title="Вернуть обложку (Y)">
+            <span class="xbox-btn-dot btn-y">Y</span> ВЕРНУТЬ ОБЛОЖКУ
+          </button>`;
+
+    const printHtml = `
+              <img class="disc-artwork-img" src="${photoSrc}" alt=""
+                   draggable="false" loading="lazy" decoding="async">
+              <div class="disc-artwork"></div>`;
+
     anchor.innerHTML = `
       <div class="case-card-inner">
         <div class="case-chassis-glow" aria-hidden="true"></div>
@@ -275,46 +323,8 @@
           </div>
         </div>
 
-        <!-- BACK COVER -->
-        <div class="case-face back">
-          <div class="case-holo-sheen" aria-hidden="true"></div>
-          <div>
-            <div class="back-header-line">
-              <span>${category} // DOSSIER</span>
-              <span>PAL // 60HZ</span>
-            </div>
-
-            <div class="back-screens-row">
-              <div class="back-screen-pic">
-                <img src="${photoSrc}" alt="Screen 1" draggable="false" loading="lazy" decoding="async">
-              </div>
-              <div class="back-screen-pic" style="filter:hue-rotate(45deg);">
-                <img src="${photoSrc}" alt="Screen 2" draggable="false" loading="lazy" decoding="async">
-              </div>
-            </div>
-
-            <div class="back-handwritten-note">«${slogan}»</div>
-          </div>
-
-          <div>
-            <div class="back-specs-table">
-              <div>HEAT LVL: <span>${heat} / 5</span></div>
-              <div>ONLINE: <span>ENABLED</span></div>
-              <div>STATUS: <span>${isBusted ? 'ACQUIRED' : 'WANTED'}</span></div>
-              <div>SAVE SIZE: <span>512 KB</span></div>
-            </div>
-
-            <div class="back-barcode-row">
-              <div class="mini-barcode">||| | | |||| || | ||</div>
-              <span>XBOX-360-2005-STASH</span>
-            </div>
-          </div>
-
-          <!-- Быстрый возврат обложки: доступен даже когда front скрыт -->
-          <button class="ch-btn back-return-btn ch-back-btn" type="button" title="Вернуть обложку (Y)">
-            <span class="xbox-btn-dot btn-y">Y</span> ВЕРНУТЬ ОБЛОЖКУ
-          </button>
-        </div>
+        <!-- BACK COVER (ленивая материализация) -->
+        <div class="case-face back"></div>
         </div>
 
         <!-- ============================================================
@@ -330,17 +340,9 @@
             <!-- 0. Серебряное отражающее поле диска -->
             <div class="disc-surface"></div>
 
-            <!-- 1. Прямоугольная печать (Picture Disc). Углы срезаны кругом диска. -->
-            <div class="disc-print-clip">
-              <!-- PERF/НАДЁЖНОСТЬ: печать — это настоящий <img>, а не
-                   background-image. У фона нет «размеров»: пока картинка
-                   не загрузилась, окно печати пустует и рисунок не виден.
-                   <img> резервирует место и рисуется сразу, плюс
-                   поддерживает loading="lazy" + decoding="async". -->
-              <img class="disc-artwork-img" src="${photoSrc}" alt=""
-                   draggable="false" loading="lazy" decoding="async">
-              <div class="disc-artwork"></div>
-            </div>
+            <!-- 1. Прямоугольная печать (Picture Disc). Углы срезаны кругом диска.
+                 Содержимое материализуется лениво (см. materializeCard). -->
+            <div class="disc-print-clip"></div>
 
             <!-- 2. Белая шапка: логотип XBOX 360 слева, зелёный мотив справа -->
             <div class="disc-xbox-header">
@@ -424,7 +426,37 @@
       rotor: anchor.querySelector('.disc-rotor')
     };
 
+    /* Ленивые шаблоны: тыльная сторона и печать диска. */
+    anchor._lazy = { back: backHtml, print: printHtml, done: false };
+
     return anchor;
+  }
+
+  /**
+   * PERF: достраивает карточку (тыльная сторона + печать диска) в момент,
+   * когда её реально показали. До этого момента в DOM лежит ~50 лишних
+   * узлов на карточку, которые никто не видит и которые Chrome всё
+   * равно разбирает при layout.
+   */
+  function materializeCard(anchor) {
+    if (!anchor || !anchor._lazy || anchor._lazy.done) return;
+    anchor._lazy.done = true;
+
+    const back = anchor.querySelector('.case-face.back');
+    if (back) back.innerHTML = anchor._lazy.back;
+
+    const clip = anchor.querySelector('.disc-print-clip');
+    if (clip) clip.innerHTML = anchor._lazy.print;
+
+    const refs = anchor._refs;
+    if (refs) {
+      refs.discArtImg = clip ? clip.querySelector('.disc-artwork-img') : null;
+      refs.discArt = clip ? clip.querySelector('.disc-artwork') : null;
+      refs.backImgs = back ? back.querySelectorAll('.back-screen-pic img') : [];
+    }
+    // Новые картинки тоже должны уметь откатиться на «NO SIGNAL».
+    bindImageFallbacks(anchor);
+    applyDiscArt(anchor);
   }
 
   /* Ленивая загрузка арта: активная карточка и её соседи.
@@ -731,6 +763,10 @@
     carousel.isFlipped = next;
     X360.state.isFlipped = next;
 
+    // PERF: перед разворотом достраиваем карточку — тыльная сторона
+    // и печать диска создаются только здесь.
+    materializeCard(carousel.anchors[carousel.activeIndex]);
+
     syncActiveClass();
 
     // Диск выезжает из лотка только при развороте — запускаем его
@@ -858,6 +894,7 @@
     if (fabBtn) {
       fabBtn.addEventListener('click', (e) => {
         isolateClick(e);
+        materializeCard(anchor);
         if (!anchor.classList.contains('is-active')) {
           setActive(idx, { silent: true });
           toggleFlip();
@@ -868,6 +905,37 @@
       fabBtn.addEventListener('pointerdown', isolatePointer);
       fabBtn.addEventListener('pointerup', isolatePointer);
       fabBtn.addEventListener('mousedown', isolatePointer);
+
+      /* СТРАХОВКА ОТ ПРОМАХА.
+         В 3D-контексте (preserve-3d) Chrome сортирует попадания мыши
+         по DOM-порядку, а не по z-index, поэтому луч может пройти мимо
+         самой кнопки. Раньше клик уходил в обложку и открывал досье
+         «КУПИТЬ» вместо разворота коробки.
+
+         Поэтому ловим клик по обложке и сами сверяем координаты с
+         кругом кнопки: попали в круг — значит это кнопка Y. */
+      const artWrap = anchor.querySelector('.case-artwork-wrap');
+      if (artWrap) {
+        artWrap.addEventListener('click', (e) => {
+          if (fabBtn.contains(e.target)) return;   // кнопку уже обработали
+          // После перетаскивания мышью клик не должен разворачивать коробку.
+          if (carousel.scrolledSinceDown) return;
+          const b = fabBtn.getBoundingClientRect();
+          if (!b.width) return;
+          const cx = b.left + b.width / 2;
+          const cy = b.top + b.height / 2;
+          const dx = e.clientX - cx;
+          const dy = e.clientY - cy;
+          const r = b.width / 2 + 6;             // небольшой запас
+          if (dx * dx + dy * dy > r * r) return;  // это не кнопка
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          if (!anchor.classList.contains('is-active')) setActive(idx, { silent: true });
+          materializeCard(anchor);
+          toggleFlip();
+        });
+      }
     }
 
     // Y — прочие кнопки переворота (если появятся в разметке).
@@ -912,9 +980,13 @@
     }
 
     // A — досье.
+    // Кликабельна ВСЯ плашка, а не только сама кнопка: обработчик
+    // висит на обёртке .case-hover-quick-bar, поэтому клик по полям
+    // вокруг кнопки тоже открывает досье (раньше пролетал мимо).
     const inspectBtn = anchor.querySelector('.ch-inspect-btn');
-    if (inspectBtn) {
-      inspectBtn.addEventListener('click', (e) => {
+    const inspectBar = anchor.querySelector('.case-hover-quick-bar');
+    if (inspectBtn && inspectBar) {
+      inspectBar.addEventListener('click', (e) => {
         isolateClick(e);
         if (!anchor.classList.contains('is-active')) {
           setActive(idx, { silent: true });
