@@ -91,6 +91,114 @@
     return audio.ctx;
   }
 
+  /* ---------------------------------------------------------
+     ФОНОВАЯ МУЗЫКА — НАПРЯМУЮ В ДИНАМИКИ (без Web Audio)
+     ---------------------------------------------------------
+     Музыка принципиально НЕ проходит через Web Audio API.
+     createMediaElementSource() у кросс-доменного файла без
+     Access-Control-Allow-Origin (файлы GitHub Release:
+     github.com -> 302 -> objects.githubusercontent.com) НЕ
+     бросает исключение, а МОЛЧА заглушает поток: таймер идёт,
+     статус «ИГРАЕТ», а в колонках — тишина. Обойти это нельзя,
+     единственный путь — не брать музыку в граф.
+
+     Поэтому обычный <audio> играет сам, прямо в систему:
+       • element.muted  = false
+       • element.volume = значение ползунка громкости
+       • crossOrigin    НЕ выставляется (иначе запрос уходит
+         в CORS-режиме, GitHub не отдаёт ACAO — снова тишина)
+     Web Audio остаётся только для SFX: щелчки, свист лезвий,
+     гул вентилятора, звук Orb.
+     --------------------------------------------------------- */
+
+  const music = {
+    el: null,       // нативный <audio> с фоновой музыкой
+    phase: 0        // фаза псевдоспектра (для визуализатора)
+  };
+
+  function clamp01(value) {
+    const n = Number(value);
+    if (!isFinite(n)) return 0;
+    return n < 0 ? 0 : (n > 1 ? 1 : n);
+  }
+
+  /** Сохранённая громкость музыки (из настроек дашборда). */
+  function savedMusicVolume() {
+    const v = X360.prefs ? Number(X360.prefs.musicVolume) : 0.55;
+    return isFinite(v) ? clamp01(v) : 0.55;
+  }
+
+  /**
+   * Регистрирует нативный <audio> как источник фоновой музыки.
+   * Вызывается плеером сразу после создания элемента.
+   * Гарантирует: muted = false, громкость из настроек,
+   * отсутствие атрибута crossorigin.
+   */
+  function attachMusicElement(el) {
+    if (!el) return null;
+    music.el = el;
+    try {
+      // CORS-режим выключен: без атрибута crossorigin обычный
+      // <audio> спокойно играет кросс-доменный файл как есть.
+      if (el.hasAttribute && el.hasAttribute('crossorigin')) {
+        el.removeAttribute('crossorigin');
+      }
+      el.muted = false;
+      el.volume = savedMusicVolume();
+    } catch (err) { /* ignore */ }
+    return el;
+  }
+
+  /** Громкость музыки: и нативный элемент, и шина синтезатора. */
+  function setMusicVolume(value) {
+    const v = clamp01(value);
+    if (X360.prefs) X360.prefs.musicVolume = v;
+    if (music.el) {
+      try {
+        music.el.muted = false;
+        music.el.volume = v;
+      } catch (err) { /* ignore */ }
+    }
+    // Синтезатор-заглушка (когда плейлист пуст) идёт через musicBus.
+    if (audio.ctx && audio.musicBus) {
+      try {
+        audio.musicBus.gain.setTargetAtTime(v, audio.ctx.currentTime, 0.04);
+      } catch (err) { /* ignore */ }
+    }
+    return v;
+  }
+
+  /** Идёт ли музыка прямо сейчас (элемент не на паузе и не закончен). */
+  function isMusicPlaying() {
+    const el = music.el;
+    return !!(el && !el.paused && !el.ended);
+  }
+
+  /**
+   * Псевдоспектр 0..1 для визуализатора.
+   * Настоящий анализатор невозможен: музыка идёт мимо Web Audio.
+   * Рисуем правдоподобные «прыгающие» полоски — сумма синусов
+   * плюс шум, темп — примерно как у трека. На паузе отдаём нули:
+   * полоски замирают на минимуме.
+   */
+  function getMusicSpectrum(count, out) {
+    const n = Math.max(1, count | 0);
+    const arr = (out && out.length >= n) ? out : new Array(n);
+    if (!isMusicPlaying()) {
+      for (let i = 0; i < n; i++) arr[i] = 0;
+      return arr;
+    }
+    const el = music.el;
+    const t = el.currentTime || 0;
+    music.phase += 0.045;
+    for (let i = 0; i < n; i++) {
+      const x = t * 5.6 + i * 0.62 + music.phase;
+      const v = 0.45 + 0.32 * Math.sin(x) + 0.22 * Math.sin(x * 2.17 + 1.1);
+      arr[i] = v < 0 ? 0 : (v > 1 ? 1 : v);
+    }
+    return arr;
+  }
+
   /**
    * Отложенные эффекты: звук, запрошенный ДО жеста, не теряется —
    * он проигрывается сразу после разблокировки контекста.
@@ -761,6 +869,14 @@
     getAnalyser: () => audio.analyser,
     getMusicBus: () => audio.musicBus,
     getMaster: () => audio.master,
+
+    /* --- Фоновая музыка: нативно, без Web Audio-графа --- */
+    attachMusicElement,
+    getMusicElement: () => music.el,
+    setMusicVolume,
+    getMusicVolume: () => (music.el ? music.el.volume : savedMusicVolume()),
+    isMusicPlaying,
+    getMusicSpectrum,
 
     setSfx(enabled) {
       audio.sfxEnabled = !!enabled;

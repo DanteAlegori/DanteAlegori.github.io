@@ -24,9 +24,9 @@
     orderPos: -1,
     current: null,
     audioEl: null,
-    sourceNode: null,
-    gainNode: null,
-    graphReady: false,
+    // Музыка играет НАПРЯМУЮ через <audio> (без createMediaElementSource):
+    // кросс-доменные файлы GitHub Release без CORS-заголовков Web Audio
+    // глушит — отсюда «таймер идёт, а звука нет».
     errorStreak: 0,
     isPlaying: false,
     status: 'idle',      // idle | loading | playing | paused | error
@@ -128,9 +128,16 @@
     // Файл скачивается только после явного play() выбранного трека.
     node.preload = 'none';
     node.autoplay = false;
-    // crossOrigin НЕ выставляем: на file:// это ломает загрузку локальных
-    // треков (непрозрачный origin → CORS-ошибка → тишина).
-    node.crossOrigin = null;
+    // Музыка играет НАПРЯМУЮ в динамики:
+    //   • без crossOrigin (иначе GitHub отдаёт запрос в CORS-режиме
+    //     и звук глушится),
+    //   • без createMediaElementSource (тот же CORS-taint).
+    // Регистрируем элемент в аудиодвижке — он держит громкость
+    // и псевдоспектр для визуализатора.
+    if (node.hasAttribute('crossorigin')) node.removeAttribute('crossorigin');
+    node.muted = false;
+    node.volume = clampVolume(player.volume);
+    X360.Audio.attachMusicElement(node);
 
     node.addEventListener('ended', () => {
       if (player.isPlaying) playNext(false);
@@ -200,71 +207,24 @@
     return node;
   }
 
-  /**
-   * Можно ли безопасно забрать <audio> в Web Audio-граф?
-   *
-   * На протоколе file:// источник имеет «непрозрачный» origin, и
-   * createMediaElementSource() обесшумливает такой элемент (CORS-taint).
-   * Поэтому на file:// играем напрямую через HTMLMediaElement.volume,
-   * а визуализатор получает синтетический сигнал.
-   */
-  function canRouteThroughWebAudio(trackUrl) {
-    const proto = (global.location && global.location.protocol) || '';
-    // blob:/object URL (выбор папки через File System Access) — свой origin, всё ок.
-    if (proto === 'file:') return false;
-    // Кросс-домен без CORS (файлы из GitHub Release): createMediaElementSource()
-    // НЕ бросает исключение, а молча заглушает поток — музыка играет
-    // в тишину. Такие треки через граф не пускаем.
-    try {
-      const url = new URL(String(trackUrl || ''), global.location.href);
-      return url.origin === global.location.origin;
-    } catch (err) {
-      return false;
-    }
-  }
+  /* ---------------------------------------------------------
+     ВОСПРОИЗВЕДЕНИЕ МУЗЫКИ — ТОЛЬКО НАИВНОЕ
+     ---------------------------------------------------------
+     Web Audio-граф для музыки удалён НАМЕРЕННО.
 
-  function connectGraph() {
-    if (player.graphReady || !player.audioEl) return;
+     Почему: createMediaElementSource() для кросс-доменного файла
+     без Access-Control-Allow-Origin (все треки из GitHub Release:
+     github.com -> 302 -> objects.githubusercontent.com) НЕ бросает
+     исключение — он молча заглушает поток. Итог: таймер идёт,
+     статус «ИГРАЕТ», а в динамиках тишина. Раньше проверка origin
+     стояла здесь, но connectGraph() вызывался ДО установки node.src,
+     поэтому проверка получала пустой URL и всегда разрешала граф.
 
-    if (!canRouteThroughWebAudio(player.current && player.current.url)) {
-      // file:// или кросс-домен (GitHub Release) — играем нативно,
-      // громкость ставим в элемент: через Web Audio такой источник
-      // заглушается CORS-taint'ом (на выходе тишина). громкость ставим на элемент.
-      player.graphReady = false;
-      player.audioEl.volume = clampVolume(player.volume);
-      return;
-    }
-
-    const ctx = X360.Audio.getContext();
-    if (!ctx) {
-      // Web Audio ещё не разблокирован — подключимся после первого жеста.
-      player.graphReady = false;
-      player.audioEl.volume = clampVolume(player.volume);
-      X360.Audio.onReady(() => {
-        if (player.isPlaying) {
-          connectGraph();
-          setVolume(player.volume, false);
-        }
-      });
-      return;
-    }
-    try {
-      const source = ctx.createMediaElementSource(player.audioEl);
-      const gain = ctx.createGain();
-      gain.gain.value = 1;
-      source.connect(gain);
-      gain.connect(X360.Audio.getMusicBus());
-      player.sourceNode = source;
-      player.gainNode = gain;
-      player.graphReady = true;
-      player.audioEl.volume = 1;
-    } catch (err) {
-      // Web Audio не смог забрать элемент (кросс-домен) —
-      // играем напрямую через HTMLMediaElement.
-      player.graphReady = false;
-      player.audioEl.volume = clampVolume(player.volume);
-    }
-  }
+     Теперь музыка всегда идёт напрямую: <audio>.play() +
+     <audio>.volume, без промежуточных нод. Эквалайзер/визуализатор
+     переведён на псевдоспектр (X360.Audio.getMusicSpectrum).
+     SFX (щелчки, свист, гул) по-прежнему идут через Web Audio.
+     --------------------------------------------------------- */
 
   function clampVolume(value) {
     return utils.clamp(value, 0, 1);
@@ -297,8 +257,10 @@
     // errorStreak здесь НЕ обнуляем: он должен копиться при
     // недоступных файлах, иначе перебор списка не прервётся.
 
+    // Нативное воспроизведение: элемент сам идёт в систему.
     node.muted = false;
-    if (!player.graphReady) node.volume = clampVolume(player.volume);
+    X360.Audio.attachMusicElement(node);
+    node.volume = clampVolume(player.volume);
 
     // Прямой путь к файлу без ломающего URL-encoding для file:///
     node.src = player.current.url;
@@ -632,7 +594,7 @@
     if (!player.tracks.length) return false;
     stopSynth();
     const node = ensureAudioEl();
-    connectGraph();
+    // Графа НЕТ: музыка играет нативно (см. блок «ВОСПРОИЗВЕДЕНИЕ МУЗЫКИ»).
     if (!player.order.length || !player.current) {
       buildOrder(false);
       playAt(0);
@@ -714,15 +676,11 @@
     X360.prefs.musicVolume = vol;
     if (persist) X360.savePrefs();
 
-    const ctx = X360.Audio.getContext();
-    const musicBus = X360.Audio.getMusicBus();
-    if (ctx && musicBus && player.graphReady) {
-      try {
-        musicBus.gain.setTargetAtTime(vol, ctx.currentTime, 0.04);
-      } catch (err) { /* ignore */ }
-    }
-    // Если элемент играет нативно (file:// или без графа) — громкость ставим в него.
-    if (player.audioEl && !player.graphReady) {
+    // Громкость ставится НА САМ <audio> (музыка идёт нативно, мимо
+    // Web Audio), а также в шину синтезатора-заглушки.
+    X360.Audio.setMusicVolume(vol);
+    if (player.audioEl) {
+      player.audioEl.muted = false;
       player.audioEl.volume = vol;
     }
 
@@ -769,7 +727,6 @@
      На file:// (и без Web Audio-графа) музыка идёт мимо анализатора,
      поэтому есть запасной вариант: детерминированная «музыкальная»
      огибающая от времени воспроизведения — пульс всё равно живой. */
-  const pulseData = new Uint8Array(32);
   let pulseRaf = 0;
   let pulseRunning = false;
   let lastPulse = -1;
@@ -797,18 +754,16 @@
   }
 
   function computePulse() {
-    const analyser = player.graphReady ? X360.Audio.getAnalyser() : null;
     const el = player.audioEl;
-    const t = el && !el.paused ? el.currentTime : 0;
+    const live = !!(el && !el.paused && !el.ended);
+    const t = live ? el.currentTime : 0;
 
     let bass = 0;
     let high = 0;
 
-    if (analyser && player.isPlaying) {
-      analyser.getByteFrequencyData(pulseData);
-      bass = (pulseData[1] + pulseData[2] + pulseData[3] + pulseData[4]) / 1020;
-      high = (pulseData[12] + pulseData[13] + pulseData[14]) / 765;
-    } else if (player.isPlaying) {
+    // Настоящего анализатора нет: музыка играет мимо Web Audio.
+    // «Дыхание» дашборда считаем самим — по позиции трека.
+    if (live) {
       // Фолбэк: «удар» на каждой доле + медленное «дыхание» громкости.
       const beat = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2 * 1.8667)), 4);
       const swell = 0.5 + 0.5 * Math.sin(t * 0.83);
@@ -1089,7 +1044,8 @@
   // старте/остановке не пересоздавать массивы.
   const bars = 24;
   const heights = new Array(bars).fill(4);
-  const freqData = new Uint8Array(32);
+  // Буфер псевдоспектра (музыка играет мимо Web Audio — анализатора нет).
+  const spectrum = new Array(bars).fill(0);
 
   function buildGradient(canvas) {
     const grad = canvas.getContext('2d').createLinearGradient(0, canvas.height, 0, 0);
@@ -1115,10 +1071,13 @@
       return;
     }
 
+    // Идёт ли музыка прямо сейчас: элемент <audio> не на паузе.
+    const live = X360.Audio.isMusicPlaying();
+
     /* PERF: на паузе спектр не меняется — перерисовывать его 60 раз
        в секунду незачем. Оставляем ~12 кадров в секунду: визуал
        «дышит», но не съедает батарею телефона. */
-    if (!player.isPlaying) {
+    if (!live) {
       const now = performance.now();
       if (now - visualLastPaint < 80) {
         visualRaf = requestAnimationFrame(visualFrame);
@@ -1138,14 +1097,10 @@
     ctx.fillStyle = '#040605';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Анализатор доступен только когда элемент играет через Web Audio.
-    // На file:// (и без графа) рисуем псевдоспектр — визуал не должен «замирать».
-    const analyser = player.graphReady ? X360.Audio.getAnalyser() : null;
-    let freq = null;
-    if (player.isPlaying && analyser) {
-      analyser.getByteFrequencyData(freqData);
-      freq = freqData;
-    }
+    // Псевдоспектр: музыка играет мимо Web Audio, настоящего
+    // анализатора нет. Полоски «прыгают», пока <audio> не на паузе,
+    // и замирают на минимуме, когда он на паузе.
+    X360.Audio.getMusicSpectrum(bars, spectrum);
 
     // PERF: градиент создаётся ОДИН раз, а не 24 раза на кадр
     // (createLinearGradient в цикле — лишние аллокации каждый кадр).
@@ -1153,20 +1108,11 @@
 
     const barWidth = (canvas.width / bars) - 2;
     for (let i = 0; i < bars; i++) {
-      let target;
-      if (freq) {
-        const bin = Math.min(freq.length - 1, Math.floor((i / bars) * freq.length));
-        target = 2 + (freq[bin] / 255) * (canvas.height - 6);
-      } else if (player.isPlaying) {
-        // Псевдоспектр: сумма нескольких синусов + шум — выглядит как музыка.
-        const t = player.visualFrame * 0.06 + i * 0.42;
-        target = 3 + (Math.sin(t) * 0.5 + 0.5) * (canvas.height - 10) * 0.75
-          + Math.random() * 4;
-      } else {
-        target = 2;
-      }
+      const target = live
+        ? 3 + spectrum[i] * (canvas.height - 12) + Math.random() * 3
+        : 2;
 
-      heights[i] += (target - heights[i]) * (freq ? 0.45 : 0.2);
+      heights[i] += (target - heights[i]) * (live ? 0.45 : 0.18);
       const h = Math.max(2, heights[i]);
       const x = i * (barWidth + 2);
       const y = canvas.height - h;
