@@ -2160,6 +2160,13 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 
 /* ---------- ЛОТОК И ДИСК ---------- */
 .disc-tray {
+  /* PERF/ВАЖНО: --disc-size нужен всем надписям и логотипу диска
+     (calc(var(--disc-size) * …)). Задаём его ЗДЕСЬ, абсолютной
+     длиной: проценты внутри calc() разрешались бы по-разному
+     в разных элементах (у шрифта — по своей ширине, у логотипа —
+     по своей), и надписи «рассыпались» бы по диску.
+     Размер самого диска — min(это значение, 78% от лотка). */
+  --disc-size: clamp(104px, 21vw, 250px);
   width: 100%;
   height: 100%;
   display: flex;
@@ -2205,8 +2212,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 }
 .disc-blade {
   position: relative;
-  width: 78%;
-  max-width: 250px;
+  width: var(--disc-size);
+  max-width: 78%;
   aspect-ratio: 1 / 1;
   display: flex;
   align-items: center;
