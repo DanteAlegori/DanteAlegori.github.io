@@ -274,11 +274,13 @@
     if (promise && typeof promise.then === 'function') {
       promise.then(() => {
         player.isPlaying = true;
+        startAmbientPulse();
         updateChip();
         updateDisplay();
       }).catch(() => {
         // Браузер ждёт жеста пользователя — не ругаемся в консоль.
         player.isPlaying = false;
+        stopAmbientPulse();
         updateDisplay();
       });
     }
@@ -563,6 +565,8 @@
     } else if (node.paused) {
       const p = node.play();
       if (p && typeof p.catch === 'function') p.catch(() => { /* ignore */ });
+      player.isPlaying = true;
+      startAmbientPulse();
     }
     updateDisplay();
     return true;
@@ -571,6 +575,7 @@
   function stopPlayback() {
     if (player.audioEl && !player.audioEl.paused) player.audioEl.pause();
     stopSynth();
+    stopAmbientPulse();
   }
 
   function start(fromUser) {
@@ -674,6 +679,120 @@
       : 'плейлист пуст';
   }
 
+  /* ---------------------------------------------------------
+     AMBIENT PULSE — весь фон «дышит» в такт музыке
+     ---------------------------------------------------------
+     Читаем низкие частоты анализатора и пишем их в CSS-переменные
+     --pulse / --pulse-hi. Дальше их используют aurora, CRT-оверлей,
+     подсветка и неон активной коробки.
+
+     На file:// (и без Web Audio-графа) музыка идёт мимо анализатора,
+     поэтому есть запасной вариант: детерминированная «музыкальная»
+     огибающая от времени воспроизведения — пульс всё равно живой. */
+  const pulseData = new Uint8Array(32);
+  let pulseRaf = 0;
+  let pulseRunning = false;
+  let lastPulse = -1;
+  let lastPulseHi = -1;
+  let lastPulseAt = 0;
+  let pulseTargets = null;
+
+  /**
+   * Элементы, «дышащие» в такт музыке.
+   * ВАЖНО: переменная --p ставится НА САМ ЭЛЕМЕНТ, а не на :root.
+   * Переменная на :root инвалидирует стили всего документа — reflow
+   * после записи стоит ~25 мс (съедает весь кадровый бюджет).
+   * Локальная переменная затрагивает только своё поддерево.
+   */
+  function getPulseTargets() {
+    if (pulseTargets) return pulseTargets;
+    pulseTargets = {
+      aurora: document.querySelector('.aurora-ribbon'),
+      ribbon: document.querySelector('.bg-ribbon'),
+      spot: document.querySelector('.bg-spotlight'),
+      crt: document.getElementById('crtOverlay'),
+      card: document.querySelector('.card-item.is-active')
+    };
+    return pulseTargets;
+  }
+
+  function computePulse() {
+    const analyser = player.graphReady ? X360.Audio.getAnalyser() : null;
+    const el = player.audioEl;
+    const t = el && !el.paused ? el.currentTime : 0;
+
+    let bass = 0;
+    let high = 0;
+
+    if (analyser && player.isPlaying) {
+      analyser.getByteFrequencyData(pulseData);
+      bass = (pulseData[1] + pulseData[2] + pulseData[3] + pulseData[4]) / 1020;
+      high = (pulseData[12] + pulseData[13] + pulseData[14]) / 765;
+    } else if (player.isPlaying) {
+      // Фолбэк: «удар» на каждой доле + медленное «дыхание» громкости.
+      const beat = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2 * 1.8667)), 4);
+      const swell = 0.5 + 0.5 * Math.sin(t * 0.83);
+      bass = beat * 0.76 + swell * 0.24;
+      high = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2 * 0.61 + 1.2)), 3) * 0.65;
+    }
+
+    bass = Math.max(0, Math.min(1, bass));
+    high = Math.max(0, Math.min(1, high));
+
+    const tgt = getPulseTargets();
+
+    // Активная карточка могла смениться — переносим «дыхание» на неё.
+    const activeCard = document.querySelector('.card-item.is-active');
+    if (activeCard !== tgt.card) {
+      if (tgt.card) tgt.card.style.removeProperty('--p');
+      tgt.card = activeCard;
+    }
+
+    // Пишем только при заметном изменении: обновление переменной
+    // инвалидирует стили зависимых элементов.
+    if (Math.abs(bass - lastPulse) < 0.02) return;
+    lastPulse = bass;
+
+    const v = bass.toFixed(3);
+    if (tgt.aurora) tgt.aurora.style.setProperty('--p', v);
+    if (tgt.ribbon) tgt.ribbon.style.setProperty('--p', v);
+    if (tgt.spot) tgt.spot.style.setProperty('--p', v);
+    if (tgt.crt) tgt.crt.style.setProperty('--p', v);
+    if (tgt.card) tgt.card.style.setProperty('--p', v);
+  }
+
+  function startAmbientPulse() {
+    if (pulseRunning) return;
+    pulseRunning = true;
+    pulseTargets = null;   // активная карточка могла смениться
+    lastPulseAt = 0;
+    const tick = (now) => {
+      if (!pulseRunning) { pulseRaf = 0; return; }
+      // Троттлинг: обновляем пульс ~24 раза в секунду вместо 60.
+      // Запись переменной + последующий layout стоят ~2.7 мс, а на
+      // :root — ~35 мс (больше двух кадров!). Частоты 24 Гц
+      // для «дыхания» в такт более чем достаточно.
+      if (now - lastPulseAt >= 42) {
+        lastPulseAt = now;
+        computePulse();
+      }
+      pulseRaf = requestAnimationFrame(tick);
+    };
+    pulseRaf = requestAnimationFrame(tick);
+  }
+
+  function stopAmbientPulse() {
+    pulseRunning = false;
+    if (pulseRaf) cancelAnimationFrame(pulseRaf);
+    pulseRaf = 0;
+    lastPulse = -1;
+    lastPulseHi = -1;
+    const tgt = getPulseTargets();
+    ['aurora', 'ribbon', 'spot', 'crt', 'card'].forEach((k) => {
+      if (tgt[k]) tgt[k].style.removeProperty('--p');
+    });
+  }
+
   function updateDisplay() {
     const stationEl = el('mnpStation');
     const trackEl = el('mnpTrack');
@@ -752,6 +871,7 @@
      Теперь цикл живёт только пока шторка плеера открыта. */
   let visualRaf = 0;
   let visualRunning = false;
+  let visualLastPaint = 0;   // PERF: троттлинг отрисовки на паузе
   let visualGradient = null;
 
   // Буферы визуализатора живут на уровне модуля, чтобы при каждом
@@ -782,6 +902,18 @@
     if (!ctx) {
       visualRaf = requestAnimationFrame(visualFrame);
       return;
+    }
+
+    /* PERF: на паузе спектр не меняется — перерисовывать его 60 раз
+       в секунду незачем. Оставляем ~12 кадров в секунду: визуал
+       «дышит», но не съедает батарею телефона. */
+    if (!player.isPlaying) {
+      const now = performance.now();
+      if (now - visualLastPaint < 80) {
+        visualRaf = requestAnimationFrame(visualFrame);
+        return;
+      }
+      visualLastPaint = now;
     }
 
     player.visualFrame++;

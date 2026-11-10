@@ -315,7 +315,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .aurora-ribbon i,
-  .disc-rotor,
+  .rotating-disc,
   .case-holo-sheen,
   .disc-holo-shine,
   .orb-ring,
@@ -327,6 +327,15 @@
   .case-card-inner,
   .blade-panel {
     transition-duration: 0.01ms !important;
+  }
+  /* Коробка раскрывается без анимации: крышка сразу откинута,
+     разворот появляется мгновенно. */
+  .case-flip-rotor {
+    transition: none !important;
+  }
+  .xbox-case-open-wrapper,
+  .xbox-case-opened {
+    transition: none !important;
   }
   /* Уважаем «уменьшить движение»: никакой плавной прокрутки */
   .carousel-track {
@@ -373,6 +382,24 @@
   }
   .case-holo-sheen { opacity: 0.42; }
   .case-specular { opacity: 0.42; }
+
+  /* PERF: mix-blend-mode заставляет браузер читать back-buffer на
+     каждом кадре. На слабом GPU это самый дорогой пасс. Оставляем
+     те же цвета обычным наложением (разница ~1:1). */
+  .card-item.is-active .case-chassis-glow::after,
+  .card-item.is-active .case-x360-header::after,
+  .blade-tab.active .blade-gloss,
+  .blade-tab.active .blade-gloss::after {
+    mix-blend-mode: normal;
+  }
+
+  /* PERF: блик лезвия ездит через background-position — это
+     перерисовка лезвия каждый кадр. На мобильных оставляем
+     статичный блик (тот же материал, без мигания). */
+  .blade-tab.active .blade-gloss,
+  .blade-tab.active .blade-gloss::after {
+    animation: none;
+  }
 
   /* Свечение лезвий/аватара — дешевле (без второй тени в каждом кадре). */
   .gamerpic-box { animation: none; }

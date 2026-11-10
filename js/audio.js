@@ -196,6 +196,8 @@
    */
   function guard(key, fn) {
     return function () {
+      // Аргументы пробрасываем внутрь эффекта (например, open=true/false).
+      const args = Array.prototype.slice.call(arguments);
       try {
         if (!audio.sfxEnabled) return;
         const ctx = audio.ctx;
@@ -208,17 +210,181 @@
           const p = ctx.resume();
           if (p && typeof p.then === 'function') {
             p.then(() => {
-              try { fn.call(null, ctx); } catch (err) { /* ignore */ }
+              try { fn.apply(null, [ctx].concat(args)); } catch (err) { /* ignore */ }
             }).catch(() => { /* ignore */ });
           }
           return;
         }
-        fn.call(null, ctx);
+        fn.apply(null, [ctx].concat(args));
       } catch (err) {
         /* Никогда не выбрасываем ошибки аудио наружу */
       }
     };
   }
+
+  /* ---------------------------------------------------------
+     ЗВУК ПРИВОДА DVD (лоток выезжает / заезжает)
+     --------------------------------------------------------- */
+
+  /**
+   * Механика реального Xbox 360: серво привода, шуршание дорожки
+   * и глухой щелчок защёлкивания.
+   * @param {boolean} open — true: лоток выезжает, false: заезжает.
+   */
+  const playDrive = guard('drive', function (ctx, open) {
+    const t = ctx.currentTime;
+    const out = open ? 1 : 0.55;   // задвигание — короче и тише
+
+    // 1) Серво: пила осаживается вниз.
+    const servo = ctx.createOscillator();
+    const servoGain = ctx.createGain();
+    const servoLp = ctx.createBiquadFilter();
+    servo.type = 'sawtooth';
+    servo.frequency.setValueAtTime(open ? 215 : 150, t);
+    servo.frequency.exponentialRampToValueAtTime(open ? 74 : 58, t + 0.42);
+    servoGain.gain.setValueAtTime(0.0001, t);
+    servoGain.gain.exponentialRampToValueAtTime(0.032 * out, t + 0.05);
+    servoGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+    servoLp.type = 'lowpass';
+    servoLp.frequency.value = 880;
+    servo.connect(servoGain);
+    servoGain.connect(servoLp);
+    servoLp.connect(audio.sfxBus);
+    servo.start(t);
+    servo.stop(t + 0.55);
+
+    // 2) Шуршание дорожки лотка.
+    const len = Math.floor(ctx.sampleRate * 0.65);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * 0.55;
+    const noise = ctx.createBufferSource();
+    noise.buffer = buf;
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 1100;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.0001, t);
+    ng.gain.exponentialRampToValueAtTime(0.05 * out, t + 0.07);
+    ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.52);
+    noise.connect(hp);
+    hp.connect(ng);
+    ng.connect(audio.sfxBus);
+    noise.start(t);
+    noise.stop(t + 0.6);
+
+    // 3) Защёлкивание: глухой «тук» в конце хода.
+    const at = t + (open ? 0.46 : 0.3);
+    const click = ctx.createOscillator();
+    const clickGain = ctx.createGain();
+    click.type = 'square';
+    click.frequency.setValueAtTime(190, at);
+    click.frequency.exponentialRampToValueAtTime(68, at + 0.07);
+    clickGain.gain.setValueAtTime(0.0001, at);
+    clickGain.gain.exponentialRampToValueAtTime(0.085 * out, at + 0.007);
+    clickGain.gain.exponentialRampToValueAtTime(0.0001, at + 0.16);
+    click.connect(clickGain);
+    clickGain.connect(audio.sfxBus);
+    click.start(at);
+    click.stop(at + 0.18);
+  });
+
+  /* ---------------------------------------------------------
+     ЗВУК ЗАПУСКА XBOX 360
+     --------------------------------------------------------- */
+
+  /** Разгон винчестера при включении консоли. */
+  const playSpinUp = guard('spinup', function (ctx) {
+    const t = ctx.currentTime;
+    const len = Math.floor(ctx.sampleRate * 1.5);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * 0.7;
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buf;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(240, t);
+    bp.frequency.exponentialRampToValueAtTime(1250, t + 1.1);
+    bp.Q.value = 1.6;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.0001, t);
+    ng.gain.exponentialRampToValueAtTime(0.055, t + 0.6);
+    ng.gain.exponentialRampToValueAtTime(0.0001, t + 1.4);
+    noise.connect(bp);
+    bp.connect(ng);
+    ng.connect(audio.sfxBus);
+    noise.start(t);
+    noise.stop(t + 1.5);
+
+    // Низкий «гул» раскачивающегося привода.
+    const sub = ctx.createOscillator();
+    const sg = ctx.createGain();
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(34, t);
+    sub.frequency.exponentialRampToValueAtTime(78, t + 1.15);
+    sg.gain.setValueAtTime(0.0001, t);
+    sg.gain.exponentialRampToValueAtTime(0.16, t + 0.4);
+    sg.gain.exponentialRampToValueAtTime(0.0001, t + 1.6);
+    sub.connect(sg);
+    sg.connect(audio.sfxBus);
+    sub.start(t);
+    sub.stop(t + 1.7);
+  });
+
+  /** Звонок Xbox 360: стеклянное арпеджио вверх + суб-свип. */
+  const playStartupChime = guard('chime', function (ctx) {
+    const t = ctx.currentTime;
+
+    // Суб-свип «включения».
+    const sub = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(41, t);
+    sub.frequency.exponentialRampToValueAtTime(76, t + 1.05);
+    subGain.gain.setValueAtTime(0.0001, t);
+    subGain.gain.exponentialRampToValueAtTime(0.2, t + 0.3);
+    subGain.gain.exponentialRampToValueAtTime(0.0001, t + 1.7);
+    sub.connect(subGain);
+    subGain.connect(audio.sfxBus);
+    sub.start(t);
+    sub.stop(t + 1.8);
+
+    // Стеклянное арпеджио вверх — четыре ноты.
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+    notes.forEach((freq, i) => {
+      const at = t + 0.16 + i * 0.15;
+      const osc = ctx.createOscillator();
+      const shimmer = ctx.createOscillator();
+      const shimmerGain = ctx.createGain();
+      const gain = ctx.createGain();
+      const hp = ctx.createBiquadFilter();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, at);
+      shimmer.type = 'sine';
+      shimmer.frequency.setValueAtTime(freq * 2.004, at);
+      shimmerGain.gain.value = 0.2;
+      hp.type = 'highpass';
+      hp.frequency.value = 360;
+
+      gain.gain.setValueAtTime(0.0001, at);
+      gain.gain.exponentialRampToValueAtTime(0.15, at + 0.014);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + 1.6);
+
+      osc.connect(gain);
+      shimmer.connect(shimmerGain);
+      shimmerGain.connect(gain);
+      gain.connect(hp);
+      hp.connect(audio.sfxBus);
+
+      osc.start(at);
+      osc.stop(at + 1.7);
+      shimmer.start(at);
+      shimmer.stop(at + 1.7);
+    });
+  });
 
   /* ---------------------------------------------------------
      NEXUS ORB STARTUP SOUND
@@ -615,6 +781,9 @@
     isFanHumEnabled: () => audio.fanEnabled,
 
     playStartup,
+    playSpinUp,
+    playStartupChime,
+    playDrive,
     playBladeSwoosh,
     playPlasticClick,
     playAchievement,

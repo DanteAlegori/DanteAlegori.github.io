@@ -34,6 +34,14 @@
   --dur-med: 320ms;
   --dur-slow: 520ms;
 
+  /* «Пульс» — энергия музыки в низких частотах (0..1).
+     Пишется из JS (js/player.js → AMBIENT PULSE) ЛОКАЛЬНО на каждый
+     элемент (--p), а не на :root: переменная на :root инвалидирует
+     стили всего документа (reflow ~25 мс за кадр).
+     Читают: aurora, фоновая лента, прожектор, CRT-оверлей и неон
+     активной коробки — весь экран «дышит» в такт музыке. */
+  --p: 0;
+
   /* Typography */
   --font-ui: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   --font-display: 'Teko', 'Segoe UI', sans-serif;

@@ -63,6 +63,7 @@
     scrollRaf: 0,
     syncing: false,   // идёт программная прокрутка — индекс не трогаем
     syncTimer: 0,
+    scrollEndTimer: 0,  // конец прокрутки (для класса is-scrolling)
 
     // wheel
     wheelAccum: 0,
@@ -117,6 +118,13 @@
     const from = Math.max(0, Math.floor(frac) - FAN_RADIUS);
     const to = Math.min(anchors.length - 1, Math.ceil(frac) + FAN_RADIUS);
 
+    // Открытая коробка раздвигает соседей: откинутая крышка уходит
+    // влево, а диск с лотком выходит вправо — и то и другое требует
+    // места, иначе они закрывают соседние карточки.
+    const openPush = carousel.isFlipped
+      ? (carousel.cardWidth || 240) * 0.34
+      : 0;
+
     for (let i = 0; i < anchors.length; i++) {
       const anchor = anchors[i];
       if (i < from || i > to) {
@@ -129,9 +137,14 @@
         continue;
       }
       const f = fanFor(i - frac);
+      // Раздвижка: соседи отходят в стороны от открытой коробки.
+      const d = i - frac;
+      const push = openPush && Math.abs(d) > 0.001
+        ? Math.sign(d) * Math.min(1.6, Math.abs(d)) * openPush
+        : 0;
       anchor.style.transform =
         'perspective(' + PERSPECTIVE + 'px) ' +
-        'translate3d(0, 0, ' + f.z.toFixed(1) + 'px) ' +
+        'translate3d(' + push.toFixed(1) + 'px, 0, ' + f.z.toFixed(1) + 'px) ' +
         'rotateY(' + f.ry.toFixed(2) + 'deg) ' +
         'scale(' + f.scale.toFixed(3) + ')';
       anchor.style.zIndex = String(f.zi);
@@ -178,7 +191,9 @@
      --------------------------------------------------------- */
   function buildCard(item, idx) {
     const isBusted = item.status === 'busted';
-    const photoRaw = utils.safeUrl(item.photoUrl) || X360.FALLBACK_ART;
+    // PERF: берём уменьшенную версию обложки (CDN-вариант ~600px
+    // вместо 1200px) — карточка всё равно рисуется в ~270 px.
+    const photoRaw = utils.thumbUrl(item.photoUrl) || X360.FALLBACK_ART;
     const photoSrc = utils.escapeHtml(photoRaw);
     const title = utils.escapeHtml(item.title || 'БЕЗ НАЗВАНИЯ');
     const category = utils.escapeHtml(item.category || 'БЕЗ КАТЕГОРИИ');
@@ -206,63 +221,25 @@
     anchor.setAttribute('role', 'group');
     anchor.setAttribute('aria-label', `Диск: ${item.title || 'без названия'}`);
 
-    /* PERF: тыльная сторона коробки и печать на диске НЕ создаются
-       заранее — они материализуются только когда карточку реально
-       разворачивают. Иначе 31 карточка тащила с собой 93 лишних <img>
-       и ~1500 DOM-узлов, которых никто никогда не видел. */
-    const backHtml = `
-          <div class="case-holo-sheen" aria-hidden="true"></div>
-          <div>
-            <div class="back-header-line">
-              <span>${category} // DOSSIER</span>
-              <span>PAL // 60HZ</span>
-            </div>
-
-            <div class="back-screens-row">
-              <div class="back-screen-pic">
-                <img src="${photoSrc}" alt="Screen 1" draggable="false" loading="lazy" decoding="async">
-              </div>
-              <div class="back-screen-pic back-screen-pic--alt">
-                <img src="${photoSrc}" alt="Screen 2" draggable="false" loading="lazy" decoding="async">
-              </div>
-            </div>
-
-            <div class="back-handwritten-note">«${slogan}»</div>
-          </div>
-
-          <div>
-            <div class="back-specs-table">
-              <div>HEAT LVL: <span>${heat} / 5</span></div>
-              <div>ONLINE: <span>ENABLED</span></div>
-              <div>STATUS: <span>${isBusted ? 'ACQUIRED' : 'WANTED'}</span></div>
-              <div>SAVE SIZE: <span>512 KB</span></div>
-            </div>
-
-            <div class="back-barcode-row">
-              <div class="mini-barcode">||| | | |||| || | ||</div>
-              <span>XBOX-360-2005-STASH</span>
-            </div>
-          </div>
-
-          <!-- Быстрый возврат обложки: доступен даже когда front скрыт -->
-          <button class="ch-btn back-return-btn ch-back-btn" type="button" title="Вернуть обложку (Y)">
-            <span class="xbox-btn-dot btn-y">Y</span> ВЕРНУТЬ ОБЛОЖКУ
-          </button>`;
-
-    const printHtml = `
-              <img class="disc-artwork-img" src="${photoSrc}" alt=""
-                   draggable="false" loading="lazy" decoding="async">
-              <div class="disc-artwork"></div>`;
+    /* PERF: карточка в карусели теперь лёгкая — только обложка.
+       Буклет-мануал и лоток с диском живут в ОДНОМ общем оверлее
+       раскрытой коробки (index.html → .xbox-case-open-wrapper),
+       поэтому 31 карточка не тащит с собой ни лишних <img>, ни
+       лишних DOM-узлов. */
 
     anchor.innerHTML = `
       <div class="case-card-inner">
         <div class="case-chassis-glow" aria-hidden="true"></div>
 
-        <!-- ПЕРЕВОРАЧИВАЕМЫЙ СЛОЙ: только две грани коробки.
-             Диск лежит рядом (вне .case-flip-rotor) — иначе при
-             развороте коробки он зеркалится и копирайт по кромке
-             читался бы справа налево. -->
+        <!-- КРЫШКА НА ПЕТЛЕ.
+             Ось вращения — корешок СЛЕВА (transform-origin в CSS),
+             поэтому при открытии крышка откидывается влево и ложится
+             плашмя, как створка настоящего бокса Xbox 360. -->
         <div class="case-flip-rotor">
+
+          <!-- ВНУТРЕННЯЯ СТОРОНА КРЫШКИ: полупрозрачный зелёный
+               пластик, сквозь который просвечивает арт обложки. -->
+          <div class="case-lid-inner" aria-hidden="true"></div>
 
         <!-- FRONT COVER -->
         <div class="case-face front">
@@ -322,90 +299,8 @@
             </div>
           </div>
         </div>
-
-        <!-- BACK COVER (ленивая материализация) -->
-        <div class="case-face back"></div>
         </div>
 
-        <!-- ============================================================
-             CUSTOM PRINTED DVD DISC — Xbox 360 (Minecraft: Xbox 360 Edition)
-             Референс: серебряное отражающее поле, ПРЯМОУГОЛЬНАЯ
-             шелкография с артом (углы срезаны кругом диска),
-             белая шапка с логотипом слева и зелёным мотивом Xbox справа,
-             голографическое кольцо втулки, копирайт по кромке.
-             ============================================================ -->
-        <div class="tray-disc" aria-hidden="true">
-          <div class="disc-rotor">
-
-            <!-- 0. Серебряное отражающее поле диска -->
-            <div class="disc-surface"></div>
-
-            <!-- 1. Прямоугольная печать (Picture Disc). Углы срезаны кругом диска.
-                 Содержимое материализуется лениво (см. materializeCard). -->
-            <div class="disc-print-clip"></div>
-
-            <!-- 2. Белая шапка: логотип XBOX 360 слева, зелёный мотив справа -->
-            <div class="disc-xbox-header">
-              <div class="disc-header-green-swoosh"></div>
-              <div class="disc-header-brand">
-                <svg class="xbox-logo-svg disc-brand-logo" aria-hidden="true"><use href="#xboxLogo"></use></svg>
-                <span class="disc-brand-text">XBOX 360</span>
-              </div>
-            </div>
-
-            <!-- 3. Технические лейблы: рейтинг/стандарты слева, издатель справа -->
-            <div class="disc-meta-left">
-              <div class="disc-rating-box">18+</div>
-              <div class="disc-tech-row"><span class="dd-mark">DO</span> DOLBY DIGITAL</div>
-              <div class="disc-tech-row disc-tech-strong">Microsoft</div>
-              <div class="disc-tech-row">PAL // NTSC</div>
-            </div>
-            <div class="disc-meta-right">
-              <div class="disc-studio-label">WISHLIST</div>
-              <div class="disc-publisher">XBOX GAME STUDIOS</div>
-              <div class="disc-title-text">${title}</div>
-            </div>
-
-            <!-- 4. Тонкий круговой юридический копирайт по внешней кромке -->
-            <svg class="disc-edge-legal" viewBox="0 0 200 200" aria-hidden="true">
-              <defs>
-                <path id="discRimArc${idx}" d="M100,100 m-95,0 a95,95 0 1,1 190,0 a95,95 0 1,1 -190,0"></path>
-              </defs>
-              <text>
-                <textPath href="#discRimArc${idx}" startOffset="0%">&#169; MICROSOFT CORPORATION. ALL RIGHTS RESERVED. UNAUTHORIZED COPYING, REVERSE ENGINEERING, TRANSMISSION OR DISCLOSURE PROHIBITED. SECURE ROM &#8226; XBOX 360 &#8226; PAL &#8226;</textPath>
-              </text>
-            </svg>
-
-            <!-- 5. Дифракционная радуга света по дорожкам -->
-            <div class="disc-holo-shine"></div>
-
-            <!-- 6. Прозрачная втулка с голографической лентой безопасности -->
-            <div class="disc-center-hub">
-              <svg class="disc-holo-ring-svg" viewBox="0 0 200 200" aria-hidden="true">
-                <defs>
-                  <path id="discSecArc${idx}" d="M100,100 m-44,0 a44,44 0 1,1 88,0 a44,44 0 1,1 -88,0"></path>
-                  <linearGradient id="discHoloGrad${idx}" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stop-color="#ff5fd0"/>
-                    <stop offset="25%" stop-color="#7cff8a"/>
-                    <stop offset="50%" stop-color="#7fd8ff"/>
-                    <stop offset="75%" stop-color="#ffe66a"/>
-                    <stop offset="100%" stop-color="#c98cff"/>
-                  </linearGradient>
-                </defs>
-                <circle class="holo-band" cx="100" cy="100" r="44" fill="none" stroke="url(#discHoloGrad${idx})" stroke-width="13"/>
-                <circle class="holo-edge" cx="100" cy="100" r="50.5" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="1.5"/>
-                <circle class="holo-edge" cx="100" cy="100" r="37.5" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="1.5"/>
-                <text class="holo-text">
-                  <textPath href="#discSecArc${idx}" startOffset="0%">XBOX 360 &#8226; XBOX 360 &#8226; XBOX 360 &#8226; XBOX 360 &#8226;</textPath>
-                </text>
-              </svg>
-              <div class="disc-spindle-hole"></div>
-            </div>
-
-            <!-- 7. Внешняя прозрачная фаска поликарбоната -->
-            <div class="disc-outer-rim"></div>
-          </div>
-        </div>
       </div>
     `;
 
@@ -419,44 +314,10 @@
     /* PERF: кешируем ссылки на узлы — вместо querySelector на каждом
        layout() (десятки запросов к DOM на каждое перелистывание). */
     anchor._refs = {
-      discArtImg: anchor.querySelector('.disc-artwork-img'),
-      discArt: anchor.querySelector('.disc-artwork'),
-      cover: anchor.querySelector('.case-artwork-wrap img'),
-      backImgs: anchor.querySelectorAll('.back-screen-pic img'),
-      rotor: anchor.querySelector('.disc-rotor')
+      cover: anchor.querySelector('.case-artwork-wrap img')
     };
 
-    /* Ленивые шаблоны: тыльная сторона и печать диска. */
-    anchor._lazy = { back: backHtml, print: printHtml, done: false };
-
     return anchor;
-  }
-
-  /**
-   * PERF: достраивает карточку (тыльная сторона + печать диска) в момент,
-   * когда её реально показали. До этого момента в DOM лежит ~50 лишних
-   * узлов на карточку, которые никто не видит и которые Chrome всё
-   * равно разбирает при layout.
-   */
-  function materializeCard(anchor) {
-    if (!anchor || !anchor._lazy || anchor._lazy.done) return;
-    anchor._lazy.done = true;
-
-    const back = anchor.querySelector('.case-face.back');
-    if (back) back.innerHTML = anchor._lazy.back;
-
-    const clip = anchor.querySelector('.disc-print-clip');
-    if (clip) clip.innerHTML = anchor._lazy.print;
-
-    const refs = anchor._refs;
-    if (refs) {
-      refs.discArtImg = clip ? clip.querySelector('.disc-artwork-img') : null;
-      refs.discArt = clip ? clip.querySelector('.disc-artwork') : null;
-      refs.backImgs = back ? back.querySelectorAll('.back-screen-pic img') : [];
-    }
-    // Новые картинки тоже должны уметь откатиться на «NO SIGNAL».
-    bindImageFallbacks(anchor);
-    applyDiscArt(anchor);
   }
 
   /* Ленивая загрузка арта: активная карточка и её соседи.
@@ -467,15 +328,7 @@
     if (!anchor) return;
     const refs = anchor._refs;
     if (!refs) return;
-    // Печать на диске — обычный <img>, ей ленивый режим тоже мешает.
-    if (refs.discArtImg && refs.discArtImg.loading === 'lazy') {
-      refs.discArtImg.loading = 'eager';
-    }
     if (refs.cover && refs.cover.loading === 'lazy') refs.cover.loading = 'eager';
-    // Оборотная сторона использует ту же картинку — она уже в кэше.
-    refs.backImgs.forEach((img) => {
-      if (img.loading === 'lazy') img.loading = 'eager';
-    });
   }
 
   function bindImageFallbacks(root) {
@@ -554,6 +407,7 @@
       X360.state.lastActiveCaseId = activeId;
       carousel.isFlipped = false;
       X360.state.isFlipped = false;
+      hideOpenCase();
     }
 
     syncActiveClass();
@@ -569,7 +423,7 @@
       applyDiscArt(carousel.anchors[i]);
     });
 
-    bindDiscPhysics(carousel.activeIndex);
+    bindOpenCase();
     updateNavState();
   }
 
@@ -624,6 +478,14 @@
      --------------------------------------------------------- */
   function onScroll() {
     if (carousel.scrollRaf) return;
+    // Во время прокрутки переход на карточках выключен (см. CSS) —
+    // иначе соседи отставали бы от движения трека.
+    const trackEl = carousel.track;
+    if (trackEl) trackEl.classList.add('is-scrolling');
+    clearTimeout(carousel.scrollEndTimer);
+    carousel.scrollEndTimer = setTimeout(function () {
+      if (carousel.track) carousel.track.classList.remove('is-scrolling');
+    }, 200);
     carousel.scrollRaf = requestAnimationFrame(function () {
       carousel.scrollRaf = 0;
       const track = carousel.track;
@@ -649,6 +511,7 @@
 
       carousel.isFlipped = false;
       X360.state.isFlipped = false;
+      hideOpenCase();
       syncActiveClass();
 
       if (carousel.onSfx) carousel.onSfx('nav');
@@ -714,6 +577,8 @@
     if (changed && !options.silent) {
       carousel.isFlipped = false;
       X360.state.isFlipped = false;
+      // Уехали на другой диск — разворот закрывается.
+      hideOpenCase();
     }
 
     scrollToIndex(next, options.behavior || 'smooth');
@@ -753,8 +618,14 @@
   }
 
   /* ---------------------------------------------------------
-     ПЕРЕВОРОТ КОРОБКИ
-     --------------------------------------------------------- */
+     РАСКРЫТИЕ КОРОБКИ
+     ---------------------------------------------------------
+     Коробка раскрывается К НАМ: крышка откидывается влево
+     (rotateY(-180deg) в CSS), а в центре экрана появляется
+     двустворчатый разворот — слева буклет-мануал с текстом,
+     справа лоток с крутящимся диском.
+     Никаких отражений: весь текст в развороте — обычный DOM,
+     поэтому он читается как есть. */
   function toggleFlip(force) {
     const count = carousel.items.length;
     if (!count) return;
@@ -763,15 +634,24 @@
     carousel.isFlipped = next;
     X360.state.isFlipped = next;
 
-    // PERF: перед разворотом достраиваем карточку — тыльная сторона
-    // и печать диска создаются только здесь.
-    materializeCard(carousel.anchors[carousel.activeIndex]);
+    // PERF/UX: звук привода синхронизирован с ходом лотка:
+    // серво + шуршание дорожки, затем защёлкивание.
+    if (X360.Audio && X360.Audio.playDrive) {
+      try { X360.Audio.playDrive(next); } catch (err) { /* ignore */ }
+    }
 
     syncActiveClass();
 
-    // Диск выезжает из лотка только при развороте — запускаем его
-    // вращение (и останавливаем, когда коробка закрыта).
-    bindDiscPhysics(carousel.activeIndex);
+    if (next) showOpenCase(carousel.items[carousel.activeIndex]);
+    else hideOpenCase();
+
+    // Соседи приглушаются, пока открыта коробка (css: .has-open-case).
+    if (carousel.track) {
+      carousel.track.classList.toggle('has-open-case', next);
+    }
+
+    // Соседи раздвигаются в стороны — открытой коробке нужно место.
+    if (carousel.track) applyFan(fracAt(carousel.track.scrollLeft));
 
     if (carousel.onToggleFlip) carousel.onToggleFlip(next);
   }
@@ -781,89 +661,103 @@
     toggleFlip(false);
   }
 
-  /** Полный оборот коробки на 360°. */
-  function spinActive() {
-    const anchor = carousel.anchors[carousel.activeIndex] || null;
-    if (!anchor) return;
-    anchor.classList.remove('is-spinning');
-    // Принудительный reflow, чтобы анимация перезапустилась.
-    void anchor.offsetWidth;
-    anchor.style.setProperty('--spin-from', anchor.style.transform || 'none');
-    anchor.classList.add('is-spinning');
-    setTimeout(() => anchor.classList.remove('is-spinning'), 950);
-    if (carousel.onSfx) carousel.onSfx('flip');
-  }
-
   /* ---------------------------------------------------------
-     ФИЗИКА ДИСКА — мягкое вращение с инерцией
-     Угол задаётся CSS-переменной --disc-spin на активном роторе.
-     --------------------------------------------------------- */
-  const discPhysics = {
-    raf: null,
-    running: false,
-    angle: 0,
-    velocity: 0,
-    target: 34,        // градусов в секунду
-    last: 0,
-    activeRotor: null
-  };
+     РАЗВОРОТ ОТКРЫТОЙ КОРОБКИ — общий оверлей
+     ---------------------------------------------------------
+     Один экземпляр на всё приложение (index.html →
+     .xbox-case-open-wrapper): мануал и лоток с диском не
+     дублируются в 31 карточке карусели. */
+  let openCaseEls = null;
 
-  function startDiscPhysics() {
-    if (discPhysics.running) return;
-    discPhysics.running = true;
-    discPhysics.last = performance.now();
-    if (!discPhysics.raf) {
-      discPhysics.raf = requestAnimationFrame(stepDiscPhysics);
+  function getOpenCaseEls() {
+    if (openCaseEls) return openCaseEls;
+    const wrapper = document.getElementById('openCaseWrapper');
+    if (!wrapper) return null;
+    openCaseEls = {
+      wrapper: wrapper,
+      backdrop: document.getElementById('openCaseBackdrop'),
+      category: document.getElementById('openCaseCategory'),
+      title: document.getElementById('openCaseTitle'),
+      quote: document.getElementById('openCaseQuote'),
+      heat: document.getElementById('openCaseHeat'),
+      status: document.getElementById('openCaseStatus'),
+      discTitle: document.getElementById('openDiscTitle'),
+      print: document.getElementById('openDiscPrint'),
+      closeBtn: document.getElementById('openCaseClose')
+    };
+    return openCaseEls;
+  }
+
+  /** Заполняет разворот данной карточкой и показывает его. */
+  function showOpenCase(item) {
+    const els = getOpenCaseEls();
+    if (!els || !item) return;
+
+    const title = utils.escapeHtml(item.title || 'БЕЗ НАЗВАНИЯ');
+    const category = utils.escapeHtml(item.category || 'БЕЗ КАТЕГОРИИ');
+    const slogan = utils.escapeHtml(item.slogan || 'Кусок бунта в личную коллекцию.');
+    const heat = utils.clamp(Number(item.heatLevel) || 4, 1, 5);
+    const isBusted = item.status === 'busted';
+
+    if (els.category) els.category.textContent = category;
+    if (els.title) els.title.textContent = title;
+    if (els.quote) els.quote.textContent = '«' + slogan + '»';
+    if (els.heat) els.heat.textContent = heat + ' / 5';
+    if (els.status) els.status.textContent = isBusted ? 'ACQUIRED' : 'WANTED';
+    if (els.discTitle) els.discTitle.textContent = title;
+
+    // Арт на диске — то же фото, что и на обложке (уменьшенное).
+    if (els.print) {
+      const photo = utils.thumbUrl(item.photoUrl) || X360.FALLBACK_ART;
+      els.print.innerHTML =
+        '<img class="disc-artwork-img" src="' + utils.escapeHtml(photo) + '" alt="" draggable="false" decoding="async">' +
+        '<div class="disc-artwork"></div>';
+      bindImageFallbacks(els.print);
+    }
+
+    els.wrapper.classList.add('is-open');
+    els.wrapper.setAttribute('aria-hidden', 'false');
+    if (els.backdrop) {
+      els.backdrop.classList.add('is-open');
+      els.backdrop.setAttribute('aria-hidden', 'false');
     }
   }
 
-  function stopDiscPhysics() {
-    discPhysics.running = false;
-    if (discPhysics.raf) cancelAnimationFrame(discPhysics.raf);
-    discPhysics.raf = null;
-  }
-
-  function stepDiscPhysics(now) {
-    if (!discPhysics.running) {
-      discPhysics.raf = null;
-      return;
-    }
-    const dt = Math.min(0.05, (now - discPhysics.last) / 1000);
-    discPhysics.last = now;
-
-    // Инерция: скорость плавно набирается до целевой («разгон» диска).
-    discPhysics.velocity += (discPhysics.target - discPhysics.velocity) * Math.min(1, dt * 2.2);
-    discPhysics.angle = (discPhysics.angle + discPhysics.velocity * dt) % 360;
-
-    const rotor = discPhysics.activeRotor;
-    if (rotor && rotor.isConnected) {
-      const wobble = Math.sin(now * 0.0011) * 2.4;
-      rotor.style.setProperty('--disc-spin', discPhysics.angle.toFixed(2) + 'deg');
-      rotor.style.setProperty('--disc-wobble', wobble.toFixed(2) + 'deg');
-    }
-
-    discPhysics.raf = requestAnimationFrame(stepDiscPhysics);
-  }
-
-  /** Привязывает физику к активному диску; при смене — сброс инерции. */
-  function bindDiscPhysics(activeIndex) {
-    const anchors = carousel.anchors;
-    const anchor = anchors[activeIndex] || null;
-    const rotor = anchor && anchor._refs ? anchor._refs.rotor : null;
-
-    if (rotor !== discPhysics.activeRotor) {
-      // Новый диск — начинаем раскрутку заново (лёгкая инерция).
-      discPhysics.velocity = 0;
-      discPhysics.activeRotor = rotor;
-      if (rotor) {
-        rotor.style.setProperty('--disc-spin', discPhysics.angle.toFixed(2) + 'deg');
+  function hideOpenCase() {
+    const els = getOpenCaseEls();
+    if (els) {
+      els.wrapper.classList.remove('is-open');
+      els.wrapper.setAttribute('aria-hidden', 'true');
+      if (els.backdrop) {
+        els.backdrop.classList.remove('is-open');
+        els.backdrop.setAttribute('aria-hidden', 'true');
       }
     }
-    /* PERF: диск крутится только когда он ВИДИМ (коробка развёрнута).
-       Иначе rAF-цикл крутился бы впустую 60 раз в секунду ради
-       элемента, который не отрисован. */
-    if (rotor && carousel.isFlipped) startDiscPhysics();
-    else stopDiscPhysics();
+    // Соседи возвращаются из приглушения.
+    if (carousel.track) carousel.track.classList.remove('has-open-case');
+  }
+
+  /** Кнопка «В ЗАКРЫТЬ КОРОБКУ» и клик по затемнению — закрывают разворот. */
+  function bindOpenCase() {
+    const els = getOpenCaseEls();
+    if (!els) return;
+    if (els.closeBtn && !els.closeBtn.dataset.bound) {
+      els.closeBtn.dataset.bound = '1';
+      els.closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleFlip(false);
+      });
+    }
+    // Клик мимо коробки (по затемнению) — тоже закрывает, как Esc.
+    if (els.backdrop && !els.backdrop.dataset.bound) {
+      els.backdrop.dataset.bound = '1';
+      els.backdrop.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleFlip(false);
+      });
+    }
   }
 
   /* ---------------------------------------------------------
@@ -894,7 +788,6 @@
     if (fabBtn) {
       fabBtn.addEventListener('click', (e) => {
         isolateClick(e);
-        materializeCard(anchor);
         if (!anchor.classList.contains('is-active')) {
           setActive(idx, { silent: true });
           toggleFlip();
@@ -932,7 +825,6 @@
           e.stopPropagation();
           e.stopImmediatePropagation();
           if (!anchor.classList.contains('is-active')) setActive(idx, { silent: true });
-          materializeCard(anchor);
           toggleFlip();
         });
       }
@@ -952,32 +844,6 @@
       btn.addEventListener('pointerdown', isolatePointer);
       btn.addEventListener('pointerup', isolatePointer);
     });
-
-    // Клик по тыльной стороне возвращает обложку.
-    const backFace = anchor.querySelector('.case-face.back');
-    if (backFace) {
-      backFace.addEventListener('click', (e) => {
-        if (e.target.closest && e.target.closest('button, a, input, select, textarea')) return;
-        if (!anchor.classList.contains('is-active')) return;
-        e.stopPropagation();
-        if (carousel.isFlipped) toggleFlip();
-      });
-    }
-
-    // «ВЕРНУТЬ ОБЛОЖКУ» — гарантированно возвращает rotateY(0).
-    const backReturnBtn = anchor.querySelector('.ch-back-btn');
-    if (backReturnBtn) {
-      backReturnBtn.addEventListener('click', (e) => {
-        isolateClick(e);
-        if (!anchor.classList.contains('is-active')) {
-          setActive(idx, { silent: true });
-          return;
-        }
-        if (carousel.isFlipped) toggleFlip();
-      });
-      backReturnBtn.addEventListener('pointerdown', isolatePointer);
-      backReturnBtn.addEventListener('pointerup', isolatePointer);
-    }
 
     // A — досье.
     // Кликабельна ВСЯ плашка, а не только сама кнопка: обработчик
@@ -1203,9 +1069,6 @@
       carousel.onToggleFlip = opts.onToggleFlip || null;
       carousel.onSfx = opts.onSfx || null;
 
-      // JS управляет вращением диска — отключаем CSS-фоллбэк.
-      document.body.classList.add('js-disc-motion');
-
       const track = carousel.track;
       if (track) {
         track.addEventListener('scroll', onScroll, { passive: true });
@@ -1268,14 +1131,6 @@
     stepClamped,
     toggleFlip,
     unflipped,
-    spinActive,
-    stopDiscPhysics,
-    getDiscState: () => ({
-      angle: discPhysics.angle,
-      velocity: discPhysics.velocity,
-      running: discPhysics.running,
-      target: discPhysics.target
-    }),
     getActiveIndex: () => carousel.activeIndex,
     getActiveItem: () => carousel.items[carousel.activeIndex] || null,
     getItems: () => carousel.items,

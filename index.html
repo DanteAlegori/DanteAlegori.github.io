@@ -352,6 +352,134 @@
   </aside>
 
   <!-- =========================================================
+       ОТКРЫТЫЙ БОКС — ДВУСТВОРЧАТЫЙ РАЗВОРОТ
+       =========================================================
+       ЛЕВАЯ СТВОРКА — буклет-мануал (текст + управление),
+       КОРЕШОК — сгиб коробки,
+       ПРАВАЯ СТВОРКА — лоток с крутящимся диском.
+       Конструкция собрана как обычный DOM без зеркальных
+       трансформаций — весь текст читается как есть. -->
+  <!-- Затемнение фона вокруг раскрытой коробки + сам разворот.
+       Оверлей живёт по центру экрана и не зависит от координат
+       карточки в карусели. -->
+  <div class="xbox-case-backdrop" id="openCaseBackdrop" aria-hidden="true"></div>
+  <div class="xbox-case-open-wrapper centered" id="openCaseWrapper" aria-hidden="true">
+    <div class="xbox-case-opened" role="dialog" aria-modal="true" aria-label="Открытый бокс Xbox 360">
+
+      <!-- ЛЕВАЯ ПОЛОВИНА: БУКЛЕТ / ИНФО -->
+      <div class="case-wing case-left">
+        <div class="booklet-clips" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="booklet-content">
+          <div class="booklet-header">
+            <span class="xbox-logo-text">XBOX 360</span>
+            <span class="category-badge" id="openCaseCategory">ВСЕ ДИСКИ</span>
+          </div>
+
+          <h2 class="item-title" id="openCaseTitle">—</h2>
+          <p class="item-quote" id="openCaseQuote">«—»</p>
+
+          <div class="item-stats" id="openCaseStats">
+            <div class="stat"><span class="stat-k">HEAT LVL</span><span class="stat-v" id="openCaseHeat">— / 5</span></div>
+            <div class="stat"><span class="stat-k">ONLINE</span><span class="stat-v">ENABLED</span></div>
+            <div class="stat"><span class="stat-k">STATUS</span><span class="stat-v" id="openCaseStatus">WANTED</span></div>
+            <div class="stat"><span class="stat-k">SAVE SIZE</span><span class="stat-v">512 KB</span></div>
+          </div>
+
+          <div class="item-barcode" aria-hidden="true">
+            <span class="barcode-bars">||| | | |||| || | ||</span>
+            <span class="barcode-id">XBOX-360-2005-STASH</span>
+          </div>
+
+          <button class="btn-close-case" id="openCaseClose" type="button" title="Закрыть коробку (B / Esc)">
+            <span class="xbox-btn-dot btn-b">B</span> ЗАКРЫТЬ КОРОБКУ
+          </button>
+        </div>
+      </div>
+
+      <!-- КОРЕШОК СГИБА -->
+      <div class="case-spine" aria-hidden="true"></div>
+
+      <!-- ПРАВАЯ ПОЛОВИНА: ЛОТОК + ДИСК -->
+      <div class="case-wing case-right">
+        <div class="disc-tray">
+          <div class="tray-hub" aria-hidden="true"></div>
+          <div class="disc-blade">
+            <div class="rotating-disc" id="openCaseDisc">
+              <!-- 0. Серебряное отражающее поле диска -->
+              <div class="disc-surface"></div>
+
+              <!-- 1. Прямоугольная печать (Picture Disc) с артом игры -->
+              <div class="disc-print-clip" id="openDiscPrint"></div>
+
+              <!-- 2. Белая шапка: логотип XBOX 360 слева, зелёный мотив справа -->
+              <div class="disc-xbox-header">
+                <div class="disc-header-green-swoosh"></div>
+                <div class="disc-header-brand">
+                  <svg class="xbox-logo-svg disc-brand-logo" aria-hidden="true"><use href="#xboxLogo"></use></svg>
+                  <span class="disc-brand-text">XBOX 360</span>
+                </div>
+              </div>
+
+              <!-- 3. Технические лейблы: рейтинг/стандарты слева, издатель справа -->
+              <div class="disc-meta-left">
+                <div class="disc-rating-box">18+</div>
+                <div class="disc-tech-row"><span class="dd-mark">DO</span> DOLBY DIGITAL</div>
+                <div class="disc-tech-row disc-tech-strong">Microsoft</div>
+                <div class="disc-tech-row">PAL // NTSC</div>
+              </div>
+              <div class="disc-meta-right">
+                <div class="disc-studio-label">WISHLIST</div>
+                <div class="disc-publisher">XBOX GAME STUDIOS</div>
+                <div class="disc-title-text" id="openDiscTitle">—</div>
+              </div>
+
+              <!-- 4. Тонкий круговой юридический копирайт по внешней кромке -->
+              <svg class="disc-edge-legal" viewBox="0 0 200 200" aria-hidden="true">
+                <defs>
+                  <path id="discRimArcOpen" d="M100,100 m-95,0 a95,95 0 1,1 190,0 a95,95 0 1,1 -190,0"></path>
+                </defs>
+                <text>
+                  <textPath href="#discRimArcOpen" startOffset="0%">&#169; MICROSOFT CORPORATION. ALL RIGHTS RESERVED. UNAUTHORIZED COPYING, REVERSE ENGINEERING, TRANSMISSION OR DISCLOSURE PROHIBITED. SECURE ROM &#8226; XBOX 360 &#8226; PAL &#8226;</textPath>
+                </text>
+              </svg>
+
+              <!-- 5. Дифракционная радуга света по дорожкам -->
+              <div class="disc-holo-shine"></div>
+
+              <!-- 6. Прозрачная втулка с голографической лентой безопасности -->
+              <div class="disc-center-hub">
+                <svg class="disc-holo-ring-svg" viewBox="0 0 200 200" aria-hidden="true">
+                  <defs>
+                    <path id="discSecArcOpen" d="M100,100 m-44,0 a44,44 0 1,1 88,0 a44,44 0 1,1 -88,0"></path>
+                    <linearGradient id="discHoloGradOpen" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="#ff5fd0"/>
+                      <stop offset="25%" stop-color="#7cff8a"/>
+                      <stop offset="50%" stop-color="#7fd8ff"/>
+                      <stop offset="75%" stop-color="#ffe66a"/>
+                      <stop offset="100%" stop-color="#c98cff"/>
+                    </linearGradient>
+                  </defs>
+                  <circle class="holo-band" cx="100" cy="100" r="44" fill="none" stroke="url(#discHoloGradOpen)" stroke-width="13"/>
+                  <circle class="holo-edge" cx="100" cy="100" r="50.5" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="1.5"/>
+                  <circle class="holo-edge" cx="100" cy="100" r="37.5" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="1.5"/>
+                  <text class="holo-text">
+                    <textPath href="#discSecArcOpen" startOffset="0%">XBOX 360 &#8226; XBOX 360 &#8226; XBOX 360 &#8226; XBOX 360 &#8226;</textPath>
+                  </text>
+                </svg>
+                <div class="disc-spindle-hole"></div>
+              </div>
+
+              <!-- 7. Внешняя прозрачная фаска поликарбоната -->
+              <div class="disc-outer-rim"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =========================================================
        OVERLAY LAYERS
        ========================================================= -->
   <div id="sheetBackdrop" aria-hidden="true"></div>
