@@ -1,25 +1,3 @@
-/* ============================================================
-   BRADYYCARDIA // RADIO — МАНИФЕСТ РЕЛИЗА (GitHub Release)
-   ---------------------------------------------------------
-   Музыка вынесена из репозитория в релиз:
-     https://github.com/DanteAlegori/DanteAlegori.github.io/releases/tag/Music
-
-   Здесь только имя трека (как в music/playlist.js) и ПРЯМАЯ ссылка
-   на файл в релизе. Имена и порядок сохранены — плеер сам разбирает
-   их на исполнителя и название (parseTrackMeta).
-
-   ВАЖНО ПРО CORS: файлы релиза отдаются с github.com → 302 на
-   подписанный URL objects.githubusercontent.com, и в ответе НЕТ
-   заголовка Access-Control-Allow-Origin. Из-за этого
-   createMediaElementSource() в Web Audio получает «испорченный»
-   (tainted) источник — и на выходе будет ТИШИНА. Поэтому плеер
-   (js/player.js → canRouteThroughWebAudio) НЕ строит Web Audio-граф
-   для кросс-доменных треков: они играют нативно через <audio>,
-   а визуализатор рисует псевдоспектр. Свои же файлы (music/)
-   играют через граф — там origin совпадает и анализатор настоящий.
-
-   Файл собран автоматически из релиза и music/playlist.js.
-   ============================================================ */
 window.BRADYYCARDIA_RELEASE = [
   { name: 'Avenged Sevenfold — Blined In Chains (NFS Most Wanted 2005 OST) (www.lightaudio.ru).mp3',
     url: 'https://github.com/DanteAlegori/DanteAlegori.github.io/releases/download/Music/Avenged.Sevenfold.Blined.In.Chains.NFS.Most.Wanted.2005.OST.www.lightaudio.ru.mp3' },

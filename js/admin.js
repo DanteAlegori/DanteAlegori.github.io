@@ -1,16 +1,3 @@
-/* ============================================================
-   XBOX 360 SYSTEM DASHBOARD · МАСТЕРСКАЯ NERO (ADMIN)
-   ---------------------------------------------------------
-   Полноценный GUI-редактор вишлиста:
-     • Живое управление карточками (превью, цена, прогресс)
-     • Форма цели с авто-расчётом процента и превью обложки
-     • Шкала важности (Heat Level 1..5)
-     • Менеджер категорий: добавить / переименовать / порядок / удалить
-     • Редактор профиля игрока
-     • Менеджер плейлиста саундтрека
-     • Импорт / экспорт config.js и playlist.js
-     • Синхронизация с витриной через LocalStorage (работает по file://)
-   ============================================================ */
 (function (global) {
   'use strict';
 
@@ -30,14 +17,6 @@
   const base = global.WISHLIST_CONFIG || {};
   const fileStamp = Number((global.WISHLIST_CONFIG_META && global.WISHLIST_CONFIG_META.generated) || 0);
 
-  /**
-   * Источник данных для редактора.
-   *
-   * Если в браузере есть более свежая правка из мастерской (LocalStorage),
-   * берём её — иначе админка правила бы устаревший файл и затерла бы
-   * правку, которую уже видит витрина. Файл на диске побеждает, только
-   * если он новее сохранённой правки.
-   */
   function readLiveConfig() {
     try {
       const raw = global.localStorage.getItem(LIVE_KEY);
@@ -73,20 +52,13 @@
     syncEnabled: true
   };
 
-  /* =========================================================
-     ПРЕДПОЧТЕНИЯ И СИНХРОНИЗАЦИЯ
-     ========================================================= */
   function loadSyncPref() {
     try {
       const raw = global.localStorage.getItem(SYNC_KEY);
       if (raw !== null) ui.syncEnabled = raw === '1';
-    } catch (err) { /* ignore */ }
+    } catch (err) {   }
   }
 
-  /**
-   * Сохраняет правку в LocalStorage, чтобы витрина (index.html)
-   * увидела её мгновенно — без перезаписи файла на диске.
-   */
   function publishLive() {
     if (!ui.syncEnabled) return;
     try {
@@ -104,12 +76,9 @@
   }
 
   function clearLive() {
-    try { global.localStorage.removeItem(LIVE_KEY); } catch (err) { /* ignore */ }
+    try { global.localStorage.removeItem(LIVE_KEY); } catch (err) {   }
   }
 
-  /* =========================================================
-     ЛОГ / ТОСТ / СТАТУС
-     ========================================================= */
   const logEl = () => $('#log');
 
   function log(msg) {
@@ -138,9 +107,6 @@
     return Number(n || 0).toLocaleString('ru-RU') + ' ' + (state.profile.currency || '₽');
   }
 
-  /* =========================================================
-     НОРМАЛИЗАЦИЯ СОСТОЯНИЯ
-     ========================================================= */
   function normalizeState() {
     if (!Array.isArray(state.categories) || !state.categories.length) {
       state.categories = [DEFAULT_CATEGORY];
@@ -166,7 +132,7 @@
   function saveDraft() {
     try {
       global.localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: Date.now(), state }));
-    } catch (err) { /* storage unavailable */ }
+    } catch (err) {   }
   }
 
   function markDirty() {
@@ -181,9 +147,6 @@
     updateSyncBanner();
   }
 
-  /* =========================================================
-     СТАТИСТИКА
-     ========================================================= */
   function renderStats() {
     const items = state.items;
     const goal = items.reduce((a, b) => a + (Number(b.price) || 0), 0);
@@ -204,9 +167,6 @@
     if (badge) badge.textContent = items.length;
   }
 
-  /* =========================================================
-     СПИСОК ЦЕЛЕЙ
-     ========================================================= */
   function renderItems() {
     const box = $('#items');
     if (!box) return;
@@ -367,9 +327,6 @@
     });
   }
 
-  /* =========================================================
-     КАТЕГОРИИ
-     ========================================================= */
   function renderCategorySelects() {
     const sel = $('#f-category');
     if (!sel) return;
@@ -443,7 +400,6 @@
       });
     });
 
-    // Переупорядочивание стрелками
     box.querySelectorAll('[data-cat-up]').forEach((btn) => {
       btn.addEventListener('click', () => moveCategory(Number(btn.dataset.catUp), -1));
     });
@@ -451,7 +407,6 @@
       btn.addEventListener('click', () => moveCategory(Number(btn.dataset.catDown), 1));
     });
 
-    // Drag-and-drop переупорядочивание
     bindCatDnd(box);
   }
 
@@ -475,7 +430,7 @@
         if (idx === 0) { e.preventDefault(); return; }
         dragIndex = idx;
         row.classList.add('dragging');
-        try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(idx)); } catch (err) { /* ignore */ }
+        try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(idx)); } catch (err) {   }
       });
       row.addEventListener('dragend', () => {
         row.classList.remove('dragging');
@@ -503,9 +458,6 @@
     });
   }
 
-  /* =========================================================
-     ФОРМА ЦЕЛИ
-     ========================================================= */
   function fillForm(i) {
     const it = state.items[i];
     if (!it) return;
@@ -560,7 +512,6 @@
     updatePreview();
   }
 
-  /** Шкала важности 1..5 (звёзды). */
   function renderHeat() {
     const box = $('#heatScale');
     if (!box) return;
@@ -585,7 +536,6 @@
     box.appendChild(lbl);
   }
 
-  /** Авто-расчёт процента и остатка в форме. */
   function updateCalc() {
     const f = $('#form');
     if (!f) return;
@@ -601,7 +551,6 @@
       '<span>ОСТАЛОСЬ <b>' + esc(money(remain)) + '</b></span>';
   }
 
-  /** Предпросмотр обложки «как она сядет на бокс». */
   function updatePreview() {
     const f = $('#form');
     const frame = $('#previewFrame');
@@ -629,9 +578,6 @@
     f.gamerscore.value = Number(p.gamerscore) || 0;
   }
 
-  /* =========================================================
-     ПЛЕЙЛИСТ САУНДТРЕКА
-     ========================================================= */
   function currentPlaylist() {
     const list = Array.isArray(global.BRADYYCARDIA_PLAYLIST) ? global.BRADYYCARDIA_PLAYLIST : [];
     return list.map((x) => String(x || '').trim()).filter(Boolean);
@@ -669,13 +615,7 @@
       .split('\n')
       .map((s) => s.trim())
       .filter(Boolean);
-    return '/* ============================================================\n' +
-      '   BRADYYCARDIA RADIO — ПЛЕЙЛИСТ САУНДТРЕКА\n' +
-      '   ---------------------------------------------------------\n' +
-      '   Плоский список названий файлов из папки music/.\n' +
-      '   Сгенерировано мастерской NERO: ' + new Date().toISOString() + '\n' +
-      '   ============================================================ */\n' +
-      'window.BRADYYCARDIA_PLAYLIST = [\n' +
+    return 'window.BRADYYCARDIA_PLAYLIST = [\n' +
       tracks.map((t) => "  '" + t.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "',").join('\n') +
       '\n];\n';
   }
@@ -689,18 +629,6 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 1500);
   }
 
-  /* =========================================================
-     ЭКСПОРТ / ИМПОРТ КОНФИГА
-     ========================================================= */
-  /**
-   * Формирует готовый config.js.
-   *
-   * Важно: данные ВСТРАИВАЮТСЯ в файл литералом, а не читаются из
-   * window.WISHLIST_CONFIG — иначе свежий файл на диске оказался бы
-   * пустым (глобаль ещё не существует при первой загрузке).
-   * Обёртка при этом сохраняет защиту: любые отсутствующие или
-   * некорректные поля заполняются дефолтами.
-   */
   function configCode() {
     const stamp = Date.now();
     const payload = {
@@ -710,20 +638,11 @@
     };
 
     const dataLiteral = JSON.stringify(payload, null, 2)
-      // Разбиваем литерал по строкам, чтобы файл оставался читаемым.
       .split('\n').map((line) => '    ' + line).join('\n');
 
     return {
       stamp: stamp,
       code:
-        '/* ============================================================\n' +
-        '   XBOX 360 SYSTEM DASHBOARD — КОНФИГУРАЦИЯ ВИШЛИСТА\n' +
-        '   ---------------------------------------------------------\n' +
-        '   Сгенерировано мастерской NERO: ' + new Date(stamp).toISOString() + '\n' +
-        '   Замените этот файл в папке проекта рядом с index.html.\n' +
-        '   Файл самодостаточен: данные встроены ниже, а отсутствующие\n' +
-        '   поля автоматически заполняются значениями по умолчанию.\n' +
-        '   ============================================================ */\n' +
         '(function (global) {\n' +
         '  \'use strict\';\n' +
         '  var DEFAULTS = {\n' +
@@ -737,7 +656,6 @@
         '    items: []\n' +
         '  };\n' +
         '\n' +
-        '  /* ---- ДАННЫЕ ВИШЛИСТА ---- */\n' +
         '  var DATA = ' + dataLiteral + ';\n' +
         '\n' +
         '  var profile = (DATA.profile && typeof DATA.profile === \'object\') ? DATA.profile : {};\n' +
@@ -773,8 +691,6 @@
         '    })\n' +
         '  };\n' +
         '\n' +
-        '  /* Метка времени: витрина сравнивает её с сохранённой в\n' +
-        '     LocalStorage правкой из мастерской. */\n' +
         '  global.WISHLIST_CONFIG_META = { generated: ' + stamp + ' };\n' +
         '})(window);\n',
       payload: payload
@@ -795,9 +711,6 @@
     normalizeState();
   }
 
-  /* =========================================================
-     СИНХРОНИЗАЦИЯ
-     ========================================================= */
   function updateSyncBanner() {
     const banner = $('#syncBanner');
     if (!banner) return;
@@ -821,9 +734,6 @@
     } catch (err) { return null; }
   }
 
-  /* =========================================================
-     ОБЩИЙ РЕНДЕР
-     ========================================================= */
   function renderAll() {
     normalizeState();
     renderStats();
@@ -838,9 +748,6 @@
     $$('.tab-pane').forEach((p) => p.classList.toggle('active', p.dataset.pane === name));
   }
 
-  /* =========================================================
-     ИНИЦИАЛИЗАЦИЯ
-     ========================================================= */
   function init() {
     loadSyncPref();
     normalizeState();
@@ -851,12 +758,10 @@
     updatePreview();
     renderPlaylist();
 
-    /* ---------- Вкладки ---------- */
     $$('.tab').forEach((tab) => {
       tab.addEventListener('click', () => switchTab(tab.dataset.tab));
     });
 
-    /* ---------- Форма цели ---------- */
     const form = $('#form');
     if (form) {
       form.addEventListener('submit', (e) => {
@@ -916,7 +821,6 @@
       });
     }
 
-    /* ---------- Новая категория прямо из формы цели ---------- */
     const newCatInput = $('#f-newCategory');
     if (newCatInput) {
       newCatInput.addEventListener('keydown', (e) => {
@@ -940,7 +844,6 @@
       });
     }
 
-    /* ---------- Профиль ---------- */
     const profileForm = $('#profileForm');
     if (profileForm) {
       profileForm.addEventListener('submit', (e) => {
@@ -960,7 +863,6 @@
       });
     }
 
-    /* ---------- Категории ---------- */
     const catForm = $('#catForm');
     if (catForm) {
       catForm.addEventListener('submit', (e) => {
@@ -981,24 +883,21 @@
       });
     }
 
-    /* ---------- Экспорт ---------- */
     const dl = $('#download');
     if (dl) {
       dl.addEventListener('click', () => {
         const built = configCode();
         downloadText('config.js', built.code, 'text/javascript;charset=utf-8');
 
-        // Метка времени в файле должна совпадать с сохранённой правкой,
-        // иначе витрина продолжит читать старую версию с диска.
         try {
           global.localStorage.setItem(LIVE_KEY, JSON.stringify({
             savedAt: built.stamp - 1,
             config: built.payload
           }));
-        } catch (err) { /* ignore */ }
+        } catch (err) {   }
 
         clearTimeout(ui.saveTimer);
-        try { global.localStorage.removeItem(DRAFT_KEY); } catch (err) { /* ignore */ }
+        try { global.localStorage.removeItem(DRAFT_KEY); } catch (err) {   }
         ui.dirty = false;
         document.title = 'XBOX 360 // STASH WORKSHOP';
         setStatus('EXPORTED // READY');
@@ -1017,7 +916,6 @@
           log('Код config.js скопирован в буфер обмена');
           toast('Код скопирован в буфер');
         } catch (err) {
-          // Fallback для file:// и старых браузеров
           const ta = document.createElement('textarea');
           ta.value = code;
           ta.style.position = 'fixed';
@@ -1049,7 +947,6 @@
       });
     }
 
-    /* ---------- Плейлист ---------- */
     const dlPlaylist = $('#downloadPlaylist');
     if (dlPlaylist) {
       dlPlaylist.addEventListener('click', () => {
@@ -1073,7 +970,7 @@
           ta.style.opacity = '0';
           document.body.appendChild(ta);
           ta.select();
-          try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+          try { document.execCommand('copy'); } catch (e) {   }
           ta.remove();
           toast('Плейлист скопирован');
         }
@@ -1099,7 +996,6 @@
       });
     }
 
-    /* ---------- Импорт ---------- */
     const importBtn = $('#importBtn');
     if (importBtn) importBtn.addEventListener('click', () => $('#fileInput').click());
 
@@ -1111,8 +1007,6 @@
         const reader = new FileReader();
         reader.onload = () => {
           try {
-            // config.js — это JS с комментариями, поэтому выполняем его
-            // в песочнице, а не парсим как JSON.
             const sandbox = {};
             new Function('window', String(reader.result))(sandbox);
             applyConfig(sandbox.WISHLIST_CONFIG);
@@ -1131,7 +1025,6 @@
       });
     }
 
-    /* ---------- Импорт из JSON-поля ---------- */
     const jsonImport = $('#jsonImport');
     if (jsonImport) {
       jsonImport.addEventListener('click', () => {
@@ -1156,13 +1049,12 @@
       });
     }
 
-    /* ---------- Переключатель синхронизации ---------- */
     const syncToggle = $('#syncToggle');
     if (syncToggle) {
       syncToggle.checked = ui.syncEnabled;
       syncToggle.addEventListener('change', () => {
         ui.syncEnabled = syncToggle.checked;
-        try { global.localStorage.setItem(SYNC_KEY, ui.syncEnabled ? '1' : '0'); } catch (err) { /* ignore */ }
+        try { global.localStorage.setItem(SYNC_KEY, ui.syncEnabled ? '1' : '0'); } catch (err) {   }
         if (ui.syncEnabled) {
           publishLive();
           toast('Синхронизация с витриной включена');
@@ -1176,7 +1068,6 @@
       });
     }
 
-    /* ---------- Фильтры и журнал ---------- */
     const search = $('#search');
     if (search) search.addEventListener('input', renderItems);
     const filter = $('#filterStatus');
@@ -1190,10 +1081,8 @@
       });
     }
 
-    /* ---------- Черновик ---------- */
     initDraft();
 
-    /* ---------- Клавиатура ---------- */
     global.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
@@ -1205,9 +1094,6 @@
     updateSyncBanner();
   }
 
-  /* =========================================================
-     ВОССТАНОВЛЕНИЕ ЧЕРНОВИКА
-     ========================================================= */
   function initDraft() {
     let raw = null;
     try { raw = global.localStorage.getItem(DRAFT_KEY); } catch (err) { return; }
@@ -1219,7 +1105,7 @@
 
     const current = JSON.stringify({ profile: state.profile, categories: state.categories, items: state.items });
     if (JSON.stringify(parsed.state) === current) {
-      try { global.localStorage.removeItem(DRAFT_KEY); } catch (err) { /* ignore */ }
+      try { global.localStorage.removeItem(DRAFT_KEY); } catch (err) {   }
       return;
     }
 
@@ -1259,7 +1145,7 @@
     if (discard) {
       discard.addEventListener('click', () => {
         ui.pendingDraft = null;
-        try { global.localStorage.removeItem(DRAFT_KEY); } catch (err) { /* ignore */ }
+        try { global.localStorage.removeItem(DRAFT_KEY); } catch (err) {   }
         const banner = $('#draftBanner');
         if (banner) banner.hidden = true;
         setStatus('READY // SLOT 01');
@@ -1268,9 +1154,6 @@
     }
   }
 
-  /* =========================================================
-     СТАРТ
-     ========================================================= */
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
       bindDraftButtons();

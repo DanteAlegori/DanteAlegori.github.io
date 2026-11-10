@@ -1,22 +1,9 @@
-/* ============================================================
-   XBOX 360 SYSTEM DASHBOARD · MUSIC PLAYER (BRADYYCARDIA)
-   ---------------------------------------------------------
-   • Воспроизведение треков из локальной папки music/
-   • File System Access API (выбор папки) + fallback <input webkitdirectory>
-   • Сохранение выбранной папки в IndexedDB
-   • Shuffle-очередь
-   • Fallback-синтезатор (Web Audio) если папка пуста
-   • Визуализатор спектра
-   ============================================================ */
 (function (global) {
   'use strict';
 
   const X360 = global.X360 || (global.X360 = {});
   const utils = X360.utils;
 
-  /* ---------------------------------------------------------
-     СОСТОЯНИЕ
-     --------------------------------------------------------- */
   const player = {
     tracks: [],
     source: '',
@@ -24,12 +11,9 @@
     orderPos: -1,
     current: null,
     audioEl: null,
-    // Музыка играет НАПРЯМУЮ через <audio> (без createMediaElementSource):
-    // кросс-доменные файлы GitHub Release без CORS-заголовков Web Audio
-    // глушит — отсюда «таймер идёт, а звука нет».
     errorStreak: 0,
     isPlaying: false,
-    status: 'idle',      // idle | loading | playing | paused | error
+    status: 'idle',
     statusText: '',
     volume: 0.55,
     synthTimer: null,
@@ -45,9 +29,6 @@
     toxic: '#7cfc00'
   };
 
-  /* ---------------------------------------------------------
-     СИНТЕЗАТОР (fallback, если папка music/ пуста)
-     --------------------------------------------------------- */
   const STATION = {
     id: 'bradyycardia',
     station: 'BRADYYCARDIA',
@@ -68,16 +49,10 @@
     hatGain: 0.045
   };
 
-  /* ---------------------------------------------------------
-     DOM
-     --------------------------------------------------------- */
   function el(id) {
     return document.getElementById(id);
   }
 
-  /* ---------------------------------------------------------
-     ИМЯ ТРЕКА / МЕТАДАННЫЕ
-     --------------------------------------------------------- */
   function cleanTrackName(name) {
     const clean = String(name || '')
       .replace(/^.*[\\/]/, '')
@@ -115,25 +90,14 @@
     };
   }
 
-  /* ---------------------------------------------------------
-     АУДИОГРАФ
-     --------------------------------------------------------- */
 
   function ensureAudioEl() {
     if (player.audioEl) return player.audioEl;
 
     const node = new Audio();
     node.id = 'bradyycardiaAudio';
-    // PERF: preload="none" — 59 треков НЕ должны качаться заранее.
-    // Файл скачивается только после явного play() выбранного трека.
     node.preload = 'none';
     node.autoplay = false;
-    // Музыка играет НАПРЯМУЮ в динамики:
-    //   • без crossOrigin (иначе GitHub отдаёт запрос в CORS-режиме
-    //     и звук глушится),
-    //   • без createMediaElementSource (тот же CORS-taint).
-    // Регистрируем элемент в аудиодвижке — он держит громкость
-    // и псевдоспектр для визуализатора.
     if (node.hasAttribute('crossorigin')) node.removeAttribute('crossorigin');
     node.muted = false;
     node.volume = clampVolume(player.volume);
@@ -144,10 +108,6 @@
     });
 
     node.addEventListener('playing', () => {
-      // Сброс счётчика ошибок — только когда трек РЕАЛЬНО заиграл.
-      // Раньше он обнулялся в playAt(), и при недоступных файлах
-      // счётчик никогда не дорастал до 3: плеер бесконечно
-      // перебирал список и «зависал» на первом же битом треке.
       player.errorStreak = 0;
       player.isPlaying = true;
       setStatus('playing');
@@ -158,8 +118,6 @@
 
     node.addEventListener('pause', () => {
       if (!player.isPlaying) {
-        // Ошибка загрузки важнее: при смене трека браузер шлёт pause
-        // после error, и статус «Файл недоступен» затирался на «ПАУЗА».
         if (player.status !== 'error') setStatus('paused');
         updateChip();
         updateDisplay();
@@ -186,8 +144,6 @@
     node.addEventListener('error', () => {
       player.errorStreak++;
       setStatus('error', 'Файл недоступен');
-      // Слишком много ошибок подряд — не мучаем пользователя
-      // и не крутим бесконечный цикл по списку.
       if (player.errorStreak > 3) {
         player.isPlaying = false;
         setStatus('error', 'Файлы недоступны — радио остановлено');
@@ -207,32 +163,11 @@
     return node;
   }
 
-  /* ---------------------------------------------------------
-     ВОСПРОИЗВЕДЕНИЕ МУЗЫКИ — ТОЛЬКО НАИВНОЕ
-     ---------------------------------------------------------
-     Web Audio-граф для музыки удалён НАМЕРЕННО.
-
-     Почему: createMediaElementSource() для кросс-доменного файла
-     без Access-Control-Allow-Origin (все треки из GitHub Release:
-     github.com -> 302 -> objects.githubusercontent.com) НЕ бросает
-     исключение — он молча заглушает поток. Итог: таймер идёт,
-     статус «ИГРАЕТ», а в динамиках тишина. Раньше проверка origin
-     стояла здесь, но connectGraph() вызывался ДО установки node.src,
-     поэтому проверка получала пустой URL и всегда разрешала граф.
-
-     Теперь музыка всегда идёт напрямую: <audio>.play() +
-     <audio>.volume, без промежуточных нод. Эквалайзер/визуализатор
-     переведён на псевдоспектр (X360.Audio.getMusicSpectrum).
-     SFX (щелчки, свист, гул) по-прежнему идут через Web Audio.
-     --------------------------------------------------------- */
 
   function clampVolume(value) {
     return utils.clamp(value, 0, 1);
   }
 
-  /* ---------------------------------------------------------
-     ОЧЕРЕДЬ
-     --------------------------------------------------------- */
   function buildOrder(avoidFirst) {
     const indices = player.tracks.map((_, i) => i);
     player.order = utils.shuffleArray(indices);
@@ -254,21 +189,16 @@
     if (!player.order.length) buildOrder(false);
     player.orderPos = ((pos % player.order.length) + player.order.length) % player.order.length;
     player.current = player.tracks[player.order[player.orderPos]];
-    // errorStreak здесь НЕ обнуляем: он должен копиться при
-    // недоступных файлах, иначе перебор списка не прервётся.
 
-    // Нативное воспроизведение: элемент сам идёт в систему.
     node.muted = false;
     X360.Audio.attachMusicElement(node);
     node.volume = clampVolume(player.volume);
 
-    // Прямой путь к файлу без ломающего URL-encoding для file:///
     node.src = player.current.url;
 
     X360.prefs.lastTrack = player.current.name;
     X360.savePrefs();
 
-    // Media Session — название трека в системном плеере.
     try {
       if ('mediaSession' in navigator && global.MediaMetadata) {
         navigator.mediaSession.metadata = new MediaMetadata({
@@ -277,7 +207,7 @@
           album: 'BRADYYCARDIA // CUSTOM SOUNDTRACK'
         });
       }
-    } catch (err) { /* optional API */ }
+    } catch (err) {   }
 
     const promise = node.play();
     if (promise && typeof promise.then === 'function') {
@@ -287,7 +217,6 @@
         updateChip();
         updateDisplay();
       }).catch(() => {
-        // Браузер ждёт жеста пользователя — не ругаемся в консоль.
         player.isPlaying = false;
         stopAmbientPulse();
         updateDisplay();
@@ -316,20 +245,7 @@
     playAt(prev);
   }
 
-  /* ---------------------------------------------------------
-     ЗАГРУЗКА ТРЕКОВ
-     --------------------------------------------------------- */
 
-  /**
-   * Загрузка треков.
-   *
-   * Приоритет:
-   *   1) music/release.js — прямые ссылки на файлы в GitHub Release.
-   *      Музыка вынесена из репозитория, чтобы 393 МБ треков не
-   *      попадали в артефакт Pages.
-   *   2) music/playlist.js — локальные файлы (fallback: file://,
-   *      офлайн-копия рядом с проектом).
-   */
   function loadManifest() {
     const release = Array.isArray(global.BRADYYCARDIA_RELEASE) ? global.BRADYYCARDIA_RELEASE : null;
     if (release && release.length) {
@@ -338,7 +254,6 @@
         const name = String((entry && entry.name) || '').trim();
         const url = String((entry && entry.url) || '').trim();
         if (!name || !url) return;
-        // Наружу отдаём только http(s) — никаких file:// и data:.
         if (!/^https?:\/\//i.test(url)) return;
         tracks.push(buildTrackRecord(name, url));
       });
@@ -354,7 +269,6 @@
       const raw = String(entry || '').trim();
       if (!raw || !utils.isAudioFile(raw)) return;
       const rel = raw.replace(/^\.?\//, '').replace(/^music\//i, '');
-      // Кодируем каждый сегмент отдельно: пробелы, кириллица и # не ломают file://
       const safeRel = rel.split('/').map(encodeURIComponent).join('/');
       tracks.push(buildTrackRecord(rel, 'music/' + safeRel));
     });
@@ -379,9 +293,6 @@
   }
 
 
-  /* ---------------------------------------------------------
-     СИНТЕЗАТОР
-     --------------------------------------------------------- */
   function getNoiseBuffer(ctx) {
     if (!player.synthNoise) {
       const len = Math.floor(ctx.sampleRate * 1);
@@ -553,7 +464,7 @@
     if (!ctx) return;
     if (ctx.state === 'suspended') {
       const p = ctx.resume();
-      if (p && typeof p.catch === 'function') p.catch(() => { /* ignore */ });
+      if (p && typeof p.catch === 'function') p.catch(() => {   });
       return;
     }
 
@@ -587,20 +498,16 @@
     player.synthTimer = null;
   }
 
-  /* ---------------------------------------------------------
-     УПРАВЛЕНИЕ ВОСПРОИЗВЕДЕНИЕМ
-     --------------------------------------------------------- */
   function startPlayback() {
     if (!player.tracks.length) return false;
     stopSynth();
     const node = ensureAudioEl();
-    // Графа НЕТ: музыка играет нативно (см. блок «ВОСПРОИЗВЕДЕНИЕ МУЗЫКИ»).
     if (!player.order.length || !player.current) {
       buildOrder(false);
       playAt(0);
     } else if (node.paused) {
       const p = node.play();
-      if (p && typeof p.catch === 'function') p.catch(() => { /* ignore */ });
+      if (p && typeof p.catch === 'function') p.catch(() => {   });
       player.isPlaying = true;
       startAmbientPulse();
     }
@@ -620,7 +527,6 @@
     X360.savePrefs();
 
     if (!player.tracks.length) {
-      // Плейлист пуст — тихо остаёмся в паузе, гость ничего не заметит.
       player.isPlaying = false;
       updateDisplay();
       return;
@@ -656,7 +562,6 @@
       if (!player.isPlaying) start(true);
       else playNext(fromUser);
     } else {
-      // Синтезатор: перезапуск.
       start(fromUser);
     }
   }
@@ -676,8 +581,6 @@
     X360.prefs.musicVolume = vol;
     if (persist) X360.savePrefs();
 
-    // Громкость ставится НА САМ <audio> (музыка идёт нативно, мимо
-    // Web Audio), а также в шину синтезатора-заглушки.
     X360.Audio.setMusicVolume(vol);
     if (player.audioEl) {
       player.audioEl.muted = false;
@@ -690,9 +593,6 @@
     if (label) label.textContent = Math.round(vol * 100) + '%';
   }
 
-  /* ---------------------------------------------------------
-     UI
-     --------------------------------------------------------- */
   function updateChip() {
     const btnText = el('mediaBtnText');
     const openBtn = el('mediaOpenBtn');
@@ -702,7 +602,6 @@
     if (openBtn) openBtn.classList.toggle('active', player.isPlaying);
   }
 
-  /** Счётчик треков в заголовке станции (гость не видит путей к файлам). */
   function updateFolderStatus() {
     const node = el('musicTrackCount');
     if (!node) return;
@@ -717,16 +616,6 @@
     }
   }
 
-  /* ---------------------------------------------------------
-     AMBIENT PULSE — весь фон «дышит» в такт музыке
-     ---------------------------------------------------------
-     Читаем низкие частоты анализатора и пишем их в CSS-переменные
-     --pulse / --pulse-hi. Дальше их используют aurora, CRT-оверлей,
-     подсветка и неон активной коробки.
-
-     На file:// (и без Web Audio-графа) музыка идёт мимо анализатора,
-     поэтому есть запасной вариант: детерминированная «музыкальная»
-     огибающая от времени воспроизведения — пульс всё равно живой. */
   let pulseRaf = 0;
   let pulseRunning = false;
   let lastPulse = -1;
@@ -734,13 +623,6 @@
   let lastPulseAt = 0;
   let pulseTargets = null;
 
-  /**
-   * Элементы, «дышащие» в такт музыке.
-   * ВАЖНО: переменная --p ставится НА САМ ЭЛЕМЕНТ, а не на :root.
-   * Переменная на :root инвалидирует стили всего документа — reflow
-   * после записи стоит ~25 мс (съедает весь кадровый бюджет).
-   * Локальная переменная затрагивает только своё поддерево.
-   */
   function getPulseTargets() {
     if (pulseTargets) return pulseTargets;
     pulseTargets = {
@@ -761,10 +643,7 @@
     let bass = 0;
     let high = 0;
 
-    // Настоящего анализатора нет: музыка играет мимо Web Audio.
-    // «Дыхание» дашборда считаем самим — по позиции трека.
     if (live) {
-      // Фолбэк: «удар» на каждой доле + медленное «дыхание» громкости.
       const beat = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2 * 1.8667)), 4);
       const swell = 0.5 + 0.5 * Math.sin(t * 0.83);
       bass = beat * 0.76 + swell * 0.24;
@@ -776,15 +655,12 @@
 
     const tgt = getPulseTargets();
 
-    // Активная карточка могла смениться — переносим «дыхание» на неё.
     const activeCard = document.querySelector('.card-item.is-active');
     if (activeCard !== tgt.card) {
       if (tgt.card) tgt.card.style.removeProperty('--p');
       tgt.card = activeCard;
     }
 
-    // Пишем только при заметном изменении: обновление переменной
-    // инвалидирует стили зависимых элементов.
     if (Math.abs(bass - lastPulse) < 0.02) return;
     lastPulse = bass;
 
@@ -799,14 +675,10 @@
   function startAmbientPulse() {
     if (pulseRunning) return;
     pulseRunning = true;
-    pulseTargets = null;   // активная карточка могла смениться
+    pulseTargets = null;
     lastPulseAt = 0;
     const tick = (now) => {
       if (!pulseRunning) { pulseRaf = 0; return; }
-      // Троттлинг: обновляем пульс ~24 раза в секунду вместо 60.
-      // Запись переменной + последующий layout стоят ~2.7 мс, а на
-      // :root — ~35 мс (больше двух кадров!). Частоты 24 Гц
-      // для «дыхания» в такт более чем достаточно.
       if (now - lastPulseAt >= 42) {
         lastPulseAt = now;
         computePulse();
@@ -828,18 +700,13 @@
     });
   }
 
-  /* ---------------------------------------------------------
-     СОСТОЯНИЕ И ПРОГРЕСС (для панели плеера)
-     --------------------------------------------------------- */
 
-  /** Статус воспроизведения: idle / loading / playing / paused / error. */
   function setStatus(kind, text) {
     player.status = kind || 'idle';
     player.statusText = text || '';
     updateDisplay();
   }
 
-  /** Секунды -> «мм:сс» (часы добавляются только когда надо). */
   function fmtTime(sec) {
     if (!isFinite(sec) || sec < 0) return '0:00';
     const s = Math.floor(sec % 60);
@@ -849,12 +716,6 @@
     return (h ? h + ':' + mm : mm) + ':' + String(s).padStart(2, '0');
   }
 
-  /**
-   * Полоса прогресса, прошедшее/общее время.
-   * Перемотка идёт по ССЫЛКЕ НА ФАЙЛ: у файлов релиза GitHub
-   * поддерживается Range (проверено: ответ 206), поэтому seek
-   * работает — браузер сам докачает нужный кусок.
-   */
   function updateProgress() {
     const node = player.audioEl;
     const seek = el('mpSeek');
@@ -867,7 +728,6 @@
     if (totalEl) totalEl.textContent = dur ? fmtTime(dur) : '--:--';
 
     if (seek) {
-      // Пока пользователь тянет ползунок — не перебиваем его руку.
       if (seek.dataset.dragging !== '1') {
         seek.value = String(dur ? Math.round(Math.min(1, pos / dur) * 1000) : 0);
       }
@@ -877,11 +737,6 @@
     }
   }
 
-  /**
-   * Холст визуализатора по ширине панели.
-   * Атрибут width был фиксированным (370 px) — на узком экране
-   * холст растягивался CSS'ом и мылился, на широком — обрезался.
-   */
   function sizeVisualizer() {
     const canvas = el('mediaVisualizer');
     if (!canvas) return;
@@ -893,11 +748,6 @@
     }
   }
 
-  /**
-   * Управление плеером с клавиатуры.
-   * Пробел — play/pause, ←/→ — трек, ↑/↓ — громкость.
-   * Работает, пока открыта музыкальная шторка.
-   */
   function bindPanelKeyboard() {
     if (global.__bradyyKbBound) return;
     global.__bradyyKbBound = true;
@@ -905,7 +755,6 @@
       const panel = el('mediaBlade');
       if (!panel || !panel.classList.contains('open')) return;
       const t = e.target;
-      // На ползунках стрелки работают нативно — не перебиваем.
       if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return;
       switch (e.code) {
         case 'Space':
@@ -954,7 +803,6 @@
       artistEl.textContent = 'BRADYYCARDIA // радио без источника';
     }
 
-    /* Статус: загрузка / ошибка / пауза / играет. */
     const statusEl = el('mnpStatus');
     if (statusEl) {
       let txt = '';
@@ -967,7 +815,6 @@
         (player.status === 'error' ? ' is-error' : '');
     }
 
-    /* Кнопка play/pause показывает РЕАЛЬНОЕ состояние. */
     const playBtn = el('mpPlayBtn');
     if (playBtn) {
       const playing = !!player.isPlaying;
@@ -1001,8 +848,6 @@
     `;
     const activate = () => {
       if (!player.tracks.length) {
-        // Плейлист пуст — включаем встроенный синтезатор, чтобы музыка
-        // всё равно играла и интерфейс не выглядел сломанным.
         player.isPlaying = true;
         startSynth();
         updateChip();
@@ -1022,29 +867,19 @@
     box.appendChild(row);
   }
 
-  /* ---------------------------------------------------------
-     ВИЗУАЛИЗАТОР
-     --------------------------------------------------------- */
   function readTheme() {
     const cs = getComputedStyle(document.body);
     player.accent = cs.getPropertyValue('--theme-accent').trim() || '#52b043';
     player.toxic = cs.getPropertyValue('--theme-toxic').trim() || '#7cfc00';
   }
 
-  /* PERF: визуализатор больше не крутит rAF-цикл постоянно.
-     Раньше он работал даже при закрытой шторке — 60 вызовов drawImage
-     в секунду впустую, что на мобильных съедало батарею и кадры.
-     Теперь цикл живёт только пока шторка плеера открыта. */
   let visualRaf = 0;
   let visualRunning = false;
-  let visualLastPaint = 0;   // PERF: троттлинг отрисовки на паузе
+  let visualLastPaint = 0;
   let visualGradient = null;
 
-  // Буферы визуализатора живут на уровне модуля, чтобы при каждом
-  // старте/остановке не пересоздавать массивы.
   const bars = 24;
   const heights = new Array(bars).fill(4);
-  // Буфер псевдоспектра (музыка играет мимо Web Audio — анализатора нет).
   const spectrum = new Array(bars).fill(0);
 
   function buildGradient(canvas) {
@@ -1071,12 +906,8 @@
       return;
     }
 
-    // Идёт ли музыка прямо сейчас: элемент <audio> не на паузе.
     const live = X360.Audio.isMusicPlaying();
 
-    /* PERF: на паузе спектр не меняется — перерисовывать его 60 раз
-       в секунду незачем. Оставляем ~12 кадров в секунду: визуал
-       «дышит», но не съедает батарею телефона. */
     if (!live) {
       const now = performance.now();
       if (now - visualLastPaint < 80) {
@@ -1087,8 +918,6 @@
     }
 
     player.visualFrame++;
-    // Тема меняется редко — читаем computed-стили раз в 2 секунды,
-    // а не раз в секунду (getComputedStyle форсирует style recalc).
     if (player.visualFrame % 120 === 0) {
       readTheme();
       visualGradient = null;
@@ -1097,13 +926,8 @@
     ctx.fillStyle = '#040605';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Псевдоспектр: музыка играет мимо Web Audio, настоящего
-    // анализатора нет. Полоски «прыгают», пока <audio> не на паузе,
-    // и замирают на минимуме, когда он на паузе.
     X360.Audio.getMusicSpectrum(bars, spectrum);
 
-    // PERF: градиент создаётся ОДИН раз, а не 24 раза на кадр
-    // (createLinearGradient в цикле — лишние аллокации каждый кадр).
     if (!visualGradient) visualGradient = buildGradient(canvas);
 
     const barWidth = (canvas.width / bars) - 2;
@@ -1135,7 +959,6 @@
     visualRaf = 0;
   }
 
-  /** Включает/выключает визуализатор (вызывается при открытии шторки). */
   function setVisualizerActive(active) {
     if (active) {
       readTheme();
@@ -1147,15 +970,11 @@
     }
   }
 
-  /* ---------------------------------------------------------
-     PUBLIC API
-     --------------------------------------------------------- */
   X360.Player = {
     init(options) {
       const opts = options || {};
       player.onStateChange = opts.onStateChange || null;
 
-      // Громкость из настроек.
       player.volume = clampVolume(X360.prefs.musicVolume);
       setVolume(player.volume, false);
 
@@ -1164,7 +983,6 @@
         slider.addEventListener('input', (e) => setVolume(Number(e.target.value) / 100, true));
       }
 
-      /* Перемотка трека: диапазон 0..1000 = 0..100% длительности. */
       const seek = el('mpSeek');
       if (seek) {
         const applySeek = () => {
@@ -1201,10 +1019,7 @@
       updateFolderStatus();
       updateDisplay();
       updateChip();
-      // Визуализатор НЕ запускается сразу: он включается при открытии
-      // шторки плеера (см. X360.Player.setVisualizerActive).
 
-      // Гостю доступен только встроенный плейлист music/playlist.js.
       loadManifest();
     },
 

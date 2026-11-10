@@ -1,32 +1,38 @@
-/* ============================================================
-   XBOX 360 SYSTEM DASHBOARD · VARIABLES, THEMES & RESET
-   ---------------------------------------------------------
-   1. Design tokens (safe areas, layout, motion, z-index)
-   2. Theme skins — FAT / ELITE / GEARS / HALO
-   3. Global reset & base typography
-   4. Shared primitives (Xbox button dots, scrollbars)
-   ============================================================ */
 
-/* ---------- 1. DESIGN TOKENS ---------- */
+
+
+
+
+
+
+
+
+
+
+
 :root {
-  /* Safe areas — notch / dynamic island / home indicator */
+  
+
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
 
-  /* Layout metrics */
+  
+
   --header-h: 76px;
   --footer-h: 50px;
   --blades-h: 56px;
   --case-w: clamp(230px, 21vw, 300px);
   --case-h: calc(var(--case-w) * 1.414);
-  /* Зазор между карточками в нативном скролл-треке.
-     Шаг = --case-w + --case-gap; измеряется в JS (carousel.js). */
+  
+
+
   --case-gap: clamp(16px, 2.4vw, 46px);
   --stage-h: clamp(350px, 55vh, 520px);
 
-  /* Motion */
+  
+
   --ease-blade: cubic-bezier(0.18, 0.89, 0.32, 1.15);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-pop: cubic-bezier(0.2, 0.9, 0.3, 1.2);
@@ -34,22 +40,25 @@
   --dur-med: 320ms;
   --dur-slow: 520ms;
 
-  /* «Пульс» — энергия музыки в низких частотах (0..1).
-     Пишется из JS (js/player.js → AMBIENT PULSE) ЛОКАЛЬНО на каждый
-     элемент (--p), а не на :root: переменная на :root инвалидирует
-     стили всего документа (reflow ~25 мс за кадр).
-     Читают: aurora, фоновая лента, прожектор, CRT-оверлей и неон
-     активной коробки — весь экран «дышит» в такт музыке. */
+  
+
+
+
+
+
+
   --p: 0;
 
-  /* Typography */
+  
+
   --font-ui: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   --font-display: 'Teko', 'Segoe UI', sans-serif;
   --font-mono: 'Share Tech Mono', ui-monospace, 'Courier New', monospace;
   --font-hand: 'Permanent Marker', 'Segoe UI', cursive;
   --font-doom: 'VT323', monospace;
 
-  /* Z-index ladder — single source of truth */
+  
+
   --z-bg: 1;
   --z-scene: 10;
   --z-stage: 50;
@@ -61,7 +70,8 @@
   --z-toast: 10000;
   --z-boot: 10001;
 
-  /* ---------- Default skin: XBOX 360 FAT (2005) ---------- */
+  
+
   --theme-bg-1: #17241a;
   --theme-bg-2: #0c120e;
   --theme-bg-3: #050706;
@@ -75,15 +85,18 @@
   --case-glow: rgba(82, 176, 67, 0.65);
   --case-rim: #52b043;
 
-  /* Plastic shell translucency (Xbox 360 green "fat" case) */
+  
+
   --shell-tint: rgba(82, 176, 67, 0.26);
   --shell-tint-deep: rgba(6, 42, 12, 0.55);
   --shell-rib: rgba(255, 255, 255, 0.055);
 }
 
-/* ---------- 2. THEME SKINS ---------- */
 
-/* XBOX 360 ELITE (2007) — brushed black + ice blue */
+
+
+
+
 body.theme-elite {
   --theme-bg-1: #1f2329;
   --theme-bg-2: #101216;
@@ -102,7 +115,8 @@ body.theme-elite {
   --shell-rib: rgba(255, 255, 255, 0.05);
 }
 
-/* GEARS OF WAR LIMITED EDITION — crimson */
+
+
 body.theme-gears {
   --theme-bg-1: #301010;
   --theme-bg-2: #180808;
@@ -121,7 +135,8 @@ body.theme-gears {
   --shell-rib: rgba(255, 120, 120, 0.05);
 }
 
-/* HALO 3 SPARTAN EDITION — sand gold */
+
+
 body.theme-halo {
   --theme-bg-1: #252b1b;
   --theme-bg-2: #14170e;
@@ -140,7 +155,8 @@ body.theme-halo {
   --shell-rib: rgba(255, 235, 180, 0.05);
 }
 
-/* ---------- 3. GLOBAL RESET ---------- */
+
+
 *,
 *::before,
 *::after {
@@ -195,7 +211,8 @@ h3 {
   font-weight: inherit;
 }
 
-/* Scrollbars — Xbox "thin dark" style */
+
+
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--theme-accent) #050806;
@@ -212,9 +229,11 @@ h3 {
   border-radius: 3px;
 }
 
-/* ---------- 4. SHARED PRIMITIVES ---------- */
 
-/* Xbox 360 coloured face-button dots */
+
+
+
+
 .xbox-btn-dot {
   width: 18px;
   height: 18px;
@@ -234,7 +253,8 @@ h3 {
 .xbox-btn-dot.btn-x { background: #0078d7; }
 .xbox-btn-dot.btn-y { background: #ffaa00; }
 
-/* Xbox-style action button */
+
+
 .btn-xbox {
   flex: 1;
   padding: 12px;
@@ -290,7 +310,8 @@ h3 {
   filter: grayscale(1);
 }
 
-/* Visually hidden but screen-reader accessible */
+
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -303,7 +324,8 @@ h3 {
   border: 0;
 }
 
-/* Скрытый SVG-спрайт с символами */
+
+
 .svg-sprite {
   position: absolute;
   width: 0;
@@ -311,13 +333,15 @@ h3 {
   overflow: hidden;
 }
 
-/* Focus ring — accessible keyboard navigation */
+
+
 :focus-visible {
   outline: 2px solid var(--theme-toxic);
   outline-offset: 2px;
 }
 
-/* Reduced motion — global kill switch */
+
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

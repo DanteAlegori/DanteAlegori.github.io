@@ -1,13 +1,14 @@
-/* ============================================================
-   XBOX 360 SYSTEM DASHBOARD · KINECT 2010 INTRO
-   ---------------------------------------------------------
-   Стили заставки по мотивам Kinect Dashboard Update (2010):
-     • Тёмная сцена с лентами света
-     • Хромированная сфера Nexus со стеклянным бликом
-     • Кинетическая типографика XBOX 360
-     • Призыв «НАЖМИ ЛЮБУЮ КНОПКУ / CLICK TO START»
-     • Bloom Shockwave в момент сборки сферы
-   ============================================================ */
+
+
+
+
+
+
+
+
+
+
+
 
 #bootScreen {
   position: fixed;
@@ -33,8 +34,9 @@
   transform: scale(1.14);
   pointer-events: none;
 }
-/* После гашения заставки ни один её элемент не должен перехватывать
-   клики по дашборду (призрак невидимого логотипа над кнопками). */
+
+
+
 #bootScreen.boot-done,
 #bootScreen.boot-done *,
 #bootScreen.boot-done *::before,
@@ -51,7 +53,8 @@
   z-index: 1;
 }
 
-/* ---------- Сканлайны / вспышка ---------- */
+
+
 .boot-scanlines {
   position: absolute;
   inset: 0;
@@ -77,9 +80,11 @@
   100% { opacity: 0; }
 }
 
-/* ---------- Центральный стек ---------- */
-/* Позиция сферы на canvas — (50%, 40%). Типографика выстраивается
-   строго под ней, поэтому логотип всегда «висит» под сферой. */
+
+
+
+
+
 .boot-center-stack {
   position: absolute;
   inset: 0;
@@ -92,11 +97,12 @@
   pointer-events: none;
 }
 
-/* ==========================================================================
-   СФЕРА NEXUS
-   Сфера рисуется на canvas. Здесь — только контейнер-заглушка и «ореол»,
-   который добавляет мягкое свечение вокруг неё.
-   ========================================================================== */
+
+
+
+
+
+
 .x360-orb-wrap {
   position: absolute;
   left: 50%;
@@ -116,21 +122,24 @@
   animation: bootOrbIn 1.15s var(--ease-out) 0.05s both;
 }
 @keyframes bootOrbIn {
-  /* PERF: filter: blur() убран из keyframes — анимируемый blur
-     пересчитывается покадрово и рвёт кадры на слабых GPU. */
+  
+
+
   0% { opacity: 0; transform: scale(0.22) translateY(26px); }
   55% { opacity: 1; }
   100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* Мягкий ореол вокруг сферы */
+
+
 .x360-orb-halo {
   position: absolute;
   inset: -46px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(157, 255, 0, 0.22) 0%, rgba(16, 113, 16, 0.14) 44%, transparent 70%);
-  /* PERF: filter: blur(16px) на бесконечно анимируемом элементе —
-     пересчёт размытия каждый кадр. Радиальный градиент уже мягкий. */
+  
+
+
   animation: bootHalo 3s ease-in-out infinite alternate;
   will-change: transform, opacity;
   pointer-events: none;
@@ -140,7 +149,8 @@
   100% { opacity: 0.95; transform: scale(1.1); }
 }
 
-/* Резервная CSS-сфера на случай, если canvas недоступен */
+
+
 .x360-orb {
   position: relative;
   width: 190px;
@@ -162,7 +172,8 @@
   transition: opacity 0.4s ease;
   animation: orbFloat 6s ease-in-out 1.4s infinite;
 }
-/* Когда canvas рисует сферу — CSS-копия скрывается */
+
+
 .boot-canvas-ready .x360-orb { opacity: 0; }
 @keyframes orbFloat {
   0%, 100% { transform: translateY(0); }
@@ -196,7 +207,8 @@
   pointer-events: none;
 }
 
-/* Буква «X» высекается лучом на canvas — CSS-копия нужна как фоллбэк */
+
+
 .x360-x {
   position: absolute;
   inset: 0;
@@ -224,7 +236,8 @@
   100% { opacity: 1; }
 }
 
-/* Орбитальные кольца */
+
+
 .orb-ring {
   position: absolute;
   inset: -20px;
@@ -257,9 +270,10 @@
 .boot-live.ready .orb-ring { animation-duration: 3.6s; }
 .boot-sphere .orb-ring { animation-duration: 3.6s; }
 
-/* ==========================================================================
-   КИНЕТИЧЕСКАЯ ТИПОГРАФИКА
-   ========================================================================== */
+
+
+
+
 .boot-wordmark {
   margin-top: 30px;
   display: flex;
@@ -273,7 +287,8 @@
   white-space: nowrap;
   position: relative;
 }
-/* Полупрозрачный белый глянец поверх букв */
+
+
 .boot-wordmark::after {
   content: "";
   position: absolute;
@@ -291,7 +306,8 @@
 }
 .boot-sphere .boot-wordmark { animation: wordmarkIn 1s var(--ease-out) both; }
 @keyframes wordmarkIn {
-  /* PERF: filter: blur() убран (покадровый пересчёт размытия) */
+  
+
   0% { opacity: 0; transform: translateY(22px) scale(0.94); letter-spacing: 24px; }
   100% { opacity: 1; transform: translateY(0) scale(1); letter-spacing: 11px; }
 }
@@ -328,7 +344,8 @@
   100% { opacity: 1; transform: translateY(0); }
 }
 
-/* ---------- Призыв «НАЖМИ ЛЮБУЮ КНОПКУ» ---------- */
+
+
 .boot-press-start {
   margin-top: 30px;
   display: flex;
@@ -401,7 +418,8 @@
   color: rgba(157, 255, 0, 0.55);
 }
 
-/* ---------- Статусный лог ---------- */
+
+
 .boot-status {
   position: absolute;
   left: 34px;
@@ -435,7 +453,8 @@
   overflow: hidden;
 }
 .boot-progress-fill {
-  /* PERF: width -> transform: scaleX() — без relayout на каждом кадре */
+  
+
   width: 100%;
   height: 100%;
   transform-origin: left center;
@@ -469,9 +488,10 @@
   box-shadow: 0 0 18px rgba(157, 255, 0, 0.6);
 }
 
-/* ==========================================================================
-   BLOOM SHOCKWAVE — кульминация сборки сферы
-   ========================================================================== */
+
+
+
+
 #bootScreen.boot-bloom .boot-flash {
   animation: bloomShock 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -496,7 +516,8 @@
   100% { opacity: 0; transform: scale(2.6); }
 }
 
-/* Ленты схлопываются, орбитальные кольца исчезают */
+
+
 #bootScreen.boot-launch .orb-ring {
   animation: ringCollapse 0.62s cubic-bezier(0.55, 0, 0.85, 0.35) forwards;
 }
@@ -506,7 +527,8 @@
   100% { opacity: 0; transform: rotateX(var(--tilt, 72deg)) rotateZ(520deg) scale(0.08); }
 }
 
-/* Мгновенный вход в дашборд после клика */
+
+
 #bootScreen.boot-done .boot-center-stack,
 #bootScreen.boot-done .boot-status,
 #bootScreen.boot-done .boot-skip {

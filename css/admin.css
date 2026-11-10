@@ -1,20 +1,22 @@
-/* ============================================================
-   XBOX 360 SYSTEM DASHBOARD · МАСТЕРСКАЯ NERO (ADMIN)
-   ---------------------------------------------------------
-   1. Токены и база
-   2. Типографика и кнопки
-   3. Верхняя панель и баннер черновика
-   4. Сетка макета
-   5. Статистика
-   6. Список целей (мини-плитки)
-   7. Вкладки и формы
-   8. Менеджер категорий
-   9. Саундтрек (плейлист)
-   10. Журнал и тосты
-   11. Адаптивность
-   ============================================================ */
 
-/* ---------- 1. ТОКЕНЫ И БАЗА ---------- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 :root {
   --green: #7cfc00;
   --green2: #52b043;
@@ -73,7 +75,8 @@ img { display: block; max-width: 100%; }
 
 .app { position: relative; z-index: 1; }
 
-/* ---------- 2. ТИПОГРАФИКА И КНОПКИ ---------- */
+
+
 .mono { font-family: 'Share Tech Mono', monospace; }
 .cap {
   font-family: 'Share Tech Mono', monospace;
@@ -144,7 +147,8 @@ textarea:focus-visible, .star:focus-visible {
 
 .file-input { display: none; }
 
-/* ---------- 3. ВЕРХНЯЯ ПАНЕЛЬ ---------- */
+
+
 .topbar {
   position: sticky;
   top: 0;
@@ -158,7 +162,8 @@ textarea:focus-visible, .star:focus-visible {
   background: linear-gradient(180deg, rgba(12, 20, 14, 0.99) 0%, rgba(6, 11, 7, 0.96) 100%);
   border-bottom: 1px solid var(--line);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
-  /* PERF: backdrop-filter удалён (блюр шапки мастерской) */
+  
+
 }
 .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .orb {
@@ -198,7 +203,8 @@ textarea:focus-visible, .star:focus-visible {
 
 .top-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-/* ---------- БАННЕР ЧЕРНОВИКА / СИНХРОНИЗАЦИИ ---------- */
+
+
 .draft-banner {
   position: relative;
   z-index: 40;
@@ -249,7 +255,8 @@ textarea:focus-visible, .star:focus-visible {
 }
 @keyframes syncPulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 
-/* ---------- 4. СЕТКА МАКЕТА ---------- */
+
+
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(380px, 0.85fr);
@@ -314,7 +321,8 @@ textarea:focus-visible, .star:focus-visible {
   color: #b9ffab;
 }
 
-/* Переключатель синхронизации в баннере */
+
+
 .sync-switch {
   margin: 0 0 0 auto;
   display: flex;
@@ -330,7 +338,8 @@ textarea:focus-visible, .star:focus-visible {
   cursor: pointer;
 }
 
-/* Ряд кнопок под полями */
+
+
 .row-actions {
   display: flex;
   gap: 8px;
@@ -338,10 +347,12 @@ textarea:focus-visible, .star:focus-visible {
   margin-top: 12px;
 }
 
-/* Поле с готовым кодом */
+
+
 .code-output { min-height: 180px; }
 
-/* ---------- 5. СТАТИСТИКА ---------- */
+
+
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
@@ -398,7 +409,8 @@ textarea:focus-visible, .star:focus-visible {
 .stat .bar i {
   display: block;
   height: 100%;
-  /* PERF: width -> transform: scaleX() (нет layout на каждом кадре) */
+  
+
   width: 100%;
   transform-origin: left center;
   transform: scaleX(var(--p, 0));
@@ -408,7 +420,8 @@ textarea:focus-visible, .star:focus-visible {
   will-change: transform;
 }
 
-/* ---------- 6. СПИСОК ЦЕЛЕЙ ---------- */
+
+
 .list-tools { display: flex; gap: 8px; flex-wrap: wrap; }
 .list-tools input, .list-tools select { padding: 7px 10px; font-size: 11px; }
 .list-tools input { width: 210px; }
@@ -461,7 +474,8 @@ textarea:focus-visible, .star:focus-visible {
   font-family: 'Share Tech Mono', monospace;
   font-size: 9px;
   letter-spacing: 1px;
-  /* PERF: backdrop-filter удалён */
+  
+
 }
 
 .item-body { min-width: 0; }
@@ -510,7 +524,8 @@ textarea:focus-visible, .star:focus-visible {
 .slider { width: 100%; margin: 8px 0 0; accent-color: var(--green2); cursor: pointer; }
 .item-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
 
-/* Превью обложки прямо в карточке */
+
+
 .art-preview {
   width: 100%;
   height: 100%;
@@ -518,7 +533,8 @@ textarea:focus-visible, .star:focus-visible {
   display: block;
 }
 
-/* ---------- 7. ВКЛАДКИ И ФОРМЫ ---------- */
+
+
 .tabs {
   display: flex;
   border-bottom: 1px solid var(--line);
@@ -584,7 +600,8 @@ select { cursor: pointer; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 
-/* Инлайн-подсказка с авто-расчётом */
+
+
 .calc-readout {
   display: flex;
   align-items: center;
@@ -601,7 +618,8 @@ select { cursor: pointer; }
 }
 .calc-readout b { color: var(--green); font-size: 13px; }
 
-/* Шкала важности «звёзды/огонь» */
+
+
 .heat-scale { display: flex; gap: 4px; margin-top: 6px; }
 .star {
   appearance: none;
@@ -636,7 +654,8 @@ select { cursor: pointer; }
   letter-spacing: 1px;
 }
 
-/* Превью обложки */
+
+
 .preview-box {
   margin-top: 8px;
   border: 1px dashed var(--line);
@@ -701,7 +720,8 @@ select { cursor: pointer; }
   letter-spacing: 1px;
 }
 
-/* ---------- 8. МЕНЕДЖЕР КАТЕГОРИЙ ---------- */
+
+
 .cat-add { display: flex; gap: 8px; margin-bottom: 14px; }
 .cat-add input { flex: 1; }
 .cat-list { display: flex; flex-direction: column; gap: 8px; }
@@ -731,7 +751,8 @@ select { cursor: pointer; }
   white-space: nowrap;
 }
 
-/* ---------- 9. САУНДТРЕК ---------- */
+
+
 .playlist-box textarea {
   min-height: 200px;
   line-height: 1.65;
@@ -773,7 +794,8 @@ select { cursor: pointer; }
 .track-list .tr .ext { color: var(--green2); font-size: 9px; flex: 0 0 auto; }
 .track-list .tr.bad .nm { color: #d78a8a; text-decoration: line-through; }
 
-/* ---------- 10. ЖУРНАЛ И ТОСТЫ ---------- */
+
+
 .log-panel .panel-head { padding: 11px 14px; }
 .log {
   height: 150px;
@@ -811,7 +833,8 @@ select { cursor: pointer; }
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-/* ---------- 11. АДАПТИВНОСТЬ ---------- */
+
+
 @media (max-width: 1180px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
   .col-side { position: static; }

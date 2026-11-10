@@ -1,10 +1,3 @@
-/* ============================================================
-   XBOX 360 SYSTEM DASHBOARD · APP
-   ---------------------------------------------------------
-   Точка входа: boot-последовательность, темы, лента лезвий,
-   Guide Blade / Media Blade (в т.ч. bottom-sheet на смартфонах),
-   тосты ачивок, адаптивный блик (мышь + гироскоп).
-   ============================================================ */
 (function (global) {
   'use strict';
 
@@ -34,7 +27,7 @@
 
   const app = {
     boot: {
-      phase: 'idle',        // idle → launching → sphere → done
+      phase: 'idle',
       shocks: [],
       stopped: false,
       progressTimer: null,
@@ -66,9 +59,6 @@
     return document.getElementById(id);
   }
 
-  /* =========================================================
-     ТЕМЫ
-     ========================================================= */
   function applyCrtPref() {
     const enabled = X360.prefs.crt !== false;
     document.body.classList.toggle('crt-on', enabled);
@@ -106,9 +96,6 @@
     showThemeToast(next);
   }
 
-  /* =========================================================
-     ПРОФИЛЬ ИГРОКА
-     ========================================================= */
   function renderGamerProfile() {
     const p = X360.config.profile || {};
     const callsign = String(p.callsign || 'DANTE // 2003');
@@ -142,9 +129,6 @@
     if (headerFill) headerFill.style.setProperty('--p', (clampedPct / 100).toFixed(4));
   }
 
-  /* =========================================================
-     ЛЕНТА ЛЕЗВИЙ (BLADES RIBBON)
-     ========================================================= */
   function getFilteredItems() {
     const cats = X360.getCategories();
     const showAll = X360.state.activeCategory === X360.ALL_CATEGORY || !cats.includes(X360.state.activeCategory);
@@ -170,7 +154,6 @@
       tab.dataset.category = cat;
       tab.setAttribute('aria-pressed', isActive ? 'true' : 'false');
       tab.textContent = cat;
-      // Акриловая глянцевая шапка активного лезвия (Blades Gloss).
       if (isActive) {
         const gloss = document.createElement('span');
         gloss.className = 'blade-gloss';
@@ -184,7 +167,6 @@
       box.appendChild(tab);
     });
 
-    // Анимация «глубины» при смене лезвия.
     if (direction) {
       box.classList.remove('is-swapping');
       box.style.setProperty('--swap-from', direction > 0 ? '-18px' : '18px');
@@ -239,9 +221,6 @@
     const activeTab = box.querySelector('.blade-tab.active');
     if (!activeTab) return;
 
-    // Скроллим вручную, а не через scrollIntoView: тот уводит ленту
-    // за пределы контейнера (отрицательный scrollLeft) и вкладки
-    // вылетают влево под кнопку LB.
     const target = activeTab.offsetLeft - (box.clientWidth - activeTab.offsetWidth) / 2;
     const max = Math.max(0, box.scrollWidth - box.clientWidth);
     const clamped = utils.clamp(target, 0, max);
@@ -252,8 +231,6 @@
       box.scrollLeft = clamped;
     }
 
-    // Страховка: после smooth-скролла браузер иногда оставляет
-    // отрицательное смещение — гасим его.
     setTimeout(() => {
       if (box.scrollLeft < 0) box.scrollLeft = 0;
     }, 420);
@@ -263,7 +240,6 @@
     const box = el('bladesContainer');
     if (!box) return;
 
-    // Колесо мыши над лентой = горизонтальный скролл.
     box.addEventListener('wheel', (e) => {
       const canScroll = box.scrollWidth > box.clientWidth + 6;
       if (!canScroll) return;
@@ -288,7 +264,7 @@
       if (!app.blades.dragged && Math.abs(dx) > 6) {
         app.blades.dragged = true;
         box.classList.add('dragging');
-        try { box.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+        try { box.setPointerCapture(e.pointerId); } catch (err) {   }
       }
       if (app.blades.dragged) {
         box.scrollLeft = app.blades.startScroll - dx;
@@ -317,13 +293,10 @@
 
     global.addEventListener('resize', updateBladeOverflow);
     if (global.ResizeObserver) {
-      try { new ResizeObserver(updateBladeOverflow).observe(box); } catch (err) { /* ignore */ }
+      try { new ResizeObserver(updateBladeOverflow).observe(box); } catch (err) {   }
     }
   }
 
-  /* =========================================================
-     GUIDE BLADE (ДОСЬЕ) / MEDIA BLADE (ПЛЕЕР)
-     ========================================================= */
 
   function openGuide(item) {
     if (!item) return;
@@ -385,18 +358,12 @@
     Audio.playBladeSwoosh();
   }
 
-  /**
-   * Единая система открытия/закрытия панелей.
-   * Класс `open` на панели + зеркальный класс на body (для карусели и CSS).
-   * Одновременно открыта может быть только одна панель.
-   */
   function setPanelOpen(which, open) {
     const isGuide = which === 'guide';
     const panel = el(isGuide ? 'guideBlade' : 'mediaBlade');
     if (!panel) return;
 
     if (open) {
-      // Закрываем «соседнюю» панель, чтобы лезвия не перекрывали друг друга.
       const other = el(isGuide ? 'mediaBlade' : 'guideBlade');
       if (other) {
         other.classList.remove('open');
@@ -421,8 +388,6 @@
 
     updateBackdrop();
 
-    /* PERF: визуализатор спектра живёт только пока шторка открыта.
-       Раньше rAF-цикл крутился постоянно и съедал батарею на телефоне. */
     if (Player && Player.setVisualizerActive) {
       Player.setVisualizerActive(isGuide ? false : open);
     }
@@ -449,17 +414,12 @@
     return false;
   }
 
-  /**
-   * Закрывает все открытые панели разом.
-   * Используется кликом по оверлею, клавишей Escape и кнопкой B.
-   */
   function closeAllBlades() {
     const wasOpen = app.guideOpen || app.mediaOpen;
     if (app.guideOpen) setPanelOpen('guide', false);
     if (app.mediaOpen) setPanelOpen('media', false);
     if (wasOpen) {
       Audio.playBladeSwoosh();
-      // Возвращаем фокус карусели — управление не теряется.
       const stage = el('carouselStage');
       if (stage) {
         stage.classList.add('is-interactive');
@@ -469,9 +429,6 @@
     return wasOpen;
   }
 
-  /* ---------------------------------------------------------
-     BOTTOM SHEET — свайп вниз для закрытия (мобильные)
-     --------------------------------------------------------- */
   function initSheetDrag() {
     const panels = [el('guideBlade'), el('mediaBlade')].filter(Boolean);
 
@@ -487,7 +444,7 @@
         app.sheet.panel = panel;
         app.sheet.moved = false;
         panel.classList.add('is-dragging');
-        try { handle.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+        try { handle.setPointerCapture(e.pointerId); } catch (err) {   }
       });
 
       handle.addEventListener('pointermove', (e) => {
@@ -523,7 +480,6 @@
       handle.addEventListener('pointercancel', endSheet);
     });
 
-    // Клик по фону закрывает панель.
     const backdrop = el('sheetBackdrop');
     if (backdrop) {
       backdrop.addEventListener('click', (e) => {
@@ -534,9 +490,6 @@
     }
   }
 
-  /* =========================================================
-     ТОСТ АЧИВКИ
-     ========================================================= */
   function triggerAchievement(title) {
     Audio.playAchievement();
     const toast = el('achievementToast');
@@ -548,9 +501,6 @@
     app.achievementTimer = setTimeout(() => toast.classList.remove('show'), 3800);
   }
 
-  /* =========================================================
-     БЛИК И ПАРАЛЛАКС (мышь + гироскоп)
-     ========================================================= */
   function initPointerEffects() {
     const dashboard = el('dashboard');
     if (!dashboard) return;
@@ -566,17 +516,12 @@
         const x = ((e.clientX - rect.left) / rect.width) * 100;
         const y = ((e.clientY - rect.top) / rect.height) * 100;
 
-        /* PERF: прожектор двигается ТРАНСФОРМОМ маленького блока,
-           а не перерисовкой полноэкранного радиального градиента.
-           Раньше каждый pointermove пересобирал background-position
-           у слоя на весь экран — это главный источник микрофризов. */
         if (spotlight) {
           const dx = ((x - 50) / 100) * rect.width;
           const dy = ((y - 40) / 100) * rect.height;
           spotlight.style.transform = 'translate3d(' + dx.toFixed(1) + 'px, ' + dy.toFixed(1) + 'px, 0)';
         }
 
-        // Голографический sheen + parallax только у активной коробки.
         const activeCase = dashboard.querySelector('.card-item.is-active');
         if (!activeCase) return;
         const ar = activeCase.getBoundingClientRect();
@@ -597,10 +542,8 @@
     });
   }
 
-  /** Кеш последних значений — не пишем в DOM, если ничего не изменилось. */
   const sheenCache = new WeakMap();
 
-  /** Прописывает CSS-переменные блика на карточку. */
   function applySheen(anchor, nx, ny) {
     const hx = utils.clamp(nx, -0.4, 1.4) * 100;
     const hy = utils.clamp(ny, -0.4, 1.4) * 100;
@@ -610,9 +553,6 @@
     const tx = (nx - 0.5) * 12;
     const ty = (ny - 0.5) * 9;
 
-    /* PERF: 7 custom-property на каждый pointermove = 7 style-recalc
-       поддерева карточки. Пишем только реально изменившиеся значения
-       (округление до 0.1%) — обычно это 1–2 записи за кадр. */
     let prev = sheenCache.get(anchor);
     if (!prev) {
       prev = { hx: -1, hy: -1, gx: -1, gy: -1, hang: -1, tx: -1, ty: -1 };
@@ -649,24 +589,21 @@
     }
   }
 
-  /** Список карточек карусели (через публичный API Carousel). */
   function carouselAnchors() {
     const stage = el('carouselStage');
     if (!stage) return [];
     return Array.prototype.slice.call(stage.querySelectorAll('.card-item'));
   }
 
-  /** Гироскоп смартфона — наклон двигает блик. */
   function initGyro() {
     if (!('DeviceOrientationEvent' in global)) return;
 
     const handle = (e) => {
       if (e.beta == null && e.gamma == null) return;
-      const beta = Number(e.beta) || 0;   // наклон вперёд-назад
-      const gamma = Number(e.gamma) || 0; // наклон влево-вправо
+      const beta = Number(e.beta) || 0;
+      const gamma = Number(e.gamma) || 0;
       const activeCase = document.querySelector('.card-item.is-active');
       if (!activeCase) return;
-      // -45..45 градусов → 0..1
       const nx = utils.clamp((gamma + 45) / 90, 0, 1);
       const ny = utils.clamp((beta + 45) / 90, 0, 1);
       applySheen(activeCase, nx, ny);
@@ -674,42 +611,27 @@
 
     global.addEventListener('deviceorientation', handle, { passive: true });
 
-    // iOS требует явного разрешения.
     const requestPermission = () => {
       const D = global.DeviceOrientationEvent;
       if (!D || typeof D.requestPermission !== 'function') return;
       D.requestPermission().then((state) => {
         app.gyroGranted = state === 'granted';
-      }).catch(() => { /* ignore */ });
+      }).catch(() => {   });
     };
     global.addEventListener('click', requestPermission, { once: true });
     global.addEventListener('touchstart', requestPermission, { once: true });
   }
 
-  /* =========================================================
-     BOOT SEQUENCE — Nexus Orb 2005
-     ========================================================= */
-  /* ---------------------------------------------------------
-     BOOT — Kinect 2010: ленты → спираль → сфера Nexus → старт
-     ---------------------------------------------------------
-     Фазы:
-       idle      — ленты свободно парят, ждём жеста (или автозапуск)
-       launching — ленты ускоряются и закручиваются в спираль
-       sphere    — сфера собрана, вспышка, показан логотип и призыв
-       done      — дашборд открыт
-     --------------------------------------------------------- */
   function initBootRibbons() {
     const canvas = el('bootCanvas');
     if (!canvas || !Boot) return;
 
     Boot.init(canvas, {
       onCollapsed: () => {
-        // Ленты схлопнулись в сферу Nexus — Bloom Shockwave + саб-бас.
         const screen = el('bootScreen');
         if (screen) screen.classList.add('boot-bloom');
-        try { Audio.playStartup(); } catch (e) { /* ignore */ }
+        try { Audio.playStartup(); } catch (e) {   }
         app.boot.phase = 'sphere';
-        // Показываем логотип и призыв — гость жмёт ещё раз.
         setTimeout(() => {
           const s = el('bootScreen');
           if (s) s.classList.add('boot-sphere');
@@ -719,13 +641,11 @@
       }
     });
 
-    // Canvas активен — CSS-запасная сфера не нужна.
     const screen0 = el('bootScreen');
     if (screen0) screen0.classList.add('boot-canvas-ready');
 
     Boot.start();
 
-    // Автозапуск: если гость не тронет экран, интро играет само.
     clearTimeout(app.boot.autoTimer);
     app.boot.autoTimer = setTimeout(() => {
       if (app.boot.phase === 'idle') triggerBoot();
@@ -769,22 +689,12 @@
     }, 95);
   }
 
-  /**
-   * Единая точка переворота активной коробки.
-   * Используется кнопкой Y на карточке, клавишей Y/F, кнопкой Y геймпада
-   * и нижней подсказкой — поведение у всех одинаковое и надёжное.
-   */
   function flipActiveCase(force) {
     if (!Carousel.getItems().length) return;
     Carousel.toggleFlip(force);
     Audio.playPlasticClick();
   }
 
-  /**
-   * Переход в дашборд: гасим заставку, запускаем звук и музыку.
-   * Вынесено отдельно, чтобы вызываться и из onCollapsed лент,
-   * и из таймера запуска (fallback).
-   */
   function revealDashboard() {
     const screen = el('bootScreen');
     const db = el('dashboard');
@@ -793,40 +703,23 @@
     document.body.classList.add('dashboard-active');
     X360.state.booted = true;
 
-    // Останавливаем рендер лент — освобождаем CPU для карусели.
     if (Boot) Boot.stop();
 
-    // Гасим заставку полностью: после перехода в дашборд она не должна
-    // перехватывать ни одного клика.
     setTimeout(() => {
       if (screen) screen.style.display = 'none';
     }, 800);
 
-    try { Audio.playBladeSwoosh(); } catch (e) { /* ignore */ }
+    try { Audio.playBladeSwoosh(); } catch (e) {   }
 
-    /* Звонок запуска Xbox 360: стеклянное арпеджио + суб-свип.
-     Именно в этот момент страница «превращается» в консоль. */
-    try { Audio.playStartupChime(); } catch (e) { /* ignore */ }
+    try { Audio.playStartupChime(); } catch (e) {   }
 
-    /* PERF/AUTOPOLICY: музыку здесь НЕ запускаем.
-       До первого жеста браузер всё равно заблокирует play(), а файл
-       при этом успевает скачаться впустую. Старт происходит в
-       Audio.onReady() — строго после жеста гостя. */
   }
 
-  /**
-   * Обработка жеста на заставке.
-   *
-   * Первое касание (или автозапуск) — ленты ускоряются и закручиваются
-   * в спираль, собирается сфера Nexus с буквой «X».
-   * Второе касание — вспышка и мгновенный вход в дашборд.
-   */
   function triggerBoot() {
     const phase = app.boot.phase;
 
-    // Фаза «сфера собрана» — гость подтверждает старт.
     if (phase === 'sphere' || phase === 'launching') {
-      if (phase === 'launching') return;   // ждём сборки сферы
+      if (phase === 'launching') return;
       app.boot.phase = 'done';
       clearTimeout(app.boot.autoTimer);
       revealDashboard();
@@ -835,18 +728,14 @@
 
     if (phase === 'done') return;
 
-    // Фаза «покой» — запускаем сборку сферы.
     app.boot.phase = 'launching';
     clearTimeout(app.boot.autoTimer);
     clearInterval(app.boot.progressTimer);
 
-    // Звук запускаем только после жеста — контекст уже разблокирован.
-    try { Audio.startFanHum(); } catch (e) { /* ignore */ }
+    try { Audio.startFanHum(); } catch (e) {   }
 
-    // Звук запускаем только после жеста — контекст уже разблокирован.
-    try { Audio.playSpinUp(); } catch (e) { /* ignore */ }
+    try { Audio.playSpinUp(); } catch (e) {   }
 
-    // Ленты: ускорение -> гиперпространственная спираль -> сфера.
     if (Boot) Boot.launch();
 
     const screen = el('bootScreen');
@@ -855,10 +744,6 @@
       screen.classList.remove('boot-sphere');
     }
 
-    // Fallback: если сфера собралась, но гость не нажал вторую кнопку —
-    // всё равно открываем дашборд. Раньше условие проверяло только
-    // фазу 'launching', и после сборки сферы (фаза 'sphere') автозапуск
-    // НЕ срабатывал — гость мог застрять на заставке навсегда.
     setTimeout(() => {
       if (!X360.state.booted && app.boot.phase !== 'done') {
         app.boot.phase = 'done';
@@ -867,13 +752,6 @@
     }, 2600);
   }
 
-  /**
-   * Перезапуск заставки (кнопка «⟲ ЗАСТАВКА»).
-   *
-   * Раньше здесь стоял guard `phase === 'done' → return`, из-за чего
-   * кнопка была полностью «мёртвой»: после прохождения интро фаза
-   * всегда равна 'done'. Прерываем только сборку сферы.
-   */
   function replayBoot() {
     if (app.boot.phase === 'launching') return;
 
@@ -915,13 +793,9 @@
     Audio.playBladeSwoosh();
   }
 
-  /* =========================================================
-     КЛАВИАТУРА
-     ========================================================= */
   function initKeyboard() {
     global.addEventListener('keydown', (e) => {
       if (app.boot.phase !== 'done') {
-        // На заставке любая клавиша (Enter/Space/Esc) ведёт по сценарию.
         if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape' || e.code === 'Space') {
           e.preventDefault();
           triggerBoot();
@@ -945,7 +819,6 @@
       } else if (e.code === 'KeyX' || e.code === 'KeyM') {
         toggleMedia();
       } else if (e.code === 'KeyB') {
-        // Кнопка «B» на клавиатуре — мгновенно закрыть панель.
         if (!closeAllBlades() && Carousel.isFlipped()) {
           flipActiveCase(false);
         }
@@ -964,9 +837,6 @@
     });
   }
 
-  /* =========================================================
-     ПРИВЯЗКА ЭЛЕМЕНТОВ
-     ========================================================= */
   function bindControls() {
     const themeSelect = el('themeSelect');
     if (themeSelect) {
@@ -977,7 +847,6 @@
       });
     }
 
-    // На телефонах селект тем скрыт — клик по аватару листает корпуса.
     const gamerpic = document.querySelector('.gamerpic-box');
     if (gamerpic) {
       gamerpic.style.cursor = 'pointer';
@@ -993,9 +862,6 @@
       });
     }
 
-    // Кнопка CRT. Используем onclick (вместо addEventListener), чтобы
-    // обработчик нельзя было потерять или задвоить, и гасим
-    // распространение события — клик не должен «проваливаться» в сцену.
     const crtBtn = el('crtToggleBtn');
     if (crtBtn) {
       crtBtn.onclick = (e) => {
@@ -1040,7 +906,6 @@
       });
     }
 
-    // Кнопка перезапуска заставки.
     const replayBtn = el('replayBootBtn');
     if (replayBtn) {
       replayBtn.onclick = (e) => {
@@ -1050,20 +915,17 @@
       };
     }
 
-    // Лента лезвий: LB / RB.
     const prevBtn = el('bladesPrevBtn');
     const nextBtn = el('bladesNextBtn');
     if (prevBtn) prevBtn.addEventListener('click', () => switchCategoryBy(-1));
     if (nextBtn) nextBtn.addEventListener('click', () => switchCategoryBy(1));
 
-    // Guide Blade.
     const guideClose = el('guideCloseBtn');
     if (guideClose) guideClose.addEventListener('click', () => {
       closeGuide();
       Audio.playBladeSwoosh();
     });
 
-    // Media Blade.
     const mediaOpen = el('mediaOpenBtn');
     if (mediaOpen) mediaOpen.addEventListener('click', toggleMedia);
     const mediaClose = el('mediaCloseBtn');
@@ -1074,7 +936,6 @@
       });
     }
 
-    // Нижние подсказки (A / B / X / Y).
     const hintSelect = el('hintSelect');
     if (hintSelect) {
       hintSelect.addEventListener('click', () => {
@@ -1099,7 +960,6 @@
       });
     }
 
-    // Boot screen.
     const nexus = el('nexusWrap');
     const bootStart = el('bootStartBtn');
     const bootSkip = el('bootSkipBtn');
@@ -1134,35 +994,24 @@
     }
   }
 
-  /* =========================================================
-     INIT
-     ========================================================= */
   function init() {
-    // --- Audio ---
     Audio.init();
     Audio.setSfx(X360.state.sfxEnabled);
     X360.state.sfxEnabled = Audio.isSfxEnabled();
 
-    /* Звук появляется только после первого жеста гостя (autoplay-policy).
-       Музыка стартует в тот же момент — иначе плеер молчал бы
-       до первого клика, а preload="none" не даёт ничего скачать заранее. */
     Audio.onReady(() => {
       try {
         if (X360.prefs.music && Player.getTracks().length && !Player.isPlaying()) {
           Player.start(true);
         }
       } catch (err) {
-        /* ignore */
       }
     });
 
-    // --- Темы / CRT ---
     applyTheme(X360.prefs.theme);
 
-    // --- Профиль ---
     renderGamerProfile();
 
-    // --- Карусель ---
     Carousel.init({
       stage: el('carouselStage'),
       track: el('carouselTrack'),
@@ -1170,7 +1019,7 @@
       nextBtn: el('carouselNextBtn'),
       pipsBox: el('carouselPipsBar'),
       onOpenGuide: openGuide,
-      onToggleFlip: () => { /* звук обрабатывается отдельно */ },
+      onToggleFlip: () => {   },
       onSfx: (kind) => {
         if (kind === 'nav') Audio.playBladeSwoosh();
         else if (kind === 'flip') Audio.playPlasticClick();
@@ -1180,11 +1029,9 @@
 
     Carousel.setItems(getFilteredItems());
 
-    // --- Лента лезвий ---
     renderBlades();
     initBladeDrag();
 
-    // --- Плеер ---
     Player.init({
       onStateChange: () => {
         const chip = el('mediaOpenBtn');
@@ -1192,24 +1039,17 @@
       }
     });
 
-    // --- Панели ---
     initSheetDrag();
 
-    // --- Вкладка скрыта: останавливаем «вечные» анимации ---
-    // CSS-анимации браузер и так приостанавливает в фоновой вкладке,
-    // но диск в открытой коробке и визуализатор мы глушим явно:
-    // при возврате на вкладку они не должны «догонять» кадры.
     document.addEventListener('visibilitychange', () => {
       document.documentElement.classList.toggle('tab-hidden', document.hidden);
     });
 
-    // --- Управление ---
     bindControls();
     initKeyboard();
     initPointerEffects();
     initGyro();
 
-    // --- Gamepad ---
     Gamepad.init({
       start: triggerBoot,
       openGuide: () => {
@@ -1234,7 +1074,6 @@
       nextCategory: () => switchCategoryBy(1)
     });
 
-    // --- Синхронизация начального состояния ---
     const fanBtn = el('fanHumBtn');
     const fanText = el('fanHumText');
     if (fanBtn) fanBtn.classList.toggle('active', X360.state.fanHumEnabled);
@@ -1245,7 +1084,6 @@
     if (sfxBtn) sfxBtn.classList.toggle('active', X360.state.sfxEnabled);
     if (sfxText) sfxText.textContent = X360.state.sfxEnabled ? 'SFX: ВКЛ' : 'SFX: ВЫКЛ';
 
-    // --- Boot screen (Ribbons 2005) ---
     initBootRibbons();
     startBootProgress();
 
@@ -1254,9 +1092,7 @@
       Carousel.layout();
     });
 
-    // Отложенный старт музыки, если она была включена в прошлой сессии.
     if (X360.prefs.music && X360.prefs.musicUserSet) {
-      // Ждём первого жеста — autoplay-политика всё равно требует его.
     }
   }
 
@@ -1266,7 +1102,6 @@
     init();
   }
 
-  // Небольшой публичный API для отладки.
   X360.App = {
     triggerBoot,
     replayBoot,

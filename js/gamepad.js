@@ -1,13 +1,3 @@
-/* ============================================================
-   XBOX 360 SYSTEM DASHBOARD · GAMEPAD API
-   ---------------------------------------------------------
-   Поддержка геймпада в режиме Couch / TV:
-     • Левый стик и D-Pad — листание дисков и категорий
-     • LB / RB — предыдущая / следующая категория
-     • A — открыть досье, B — закрыть, X — музыка, Y — переворот
-     • Start — открыть досье текущего диска
-   Обрабатываются edge-триггеры (нажатие), а не удержание.
-   ============================================================ */
 (function (global) {
   'use strict';
 
@@ -42,7 +32,7 @@
     started: false
   };
 
-  const NAV_COOLDOWN = 190;   // ms между шагами навигации
+  const NAV_COOLDOWN = 190;
   const STICK_DEADZONE = 0.68;
 
   function el(id) {
@@ -112,7 +102,6 @@
     }
     gamepad.prevButtons[key] = snapshot;
 
-    // На заставке любая кнопка = START (сценарий: сборка сферы → вход).
     if (!X360.state.booted) {
       if (edges.length) fire('start');
       return;
@@ -123,7 +112,6 @@
     const mediaOpen = document.body.classList.contains('media-open');
     const overlayOpen = guideOpen || mediaOpen;
 
-    // A — досье / переход по ссылке покупки.
     if (edges.includes(BUTTON.A)) {
       if (guideOpen) {
         fire('confirm');
@@ -132,7 +120,6 @@
       }
     }
 
-    // B — закрыть панель / вернуть обложку.
     if (edges.includes(BUTTON.B)) {
       if (guideOpen || mediaOpen) {
         fire('close');
@@ -141,18 +128,14 @@
       }
     }
 
-    // X — саундтрек, Y — переворот коробки.
     if (edges.includes(BUTTON.X)) fire('media');
     if (edges.includes(BUTTON.Y)) fire('flip');
 
-    // START — досье текущего диска.
     if (edges.includes(BUTTON.START) && !overlayOpen) fire('openGuide');
 
-    // LB / RB — категории-лезвия.
     if (edges.includes(BUTTON.LB)) fire('prevCategory');
     if (edges.includes(BUTTON.RB)) fire('nextCategory');
 
-    // Стик / D-Pad: влево-вправо — диски, вверх-вниз — категории.
     const now = performance.now();
     if (!overlayOpen && now - gamepad.lastNavAt > NAV_COOLDOWN) {
       const ax = (pad.axes && pad.axes[0]) || 0;
@@ -190,8 +173,6 @@
         if (badge) badge.classList.remove('show');
       });
 
-      // Опрос запускаем после первого жеста — иначе браузер
-      // возвращает пустой массив геймпадов.
       const start = () => {
         if (gamepad.started) return;
         gamepad.started = true;

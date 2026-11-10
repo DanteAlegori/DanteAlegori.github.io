@@ -1,20 +1,23 @@
-/* ============================================================
-   XBOX 360 SYSTEM DASHBOARD · DASHBOARD
-   ---------------------------------------------------------
-   1. Shell / background layers / spotlight
-   2. Top gamer bar (profile, HUD stats, skin picker, audio chips)
-   3. Blades ribbon (category navigation)
-   4. 3D Coverflow stage + case cards
-   5. Disc tray (metallic DVD, grooves, diffraction rainbow)
-   6. Holography / specular / fresnel
-   7. Aurora ribbon + CRT overlay
-   8. Bottom controller bar
-   ============================================================ */
 
-/* ---------- 1. SHELL ---------- */
-/* Декоративные слои НИКОГДА не перехватывают мышь.
-   Иначе «невидимый» блик или шейдер перекрывает кнопки на боксе
-   (Y 360°, A ДОСЬЕ) и клики по ним просто игнорируются. */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 .case-sheen,
 .case-holo-sheen,
 .case-specular,
@@ -60,13 +63,15 @@
 }
 #dashboard.active { opacity: 1; }
 
-/* CRT tube geometry — лёгкая бочкообразная дисторсия без нагрузки на GPU */
+
+
 body.crt-on #dashboard {
   border-radius: 2.6% / 4.2%;
   box-shadow: inset 0 0 140px rgba(0, 0, 0, 0.8);
 }
 
-/* Сканлайны дашборда (включаются тумблером CRT) */
+
+
 #dashboard::before {
   content: "";
   position: absolute;
@@ -79,7 +84,8 @@ body.crt-on #dashboard {
 }
 body.crt-on #dashboard::before { opacity: 0.75; }
 
-/* Виньетка + верхнее/нижнее затемнение */
+
+
 #dashboard::after {
   content: "";
   position: absolute;
@@ -97,11 +103,13 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   98% { opacity: 0.98; }
 }
 
-/* Фоновые слои */
-/* PERF: раньше градиент перерисовывался на каждом pointermove
-   (background-position + radial-gradient = полная перерисовка слоя).
-   Теперь это маленький блок 960x960, который просто ТРАНСФОРМИРУЕТСЯ
-   за курсором — перерисовки нет, только композиция (GPU). */
+
+
+
+
+
+
+
 .bg-spotlight {
   position: absolute;
   left: 50%;
@@ -128,9 +136,10 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   background: radial-gradient(ellipse at center, var(--theme-ribbon) 0%, rgba(0, 0, 0, 0.05) 50%, transparent 75%);
   transform: rotate(-8deg) skewX(-20deg);
   opacity: calc(0.85 + var(--p, 0) * 0.3);
-  /* PERF: filter: blur(45px) на элементе с бесконечной анимацией
-     заставлял браузер пересчитывать размытие каждый кадр (дорого
-     и не параллелится). Мягкие края уже заданы радиальным градиентом. */
+  
+
+
+
   pointer-events: none !important;
   z-index: var(--z-bg);
   transition: background 0.5s ease;
@@ -150,7 +159,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   100% { transform: translate3d(3%, 2%, 0) rotate(22deg) skewX(28deg); opacity: 0.9; }
 }
 
-/* ---------- 2. TOP GAMER BAR ---------- */
+
+
 .top-gamer-bar {
   position: relative;
   z-index: var(--z-header);
@@ -159,9 +169,10 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   align-items: center;
   min-width: 0;
   padding: var(--safe-top) calc(30px + var(--safe-right)) 0 calc(30px + var(--safe-left));
-  /* PERF: backdrop-filter удалён. Размытие фона шапки — это отдельный
-     проход композитора на каждый кадр (особенно при прокрутке/анимации).
-     Вместо него — плотный полупрозрачный градиент + непрозрачная подложка. */
+  
+
+
+
   background-color: #0b100c;
   background-image: var(--theme-header-bg);
   border-bottom: 2px solid var(--theme-border);
@@ -173,9 +184,10 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   position: absolute;
   left: 0;
   bottom: -2px;
-  /* PERF: полоса шире шапки и едет через transform. transform
-     композитится на GPU, а background-position перерисовывал
-     шапку на каждом кадре (60 repaint/сек на телефоне). */
+  
+
+
+
   width: 220%;
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--theme-toxic), transparent);
@@ -209,9 +221,10 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   position: relative;
   transition: border-color 0.4s;
 }
-/* PERF: пульсация аватара переведена с анимации box-shadow
-   (перерисовка + re-rasterization тени каждый кадр) на анимацию
-   opacity отдельного слоя — чистая композиция на GPU. */
+
+
+
+
 .gamerpic-box::after {
   content: "";
   position: absolute;
@@ -331,7 +344,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   text-shadow: 0 0 10px var(--theme-glow);
 }
 
-/* Skin picker */
+
+
 .console-skin-wrap {
   display: flex;
   align-items: center;
@@ -365,7 +379,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   outline: none;
 }
 
-/* Audio chips */
+
+
 .audio-toggles-group {
   display: flex;
   gap: 6px;
@@ -402,7 +417,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   color: #fff;
 }
 
-/* Прогресс-бар шапки */
+
+
 .header-progress-track {
   position: absolute;
   left: 0;
@@ -415,8 +431,9 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   pointer-events: none;
 }
 .header-progress-fill {
-  /* PERF: width -> transform: scaleX(). Анимация width вызывает
-     relayout/layout на каждом кадре; scaleX — только композиция. */
+  
+
+
   width: 100%;
   height: 100%;
   transform-origin: left center;
@@ -427,7 +444,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   will-change: transform;
 }
 
-/* ---------- 3. BLADES RIBBON ---------- */
+
+
 .blades-ribbon-wrap {
   position: absolute;
   top: calc(var(--header-h) + var(--safe-top) + 2px);
@@ -442,8 +460,9 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   pointer-events: none;
 }
 
-/* Viewport ленты: жёстко обрезает область скролла, поэтому вкладки
-   физически не могут вылететь за экран или наложиться на LB/RB. */
+
+
+
 .blades-ribbon-viewport {
   position: relative;
   flex: 1 1 auto;
@@ -504,8 +523,9 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   overscroll-behavior-x: contain;
 }
 .blades-nav-bar::-webkit-scrollbar { display: none; }
-/* Маска перенесена на .blades-ribbon-viewport — она обрезает ленту
-   и не задевает кнопки LB/RB, стоящие вне вьюпорта. */
+
+
+
 .blades-nav-bar.has-overflow {
   -webkit-mask-image: none;
   mask-image: none;
@@ -516,7 +536,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   user-select: none;
 }
 
-/* Скольжение ленты при смене категории */
+
+
 .blades-nav-bar.is-swapping {
   animation: ribbonSwap 0.42s var(--ease-pop) both;
 }
@@ -525,7 +546,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   100% { transform: translate3d(0, 0, 0); opacity: 1; }
 }
 
-/* Лезвие категории */
+
+
 .blade-tab {
   --rest-rotx: 20deg;
   --rest-tx: 0px;
@@ -552,8 +574,9 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   transform: perspective(400px) rotateX(var(--rest-rotx)) translateY(var(--rest-tx));
   transition: transform 0.28s var(--ease-pop), background 0.2s ease, color 0.2s ease,
     box-shadow 0.25s ease, border-color 0.2s ease;
-  /* PERF: will-change убран — 10 вкладок ленты держали 10 слоёв
-     ради эффекта, который проявляется только на активной вкладке. */
+  
+
+
 }
 .blade-tab::before {
   content: "";
@@ -567,8 +590,9 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   background-position: 0 0, -150% 0;
   transition: background-position 0.6s var(--ease-out);
 }
-/* Акриловый срез (Blades Gloss): диагональный световой перелив
-   по верхней грани лезвия — имитация выпуклого пластика 2005 года. */
+
+
+
 .blade-tab::after {
   content: "";
   position: absolute;
@@ -583,9 +607,10 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 }
 .blade-tab.active::after { opacity: 1; }
 
-/* Глянцевая «шапка» активного лезвия: диагональный блик-шейдер
-   + тонкая световая кромка по верхнему ребру.
-   Диагональный блик имитирует выпуклое полированное стекло. */
+
+
+
+
 .blade-tab.active .blade-gloss {
   position: absolute;
   inset: 0;
@@ -593,16 +618,19 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   overflow: hidden;
   border-radius: inherit;
   background:
-    /* тонкая световая кромка верхней грани */
+    
+
     linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.14) 2px, transparent 3px),
-    /* диагональный объёмный перелив (блик-шейдер) */
+    
+
     linear-gradient(112deg,
       rgba(255, 255, 255, 0) 0%,
       rgba(255, 255, 255, 0.18) 22%,
       rgba(255, 255, 255, 0.55) 36%,
       rgba(255, 255, 255, 0.06) 50%,
       rgba(255, 255, 255, 0) 68%),
-    /* вертикальный объём «выпуклого пластика» */
+    
+
     linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 34%, rgba(0, 0, 0, 0.2) 100%);
   background-size: 100% 100%, 240% 100%, 100% 100%;
   background-position: 0 0, 130% 0, 0 0;
@@ -614,7 +642,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   0%, 100% { background-position: 0 0, 140% 0, 0 0; }
   50% { background-position: 0 0, -40% 0, 0 0; }
 }
-/* Дополнительный узкий «шлик» блика — ощущение толщины стекла */
+
+
 .blade-tab.active .blade-gloss::after {
   content: "";
   position: absolute;
@@ -628,7 +657,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   mix-blend-mode: screen;
   animation: bladeGlossSlide 4.2s ease-in-out infinite;
 }
-/* Тёмная подложка активного лезвия — усиливает «выпуклость» */
+
+
 .blade-tab.active {
   box-shadow:
     0 -5px 22px var(--theme-glow),
@@ -649,9 +679,10 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   background: var(--theme-blade-active);
   border-color: #ffffff;
 }
-/* PERF: свечение активного лезвия больше не анимирует box-shadow
-   (перерисовка тени каждый кадр). Вместо неё — отдельный слой
-   с box-shadow, анимируемый только через opacity (чистый GPU). */
+
+
+
+
 .blade-tab.active .blade-gloss::after {
   content: "";
   position: absolute;
@@ -675,7 +706,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   100% { background-position: 0 0, 150% 0; }
 }
 
-/* Переворот активированного лезвия (3D-глубина при переключении) */
+
+
 .blade-tab.just-activated {
   animation: bladeFlipIn 0.48s var(--ease-pop) both;
 }
@@ -685,7 +717,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   100% { transform: perspective(400px) rotateX(var(--rest-rotx)) translateY(var(--rest-tx)); opacity: 1; }
 }
 
-/* ---------- 4. COVERFLOW STAGE ---------- */
+
+
 .stage-center {
   position: relative;
   z-index: var(--z-stage);
@@ -702,7 +735,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   width: 100%;
   max-width: min(1500px, 100vw);
   height: var(--stage-h);
-  /* PERF/UX: интерактивная зона карусели — «хватабельный» курсор. */
+  
+
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
@@ -711,23 +745,26 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 }
 .carousel-stage:active { cursor: grabbing; }
 .carousel-stage.is-dragging { cursor: grabbing; }
-/* Во время перетаскивания курсор не должен «моргать» над кнопками карточки */
+
+
 .carousel-stage.is-dragging * { cursor: grabbing !important; }
 
-/* ==========================================================================
-   НАТИВНЫЙ CSS SCROLL SNAP
-   --------------------------------------------------------------------------
-   Трек — обычный скролл-контейнер браузера. Он сам считает:
-     • инерцию (momentum) после броска пальцем;
-     • «резиновый» край в начале/конце списка;
-     • долистывание до ближайшей карточки (scroll-snap);
-     • кадры анимации скролла (в т.ч. на iOS — без лагов).
-   JS не трогает scrollLeft во время свайпа пальцем вообще.
-   ========================================================================== */
+
+
+
+
+
+
+
+
+
+
+
 .carousel-track {
   position: absolute;
-  /* Вертикальный запас — под внешнее свечение корпуса коробки,
-     которое выходит за габариты карточки на ~20px. */
+  
+
+
   inset: -30px 0;
   display: flex;
   align-items: center;
@@ -739,9 +776,10 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  /* pan-x pan-y: горизонтальный скролл и вертикальный — оба наши,
-     но вертикальный у нас нигде не используется, поэтому вернём
-     его скроллу страницы при вертикальном свайпе. */
+  
+
+
+
   touch-action: pan-x pan-y;
   overscroll-behavior-x: contain;
   overscroll-behavior-y: none;
@@ -754,11 +792,12 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 .carousel-track.is-dragging { cursor: grabbing; }
 .carousel-track.is-dragging * { cursor: grabbing !important; }
 
-/* Отступы-«распорки» перед первой и после последней карточки:
-   без них первую карточку нельзя «припарковать» по центру.
-   Передняя распорка на один gap короче (gap тоже стоит между
-   распоркой и первой карточкой) — иначе snap-смещение
-   «уезжает» на величину зазора. */
+
+
+
+
+
+
 .carousel-track::before {
   content: "";
   flex: 0 0 calc(50% - var(--case-w) / 2 - var(--case-gap));
@@ -780,8 +819,9 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   width: 78%;
   height: 90px;
   transform: translateX(-50%);
-  /* PERF: filter: blur(28px) + анимация transform/opacity = пересчёт
-     размытия на каждом кадре. Мягкое пятно задаёт сам радиальный градиент. */
+  
+
+
   background: radial-gradient(ellipse at center, var(--theme-glow) 0%, transparent 68%);
   opacity: 0.42;
   pointer-events: none;
@@ -806,7 +846,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   pointer-events: none;
 }
 
-/* Chevron navigation */
+
+
 .carousel-nav-btn {
   position: absolute;
   top: 50%;
@@ -822,8 +863,9 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  /* PERF: backdrop-filter удалён — размытие пересчитывалось при каждом
-     hover-трансформе кнопки. Плотный фон выглядит так же. */
+  
+
+
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), inset 0 0 12px rgba(255, 255, 255, 0.06);
   transition: background var(--dur-med) var(--ease-pop), color var(--dur-med) var(--ease-pop),
     transform var(--dur-med) var(--ease-pop), box-shadow var(--dur-med) var(--ease-pop);
@@ -865,7 +907,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   font-family: var(--font-mono);
 }
 
-/* Paging dots */
+
+
 .carousel-pips-bar {
   position: absolute;
   bottom: -15px;
@@ -875,8 +918,9 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   align-items: center;
   gap: 10px;
   z-index: 60;
-  /* PERF: backdrop-filter удалён (полупрозрачная полоса + блюр = лишний
-     проход композитора на каждом кадре анимации точек). */
+  
+
+
   background: rgba(8, 13, 10, 0.9);
   padding: 6px 16px;
   border-radius: 20px;
@@ -902,12 +946,15 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   transform: scale(1.35);
 }
 
-/* ---------- 5. CASE CARD ---------- */
 
-/* ---------- FLOOR REFLECTION (зеркальный пол премиум-уровня) ---------- */
-/* Отражение активного бокса в «полированном полу» дашборда.
-   -webkit-box-reflect рисует копию элемента ниже по оси Y с маской,
-   которая гасит отражение в темноту. */
+
+
+
+
+
+
+
+
 .card-item.is-active .case-face.front {
   -webkit-box-reflect: below 4px linear-gradient(
     transparent 42%,
@@ -917,11 +964,13 @@ body.crt-on #dashboard::before { opacity: 0.75; }
     rgba(0, 0, 0, 0.4) 100%
   );
 }
-/* Глубокое отражение — размытая «лужа» света под боксом */
+
+
 .card-item.is-active .case-chassis-glow {
   -webkit-box-reflect: below 2px linear-gradient(transparent 55%, rgba(124, 252, 0, 0.22) 100%);
 }
-/* Неоновый световой горизонт пола с пульсацией */
+
+
 .carousel-stage::before {
   background:
     radial-gradient(ellipse 40% 9% at center, rgba(157, 255, 0, 0.42) 0%, rgba(16, 113, 16, 0.18) 45%, transparent 72%),
@@ -932,7 +981,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   0%, 100% { opacity: 0.34; transform: translateX(-50%) scaleX(0.94); }
   50% { opacity: 0.62; transform: translateX(-50%) scaleX(1.07); }
 }
-/* Линия пола — тонкий неоновый штрих */
+
+
 .carousel-stage::after {
   content: "";
   position: absolute;
@@ -950,8 +1000,9 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   animation: floorBreathe 4s ease-in-out infinite;
 }
 .card-item {
-  /* Флекс-элемент нативного скролл-трека. Ширина фиксирована —
-     поэтому scroll-snap и content-visibility работают корректно. */
+  
+
+
   flex: 0 0 var(--case-w);
   width: var(--case-w);
   height: var(--case-h);
@@ -963,19 +1014,21 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
-  /* PERF: content-visibility: auto ЗДЕСЬ НЕЛЬЗЯ.
-     Он тянет за собой paint containment и клипает всё, что выходит
-     за габариты карточки: выезжающий DVD-диск (+283px вправо) и
-     свечение корпуса (.case-chassis-glow, inset: -16px -22px).
-     Culling за пределами экрана браузер делает сам (это горизонтальный
-     скролл-контейнер), а картинки не грузятся заранее благодаря
-     loading="lazy" + decoding="async". */
-  /* PERF: у карточки animation без fill-mode "both" — иначе, если
-     анимация появления не стартовала (фоновая вкладка, быстрое
-     переключение категории), карточка навсегда остаётся с opacity:0
-     и весь её контент — включая диск — не рисуется.
-     Плюс: анимируем появление только первых карточек — 31 одновременная
-     opacity-анимация это лишний compositing-проход на весь список. */
+  
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
   animation: none;
 }
 .carousel-track > .card-item:nth-child(-n+10) {
@@ -984,20 +1037,23 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 @keyframes cardFadeIn { from { opacity: 0; } to { opacity: 1; } }
 .card-item.is-active { z-index: 30; }
 
-/* Активная карточка и её соседи получают 3D-трансформацию и свой
-   композитинг-слой. Всё остальное — обычный flex-элемент без слоя. */
+
+
+
 .card-item.is-near {
   will-change: transform;
-  /* Открытая коробка раздвигает соседей (см. applyFan в carousel.js).
-     Переход даёт плавное «расхождение полки», а во время прокрутки
-     он выключен — иначе карточки отставали бы от движения трека. */
+  
+
+
+
   transition:
     transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.1),
     opacity 0.3s ease,
     filter 0.3s ease;
 }
-/* Пока открыта активная коробка, соседи приглушены — весь акцент
-   остаётся на развороте. */
+
+
+
 .carousel-track.has-open-case .card-item.is-near:not(.is-active) {
   opacity: 0.15;
   filter: blur(3px);
@@ -1007,7 +1063,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   transition: none;
 }
 
-/* Пустая вкладка */
+
+
 .empty-stage {
   flex: 0 0 100%;
   display: flex;
@@ -1033,7 +1090,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   opacity: 0.5;
 }
 
-/* Полный 360°-спин коробки */
+
+
 .card-item.is-spinning {
   animation: caseSpin360 0.9s cubic-bezier(0.3, 0.9, 0.25, 1) both;
   z-index: 40;
@@ -1043,7 +1101,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   100% { transform: var(--spin-from, none) rotateY(360deg); }
 }
 
-/* Полупрозрачный зелёный кейс Xbox 360 с внутренней текстурой рёбер */
+
+
 .case-chassis-glow {
   position: absolute;
   inset: -16px -22px -18px -18px;
@@ -1061,23 +1120,27 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   pointer-events: none;
   overflow: hidden;
 }
-/* Рёбра жёсткости — вертикальные канавки внутренней текстуры */
+
+
 .case-chassis-glow::before {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    /* глубокий микрорельеф рёбер */
+    
+
     repeating-linear-gradient(90deg,
       rgba(0, 0, 0, 0.42) 0 2px,
       rgba(255, 255, 255, 0.09) 2px 3px,
       rgba(255, 255, 255, 0.02) 3px 4px,
       transparent 4px 13px),
-    /* акриловый скос по верхнему периметру */
+    
+
     linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, transparent 14%);
   opacity: 0.85;
 }
-/* Fresnel-подсветка по краю прозрачного пластика */
+
+
 .case-chassis-glow::after {
   content: "";
   position: absolute;
@@ -1086,17 +1149,19 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   background:
     radial-gradient(ellipse at var(--hx, 50%) var(--hy, 30%), rgba(255, 255, 255, 0.26) 0%, transparent 48%),
     linear-gradient(115deg, rgba(255, 255, 255, 0.16) 0%, transparent 22%);
-  /* PERF: screen-смешивание с подложкой — только у активной карточки
-     (иначе 31 back-buffer по 31 карточке). У неактивных тот же
-     эффект даёт background-blend-mode: он смешивает слои ВНУТРИ
-     элемента и не требует чтения экрана. */
+  
+
+
+
+
   mix-blend-mode: normal;
   background-blend-mode: screen;
   transition: opacity var(--dur-med) ease;
   opacity: 0.9;
 }
-/* «Конфетка»: у активной коробки — хромовый ободок и мягкий неон
-   по кромке прозрачного пластика. */
+
+
+
 .case-chassis-glow::before {
   background:
     repeating-linear-gradient(90deg,
@@ -1119,7 +1184,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   opacity: 1;
 }
 
-/* Акриловый скос по периметру самого бокса */
+
+
 .case-face {
   box-shadow:
     0 20px 45px rgba(0, 0, 0, 0.9),
@@ -1128,7 +1194,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
     inset -14px 0 26px -14px rgba(255, 255, 255, 0.12),
     inset 14px 0 22px -14px rgba(0, 0, 0, 0.5);
 }
-/* Микрорельеф рёбер на торцах бокса */
+
+
 .case-face::after {
   content: "";
   position: absolute;
@@ -1144,9 +1211,10 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   -webkit-mask-image: linear-gradient(90deg, #000 0 7%, transparent 16% 84%, #000 93% 100%);
   mask-image: linear-gradient(90deg, #000 0 7%, transparent 16% 84%, #000 93% 100%);
 }
-/* PERF: box-shadow больше не анимируется (каждый кадр = перерисовка
-   тени у большого элемента). Пульсация «живого» пластика теперь —
-   отдельный слой с тенью, анимируемый только через opacity. */
+
+
+
+
 .card-item.is-active .case-chassis-glow::after {
   animation: chassisPulse 3s ease-in-out infinite;
   will-change: opacity;
@@ -1160,18 +1228,20 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   position: relative;
   width: 100%;
   height: 100%;
-  /* 3D-контекст карточки: без preserve-3d перспектива карточки
-     (.card-item → perspective(1000px)) не доходит до граней, и
-     выступающие по Z кнопки (Y 360°, A ДОСЬЕ) выпадают из
-     2D-клипа обложки — их перестаёт видеть и хит-тест. */
+  
+
+
+
+
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
   backface-visibility: visible;
 }
-/* Пока открыта коробка, «оболочка» карточки гаснет: раскрытый кейс
-   должен быть самостоятельным 3D-объектом, и зелёная сетка корпуса
-   карточки (размером одной ячейки) не должна просвечивать сквозь
-   полупрозрачные створки. */
+
+
+
+
+
 .card-item.flipped .case-chassis-glow {
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -1180,9 +1250,10 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   transition: opacity 0.3s ease;
 }
 
-/* Откинутая крышка — тоже исчезает: сначала (0.25 с) видно, как она
-   раскрывается, потом от карточки не остаётся ничего — на экране
-   остаётся только чистый разворот на затемнённом фоне. */
+
+
+
+
 .card-item.flipped .case-lid-inner {
   opacity: 0;
   pointer-events: none;
@@ -1192,32 +1263,37 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   transition: opacity 0.3s ease;
 }
 
-/* КРЫШКА НА ПЕТЛЕ.
-   Ось вращения — корешок СЛЕВА (transform-origin), поэтому при
-   открытии крышка откидывается влево и ложится плашмя, как
-   створка настоящего бокса Xbox 360. Сам разворот (буклет +
-   лоток с диском) живёт в общем оверлее index.html. */
+
+
+
+
+
+
 .case-flip-rotor {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
-  /* Петля слева: правый край крышки уходит вглубь и налево. */
+  
+
   transform-origin: left center;
   transform: rotateY(0deg);
   transition: transform 0.68s cubic-bezier(0.18, 1.02, 0.3, 1.12);
-  /* PERF: will-change только на открытой карточке (1 слой, а не 40).
-     Сам ход длится < 1с — хватает transition. */
+  
+
+
 }
 .card-item.flipped .case-flip-rotor {
-  /* Крышка раскрывается ВЛЕВО (ось — корешок слева) и ложится
-     плашмя, как створка настоящего бокса Xbox 360. */
+  
+
+
   transform: rotateY(-180deg);
   will-change: transform;
 }
-/* При открытии арт обложки гаснет — и остаётся зелёная изнанка
-   (как прозрачная створка настоящего бокса). Иначе рядом с
-   разворотом висит «призрак» зеркальной обложки. */
+
+
+
+
 .card-item.flipped .case-face.front {
   opacity: 0;
   transition: opacity 0.35s ease 0.12s;
@@ -1226,16 +1302,18 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   transition: opacity 0.3s ease 0.25s;
 }
 
-/* ВНУТРЕННЯЯ СТОРОНА КРЫШКИ («изнанка» коробки).
-   Элемент отражён по X (rotateY(180)), поэтому весь рисунок
-   симметричен — иначе он читался бы наоборот. Корешок нарисован
-   справа: после отражения он окажется слева, у самой петли.
-   backface-visibility:hidden → виден только когда крышка откинута
-   больше чем на 90° (обложка к этому моменту уже отвёрнута). */
+
+
+
+
+
+
+
 .case-lid-inner {
   position: absolute;
   inset: 0;
-  /* Радиус зеркален обложке: 8px слева, 14px справа. */
+  
+
   border-radius: 14px 8px 8px 14px;
   transform: rotateY(180deg) translateZ(0.4px);
   backface-visibility: hidden;
@@ -1243,13 +1321,15 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   overflow: hidden;
   pointer-events: none;
   background:
-    /* рёбра внутренней стенки */
+    
+
     repeating-linear-gradient(90deg,
       rgba(0, 0, 0, 0.30) 0 2px,
       rgba(255, 255, 255, 0.10) 2px 3px,
       transparent 3px 12px),
-    /* ПРОЗРАЧНЫЙ ЛАЙН-ГРИН пластик: сквозь него просвечивает арт
-       обложки с изнанки — как на настоящем боксе Xbox 360. */
+    
+
+
     linear-gradient(180deg,
       rgba(176, 240, 96, 0.46) 0%,
       rgba(120, 200, 56, 0.52) 34%,
@@ -1260,8 +1340,9 @@ body.crt-on #dashboard::before { opacity: 0.75; }
     inset 0 2px 0 rgba(255, 255, 255, 0.28),
     inset 0 -10px 22px rgba(0, 0, 0, 0.4);
 }
-/* «КОРЕШОК» — узкая светящаяся кромка у самой петли.
-   Справа в разметке, т.к. блок отражён по X. */
+
+
+
 .case-lid-inner::after {
   content: "";
   position: absolute;
@@ -1275,9 +1356,10 @@ body.crt-on #dashboard::before { opacity: 0.75; }
     transparent 100%);
   box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.26);
 }
-/* СВОБОДНАЯ КРОМКА (дальний край от петли) — светящаяся фаска.
-   В разметке она слева: блок отражён по X, поэтому элементный
-   левый край оказывается справа от крышки. */
+
+
+
+
 .case-lid-inner::before {
   content: "";
   position: absolute;
@@ -1296,23 +1378,26 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   position: absolute;
   inset: 0;
   border-radius: 8px 14px 14px 8px;
-  /* Обе грани одновременно не видны с одного ракурса — это и даёт
-     эффект настоящего переворота коробки. */
+  
+
+
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  /* ВАЖНО: preserve-3d здесь НЕ нужен и даже вредит.
-     3D-контекст нужен только на .case-card-inner (он вращает обе грани).
-     Если грань сама станет 3D-контекстом, её потомки (обложка с
-     translate3d и кнопки) начнут сортироваться по глубине, а не по
-     z-index — и картинка перекроет кнопку «Y 360°». */
+  
+
+
+
+
+
   transform-style: flat;
   -webkit-transform-style: flat;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  /* PERF: contain отсекает перерисовку/лейаут грани от остального
-     документа. Безопасно: грань и так transform-style: flat + overflow:hidden,
-     то есть уже изолирована. */
+  
+
+
+
   contain: layout style paint;
   background-color: #0d120f;
   background-image:
@@ -1324,8 +1409,9 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 .card-item.is-active .case-face.front,
 .card-item.is-active .case-face.back {
   border-color: var(--theme-accent);
-  /* «Конфетка»: двойной неон по кромке + глубокая тень + цветной
-     ореол вокруг активной коробки. */
+  
+
+
   box-shadow:
     0 0 0 1px var(--theme-border),
     0 0 0 2px rgba(124, 252, 0, 0.28),
@@ -1334,18 +1420,20 @@ body.crt-on #dashboard::before { opacity: 0.75; }
     0 0 58px rgba(124, 252, 0, 0.22);
 }
 
-/* FRONT face — обложка с артом.
-   backface-visibility: visible — обложка видна и С ИЗНАНКИ:
-   сквозь полупрозрачную крышку просвечивает арт, как на настоящем
-   боксе Xbox 360 (у него крышка тоже зелёная, а картинка видна
-   с обратной стороны). Кнопки скрыты отдельным правилом, чтобы
-   не «отзеркалились» вместе с обложкой. */
+
+
+
+
+
+
+
 .case-face.front {
   transform: rotateY(0deg);
   backface-visibility: visible;
   -webkit-backface-visibility: visible;
 }
-/* Кнопки обложки не должны просвечивать зеркально сквозь крышку. */
+
+
 .case-hover-quick-bar,
 .case-flip-fab {
   backface-visibility: hidden;
@@ -1372,9 +1460,10 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   inset: 0;
   background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.75) 50%, transparent 65%);
   transform: translateX(-120%);
-  /* PERF: блик шапки крутится и смешивается ТОЛЬКО у активной карточки —
-     иначе 31 одновременная transform-анимация + 31 blend-поверхность
-     на каждой обложке. */
+  
+
+
+
   mix-blend-mode: normal;
 }
 .card-item.is-active .case-x360-header::after {
@@ -1405,12 +1494,14 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   width: 1em;
   height: 1em;
   border-radius: 50%;
-  /* PERF: filter: drop-shadow убран — он создавал отдельную GPU-поверхность
-     для КАЖДОГО логотипа в каждой из 31 карточки (31×2 = 62 поверхности
-     только ради мягкого свечения). Свечение возвращается активной карточке. */
+  
+
+
+
   pointer-events: none;
 }
-/* Свечение логотипа — только у активной карточки (одна поверхность). */
+
+
 .card-item.is-active .xbox-logo-svg {
   filter: drop-shadow(0 0 4px rgba(82, 176, 67, 0.55));
 }
@@ -1452,17 +1543,19 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* PERF/UX: картинка обложки НЕ участвует в hit-тесте.
-     В 3D-контексте (preserve-3d) Chrome сортирует raycast по
-     DOM-порядку, а не по z-index — и увеличенная на 4.5% обложка
-     перекрывала кнопку «Y 360°»: клик уходил в картинку и открывал
-     досье «КУПИТЬ». Клик по самой обложке и так обрабатывается
-     обработчиком карточки. */
+  
+
+
+
+
+
+
   pointer-events: none;
-  /* PERF: CSS-фильтр на 40 обложках = 40 отдельных фильтрованных
-     поверхностей (видеопамять + перерисовка). Дорогой фильтр
-     остаётся только у активной карточки.
-     will-change убран — он давал слой на каждую карточку. */
+  
+
+
+
+
   transform: translate(var(--tilt-x, 0px), var(--tilt-y, 0px)) scale(1.045);
   transition: transform 0.18s ease-out;
 }
@@ -1476,12 +1569,14 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   filter: contrast(1.12) brightness(1.02) saturate(1.06);
 }
 
-/* ---------- 6. HOLOGRAPHY / SPECULAR / FRESNEL ---------- */
-/* PERF: «screen»-смешивание включается ТОЛЬКО у активной карточки.
-   У всех 31 карточек одновременно оно создавало 62 отдельные
-   GPU-поверхности (back-buffer на каждый blend) — сцена стоила
-   как полноэкранная видео композиция. Визуально результат
-   идентичен: у неактивных карточек блик и так opacity 0. */
+
+
+
+
+
+
+
+
 .card-item.is-active .case-holo-sheen,
 .card-item.is-active .case-specular,
 .card-item.is-active .case-chassis-glow::after {
@@ -1501,10 +1596,11 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   pointer-events: none;
   z-index: 4;
 }
-/* PERF: блик раньше «полз» через background-position — это перерисовка
-   градиента на каждой из 40 карточек в каждом кадре. Теперь это
-   transform-полоса (чистая композиция на GPU) и только у активной
-   карточки — остальные статичны. */
+
+
+
+
+
 .case-sheen::before {
   content: "";
   position: absolute;
@@ -1515,8 +1611,9 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.38) 46%, transparent 62%);
   opacity: 0.9;
 }
-/* PERF: will-change только у активной карточки — иначе 31 блик
-   просили у GPU по собственной текстуре. */
+
+
+
 .card-item.is-active .case-sheen::before {
   will-change: transform;
 }
@@ -1534,10 +1631,11 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   z-index: 6;
   pointer-events: none;
   opacity: 0;
-  /* PERF: mix-blend-mode вынесен на активную карточку. Blend заставляет
-     браузер читать back-buffer и смешивать его — это отдельная
-     GPU-поверхность на КАЖДУЮ карточку (31×2 = 62 поверхности),
-     из-за чего кадр не летает даже при пустом экране. */
+  
+
+
+
+
   mix-blend-mode: normal;
   background:
     radial-gradient(circle at var(--hx, 50%) var(--hy, 42%), rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.13) 16%, transparent 42%),
@@ -1556,7 +1654,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   .card-item.is-active .case-holo-sheen { opacity: 0.5; }
 }
 
-/* Динамический зеркальный блик (Specular / Fresnel) */
+
+
 .case-specular {
   position: absolute;
   inset: 0;
@@ -1596,31 +1695,35 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   white-space: nowrap;
 }
 
-/* Quick action bar */
+
+
 .case-hover-quick-bar {
   position: absolute;
   top: 50%;
   left: 50%;
-  /* PERF/UX: transform ТОЛЬКО 2D. Раньше здесь был translate3d(-50%,-50%,30px)
-     — «подъём по Z к зрителю». Но .case-artwork-wrap имеет
-     overflow:hidden, а значит transform-style:flat: подъём по Z там
-     НЕ работал никогда, а вот 3D-трансформация ломала попадание
-     под курсор (кнопка «Y 360°» переставала ловить клик, и
-     срабатывал клик по карточке → открывалось досье «КУПИТЬ»).
-     Порядок теперь гарантирует z-index: quick-bar 20 < fab 32. */
+  
+
+
+
+
+
+
+
   transform: translate(-50%, -50%);  display: flex;
   flex-direction: column;
   gap: clamp(5px, calc(var(--case-w) * 0.03), 10px);
   z-index: 20;
   opacity: 0;
   pointer-events: none;
-  /* PERF/UX: как и у кнопки Y — без transition у opacity.
-     Chrome не отдаёт события мыши элементам с opacity:0, поэтому
-     пока шёл fade 0 → 1, кнопка «A ДОСЬЕ» не ловила клик. */
+  
+
+
+
   transition: transform 0.25s ease;
 }
-/* Кнопка занимает ВСЮ площадь плашки — клик по любым её полям
-   (включая отступы вокруг самой кнопки) открывает досье. */
+
+
+
 .case-hover-quick-bar .ch-btn {
   width: 100%;
   justify-content: center;
@@ -1651,9 +1754,10 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   align-items: center;
   gap: clamp(4px, calc(var(--case-w) * 0.025), 8px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8), 0 0 12px var(--theme-glow);
-  /* PERF: backdrop-filter удалён — он был внутри 3D-карточки, которая
-     двигается: размытие пересчитывалось на каждом кадре анимации.
-     Плотный rgba-фон даёт тот же вид. */
+  
+
+
+
   transition: background var(--dur-fast) ease, color var(--dur-fast) ease,
     box-shadow var(--dur-fast) ease, transform var(--dur-fast) ease;
   white-space: nowrap;
@@ -1666,22 +1770,25 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 }
 .case-hover-quick-bar .ch-btn { position: relative; z-index: 32; }
 
-/* Единственная кнопка переворота — круглый неоновый бейдж в углу бокса.
-   translateZ поднимает её над обложкой по оси Z (см. .case-face). */
+
+
+
 .case-flip-fab {
   position: absolute;
   z-index: 32;
-  /* Явный flex: содержимое кнопки центрируется ВНУТРИ круга.
-     Иначе точка «Y» уезжает в угол, где круг не кликается. */
+  
+
+
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 1px;
-  /* ЗОНА КЛИКА: 58×58 вместо 46×46.
-     Ореол вокруг кнопки обрезается overflow:hidden у .case-artwork-wrap,
-     поэтому расширить зону можно только самой кнопкой — так клик попадает
-     в неё по всей видимой области, а не пролетает в обложку. */
+  
+
+
+
+
   width: 58px;
   height: 58px;
   min-width: 58px;
@@ -1701,12 +1808,13 @@ body.crt-on #dashboard::before { opacity: 0.75; }
     inset 0 0 14px rgba(124, 252, 0, 0.18);
   opacity: 0;
   pointer-events: none;
-  /* ВАЖНО: у opacity НЕТ transition. Chrome не отдаёт события мыши
-     элементам с opacity:0 — пока шёл переход 0 → .94, кнопка «Y 360°»
-     физически не ловила клик (и он уходил в обложку → «КУПИТЬ»).
-     Появление теперь мгновенное по прозрачности и плавное по
-     трансформации (scale + подъём) — то есть кнопка кликабельна
-     с первого кадра. */
+  
+
+
+
+
+
+
   transform: translate(0, 6px) scale(0.86);
   transition: transform 0.28s var(--ease-pop),
     box-shadow 0.25s ease, border-color 0.25s ease;
@@ -1716,11 +1824,12 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   pointer-events: auto;
   transform: translate(0, 0) scale(1);
 }
-/* «Конфетка»: живой ореол вокруг кнопки переворота.
-   Анимации только opacity/transform у АКТИВНОЙ карточки —
-   ни одной анимации box-shadow (это перерисовка каждый кадр).
-   Ореол обрезается overflow:hidden обложки, поэтому кликабельность
-   расширена самой кнопкой (58×58). */
+
+
+
+
+
+
 .case-flip-fab::before {
   content: "";
   position: absolute;
@@ -1740,7 +1849,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   0%, 100% { opacity: calc(0.3 + var(--p, 0) * 0.32); transform: scale(0.9); }
   50% { opacity: calc(0.9 + var(--p, 0) * 0.35); transform: scale(1.12); }
 }
-/* Мягкое неоновое свечение при наведении */
+
+
 .card-item.is-active:hover .case-flip-fab {
   opacity: 1;
   border-color: #d6ffce;
@@ -1767,7 +1877,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   opacity: 0.95;
 }
 
-/* Stickers & badges */
+
+
 .market-sticker {
   position: absolute;
   padding: 3px 7px;
@@ -1830,7 +1941,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   letter-spacing: 0.5px;
 }
 
-/* Footer details */
+
+
 .case-footer-details {
   background: #0c120e;
   padding: clamp(6px, calc(var(--case-w) * 0.034), 11px) clamp(7px, calc(var(--case-w) * 0.045), 14px);
@@ -1870,16 +1982,18 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 }
 .case-progress-fill {
   height: 100%;
-  /* PERF: width -> transform: scaleX(). Переход width вызывал layout
-     на каждой карточке при каждом обновлении прогресса. */
+  
+
+
   width: 100%;
   transform-origin: left center;
   transform: scaleX(var(--p, 0));
   background: linear-gradient(90deg, var(--theme-accent), var(--theme-toxic));
   box-shadow: 0 0 8px var(--theme-glow);
   transition: transform 0.5s ease;
-  /* PERF: will-change убран — он стоял на КАЖДОЙ из 31 карточки
-     (31 лишняя GPU-поверхность ради 4-пиксельной полоски). */
+  
+
+
 }
 .case-progress-meta {
   display: flex;
@@ -1894,20 +2008,22 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 }
 .case-progress-meta .pct { color: var(--theme-toxic); }
 
-/* ============================================================
-   ОТКРЫТЫЙ БОКС — ДВУСТВОРЧАТЫЙ РАЗВОРОТ (Open Book)
-   ---------------------------------------------------------
-   Коробка раскрывается К НАМ. Конструкция собрана как обычный
-   DOM без зеркальных трансформаций, поэтому мануал и надписи
-   читаются как есть:
-     • ЛЕВАЯ СТВОРКА — зелёный пластиковый каркас с зажимами и
-       бумажная страница мануала (весь текст + управление);
-     • КОРЕШОК — тонкий сгиб между створками;
-     • ПРАВАЯ СТВОРКА — зелёный лоток с круглым углублением,
-       шпинделем и крутящимся диском.
-   ============================================================ */
 
-/* Затемнение вокруг разворота. Клик по нему закрывает коробку. */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 .xbox-case-backdrop {
   position: fixed;
   inset: 0;
@@ -1927,8 +2043,9 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 }
 
 .xbox-case-open-wrapper {
-  /* Модальный оверлей по центру ВСЕГО экрана: разворот не привязан
-     к ячейке карусели и не смещается вместе с ней. */
+  
+
+
   position: fixed;
   top: 50%;
   left: 50%;
@@ -1949,12 +2066,14 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  /* Небольшая задержка: сначала видна, как крышка откидывается
-     влево, и только потом материализуется сам разворот. */
+  
+
+
   transition: opacity 0.32s ease 0.22s, visibility 0s;
 }
 .xbox-case-opened {
-  /* Сам разворот: две равные створки и корешок ровно посередине. */
+  
+
   position: relative;
   display: flex;
   flex-direction: row;
@@ -1969,7 +2088,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   border-radius: 12px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
   overflow: visible;
-  /* Лёгкий наклон «лежит на столе» — объём без искажения текста. */
+  
+
   transform: perspective(1600px) rotateX(5deg) scale(0.93);
   transform-origin: 50% 50%;
   transition: transform 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.1);
@@ -1978,8 +2098,9 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   transform: perspective(1600px) rotateX(5deg) scale(1);
 }
 
-/* Створки — строго по 50% ширины разворота, чтобы корешок был
-   ровно посередине. */
+
+
+
 .case-left,
 .case-right {
   flex: 1 1 50%;
@@ -1992,7 +2113,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   padding: 20px;
   box-sizing: border-box;
 }
-/* ЛЕВАЯ СТВОРКА — пластиковый каркас под буклет. */
+
+
 .case-left {
   border-radius: 10px 0 0 10px;
   background:
@@ -2000,7 +2122,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
     radial-gradient(ellipse at 26% 10%, rgba(196, 255, 130, 0.18), transparent 58%),
     linear-gradient(180deg, rgba(58, 140, 58, 0.55) 0%, rgba(16, 52, 20, 0.78) 100%);
 }
-/* ПРАВАЯ СТВОРКА — лоток: зелёный пластик с круглой выемкой. */
+
+
 .case-right {
   border-radius: 0 10px 10px 0;
   background:
@@ -2024,7 +2147,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.8);
 }
 
-/* ---------- БУКЛЕТ / МАНУАЛ ---------- */
+
+
 .booklet-clips {
   position: absolute;
   top: 6px;
@@ -2158,14 +2282,16 @@ body.crt-on #dashboard::before { opacity: 0.75; }
 .btn-close-case:hover { filter: brightness(1.2); }
 .btn-close-case:active { transform: translateY(1px); }
 
-/* ---------- ЛОТОК И ДИСК ---------- */
+
+
 .disc-tray {
-  /* PERF/ВАЖНО: --disc-size нужен всем надписям и логотипу диска
-     (calc(var(--disc-size) * …)). Задаём его ЗДЕСЬ, абсолютной
-     длиной: проценты внутри calc() разрешались бы по-разному
-     в разных элементах (у шрифта — по своей ширине, у логотипа —
-     по своей), и надписи «рассыпались» бы по диску.
-     Размер самого диска — min(это значение, 78% от лотка). */
+  
+
+
+
+
+
+
   --disc-size: clamp(104px, 21vw, 250px);
   width: 100%;
   height: 100%;
@@ -2173,12 +2299,14 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   align-items: center;
   justify-content: center;
   position: relative;
-  /* Диск вращается и выступает за габариты — резать его нельзя. */
+  
+
   overflow: visible;
 }
-/* ШПИНДЕЛЬ: пластиковый круг-посадочное место под диском.
-   Диск лежит поверх (z-index 2), а сам шпиндель виден сквозь
-   прозрачное отверстие в центре диска. */
+
+
+
+
 .disc-tray::before {
   content: "";
   position: absolute;
@@ -2193,7 +2321,8 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8), 0 0 10px rgba(0, 0, 0, 0.5);
   z-index: 1;
 }
-/* ЛИТАЯ ГНЕЗДОВАЯ БАХРОМА вокруг диска (как в настоящем боксе). */
+
+
 .tray-hub {
   position: absolute;
   left: 50%;
@@ -2221,29 +2350,31 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   z-index: 2;
 }
 
-/* ============================================================
-   XBOX 360 SYSTEM DASHBOARD · DVD DISC
-   ---------------------------------------------------------
-   Точная копия DVD Xbox 360 (референс: Minecraft Xbox 360 Edition):
-     0. Серебряное отражающее поле диска
-     1. ПРЯМОУГОЛЬНАЯ шелкография с артом (углы срезаны кругом)
-     2. Белая шапка: логотип XBOX 360 слева, зелёный мотив справа
-     3. Технические лейблы: рейтинг/стандарты слева, издатель справа
-     4. Круговой юридический копирайт по внешней кромке
-     5. Дифракционная радуга света по дорожкам
-     6. Прозрачная втулка с голографической лентой «XBOX 360»
-     7. Внешняя прозрачная фаска поликарбоната
-   ============================================================ */
 
-/* ---------- БАЗА ДИСКА ----------
-   Диск живёт в лотке раскрытой коробки (.disc-tray) и вращается
-   на своём посадочном месте. Никаких translate/rotate3d: только
-   равномерное вращение, поэтому печать никогда не зеркалится.
 
-   PERF: анимации диска идут ТОЛЬКО в раскрытой коробке. Закрытый
-   оверлей скрыт, но CSS-анимация продолжала бы тикать — это
-   постоянная перерисовка впустую (диск с textPath и голограммой —
-   не самый дешёвый элемент). */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 .rotating-disc {
   position: relative;
   z-index: 2;
@@ -2258,17 +2389,20 @@ body.crt-on #dashboard::before { opacity: 0.75; }
   border: 1px solid rgba(255, 255, 255, 0.35);
   animation: discSpin 8s linear infinite;
   animation-play-state: paused;
-  /* PERF: will-change только у крутящегося диска (1 слой). */
+  
+
   will-change: transform;
-  /* Настоящее отверстие в центре диска: сквозь него виден
-     пластиковый шпиндель лотка (см. .disc-tray::before). */
+  
+
+
   -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 0 13.5%, #000 14%);
   mask-image: radial-gradient(circle at 50% 50%, transparent 0 13.5%, #000 14%);
 }
 .xbox-case-open-wrapper.is-open .rotating-disc {
   animation-play-state: running;
 }
-/* Вкладка скрыта — диск не крутится. */
+
+
 html.tab-hidden .rotating-disc {
   animation-play-state: paused;
 }
@@ -2277,25 +2411,30 @@ html.tab-hidden .rotating-disc {
   to { transform: rotate(360deg); }
 }
 
-/* ---------- 0. СЕРЕБРЯНОЕ ОТРАЖАЮЩЕЕ ПОЛЕ ---------- */
+
+
 .disc-surface {
   position: absolute;
   inset: 0;
   border-radius: 50%;
   background:
-    /* холодный серебристый градиент */
+    
+
     radial-gradient(circle at 34% 24%, #ffffff 0%, #e9efec 22%, #c3ccc9 52%, #97a39f 78%, #6c7774 100%),
-    /* диагональный блик по поликарбонату */
+    
+
     linear-gradient(118deg, rgba(255, 255, 255, 0.85) 0%, transparent 28%, transparent 66%, rgba(255, 255, 255, 0.5) 88%, transparent 100%);
   z-index: 0;
 }
 
-/* ---------- 1. ПРЯМОУГОЛЬНАЯ ШЕЛКОГРАФИЯ (PICTURE DISC) ---------- */
-/* Круглая маска ВРАЩАЕТСЯ вместе с печатью (она внутри .rotating-disc) —
-   поэтому рисунок всегда остаётся целиком в круге, при любом угле
-   поворота диска. Если убрать маску, печать начнёт «уезжать» за
-   неподвижный круг диска и при повороте пропадать совсем.
-   Тёмная подложка — чтобы фотография читалась на любом фоне. */
+
+
+
+
+
+
+
+
 .disc-print-clip {
   position: absolute;
   inset: 0;
@@ -2304,7 +2443,8 @@ html.tab-hidden .rotating-disc {
   background: #0c1114;
   z-index: 1;
 }
-/* Виньетка поверх печати — фото предмета читается на любом сюжете. */
+
+
 .disc-print-clip::after {
   content: "";
   position: absolute;
@@ -2319,25 +2459,29 @@ html.tab-hidden .rotating-disc {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* Рисунок лежит В ПЛОСКОСТИ ДИСКА, а не вместе с его 3D-наклоном:
-     ротор крутит диск через rotate3d(1, 0.45, 0, wobble) — без этой
-     компенсации печать «уезжает» из круга. Вращение (--disc-spin)
-     сохраняется: рисунок крутится вместе с диском, как на
-     настоящем picture disc. */
+  
+
+
+
+
+
   transform: rotate3d(1, 0.45, 0, calc(-1 * var(--disc-wobble, 0deg)));
   transform-origin: center;
 }
-/* Слой «дорожек» поверх печати — концентрические кольца данных. */
+
+
 .disc-artwork {
   position: absolute;
   left: 9%;
   right: 9%;
   top: 30%;
   bottom: 5%;
-  /* PERF: фильтр убран — он создавал отдельную поверхность на каждый
-     диск (31 штука) и ничего не давал на фото предмета. */
+  
+
+
 }
-/* Концентрические дорожки поверх зоны данных */
+
+
 .disc-artwork::after {
   content: "";
   position: absolute;
@@ -2353,16 +2497,18 @@ html.tab-hidden .rotating-disc {
   pointer-events: none;
 }
 
-/* ---------- 2. БЕЛАЯ ШАПКА + ЗЕЛЁНЫЙ МОТИВ XBOX ---------- */
+
+
 .disc-xbox-header {
   position: absolute;
   left: 0;
   right: 0;
   top: 0;
   height: 32%;
-  /* Нижний край — плавная дуга по форме диска.
-     Именно clip-path, а не border-radius: скругление радиусом 50%
-     «схлопывало» полосу до нуля по краям и обрезало логотип. */
+  
+
+
+
   clip-path: polygon(
     0 0, 100% 0,
     100% 52%, 90% 72%, 74% 87%, 50% 96%,
@@ -2370,18 +2516,21 @@ html.tab-hidden .rotating-disc {
   );
   background: linear-gradient(180deg, #ffffff 0%, #fdfffe 62%, #eef3f0 100%);
   z-index: 5;
-  /* Тень отделяет белую полосу от зоны данных */
-  /* PERF: тень шапки диска — только у развёрнутой карточки.
-     filter:drop-shadow на элементе = отдельная GPU-поверхность; стояло
-     на всех 31 карточках сразу, хотя диск виден только при развороте. */
+  
+
+  
+
+
+
   filter: none;
 }
 .card-item.flipped .disc-xbox-header {
   filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.38));
 }
 
-/* Зелёный мотив Xbox справа — широкая полоса с тёмно-зелёными
-   диагональными полосами, как на фирменной графике Xbox 360. */
+
+
+
 .disc-header-green-swoosh {
   position: absolute;
   right: -3%;
@@ -2397,8 +2546,9 @@ html.tab-hidden .rotating-disc {
   border-left: 1px solid rgba(255, 255, 255, 0.45);
 }
 
-/* Логотип XBOX 360 — в левой части белой зоны, ниже кромки с копирайтом.
-   Смещён чуть вправо, чтобы не уходил под перекрывающий бокс коробки. */
+
+
+
 .disc-header-brand {
   position: absolute;
   left: 21%;
@@ -2417,15 +2567,17 @@ html.tab-hidden .rotating-disc {
 .disc-brand-logo {
   width: calc(var(--disc-size) * 0.108);
   height: calc(var(--disc-size) * 0.108);
-  /* PERF: drop-shadow на SVG = отдельная GPU-поверхность. Включаем
-     только у развёрнутой карточки (диск иначе не виден). */
+  
+
+
   filter: none;
 }
 .card-item.flipped .disc-brand-logo {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
 }
 
-/* ---------- 3. ТЕХНИЧЕСКИЕ ЛЕЙБЛЫ ---------- */
+
+
 .disc-meta-left {
   position: absolute;
   left: 3%;
@@ -2523,7 +2675,8 @@ html.tab-hidden .rotating-disc {
   text-overflow: ellipsis;
 }
 
-/* ---------- 4. КРУГОВОЙ ЮРИДИЧЕСКИЙ КОПИРАЙТ ПО КРОМКЕ ---------- */
+
+
 .disc-edge-legal {
   position: absolute;
   inset: 0;
@@ -2540,7 +2693,8 @@ html.tab-hidden .rotating-disc {
   fill: rgba(40, 52, 45, 0.62);
 }
 
-/* ---------- 5. ДИФРАКЦИОННАЯ РАДУГА ПО ДОРОЖКАМ ---------- */
+
+
 .disc-holo-shine {
   position: absolute;
   inset: 0;
@@ -2558,9 +2712,11 @@ html.tab-hidden .rotating-disc {
   );
   mix-blend-mode: normal;
   opacity: 0.5;
-  /* PERF: бесконечная анимация была на КАЖДОМ диске (40 слоёв).
-     Оставляем только активному диску. */
-  /* Белая шапка и зона этикетки остаются матовыми */
+  
+
+
+  
+
   -webkit-mask-image: linear-gradient(180deg, transparent 0 28%, #000 46%);
   mask-image: linear-gradient(180deg, transparent 0 28%, #000 46%);
 }
@@ -2571,7 +2727,8 @@ html.tab-hidden .rotating-disc {
 @keyframes discHoloSpin {
   to { transform: rotate(360deg); }
 }
-/* ---------- 6. ПРОЗРАЧНАЯ ВТУЛКА + ГОЛОГРАММА ---------- */
+
+
 .disc-center-hub {
   position: absolute;
   top: 50%;
@@ -2585,7 +2742,8 @@ html.tab-hidden .rotating-disc {
   justify-content: center;
 }
 
-/* Голографическая лента безопасности — кольцо с повторяющимся «XBOX 360» */
+
+
 .disc-holo-ring-svg {
   position: absolute;
   inset: -26%;
@@ -2593,12 +2751,14 @@ html.tab-hidden .rotating-disc {
   height: 152%;
   overflow: visible;
 }
-/* PERF: вращение кольца — только у активного диска */
+
+
 .card-item.flipped .disc-holo-ring-svg {
   animation: holoRotate 9s linear infinite;
   will-change: transform;
 }
-/* PERF: голографические кольца крутятся только в раскрытой коробке */
+
+
 .disc-holo-ring-svg,
 .disc-holo-shine {
   animation-play-state: paused;
@@ -2620,8 +2780,9 @@ html.tab-hidden .disc-holo-shine {
 }
 .holo-band {
   opacity: 0.75;
-  /* PERF: drop-shadow на SVG-элементе = отдельная GPU-поверхность.
-     Было на всех 31 карточках, хотя диск виден только при развороте. */
+  
+
+
   filter: none;
 }
 .card-item.flipped .holo-band {
@@ -2639,15 +2800,17 @@ html.tab-hidden .disc-holo-shine {
   text-shadow: 0 0 3px rgba(140, 90, 255, 0.9);
 }
 
-/* Посадочное отверстие шпинделя */
+
+
 .disc-spindle-hole {
   position: relative;
   z-index: 12;
   width: 34%;
   height: 34%;
   border-radius: 50%;
-  /* Центр диска — настоящее отверстие: сквозь него видно
-     пластиковый шпиндель лотка. */
+  
+
+
   background: transparent;
   border: 3px solid rgba(255, 255, 255, 0.62);
   box-shadow:
@@ -2655,7 +2818,8 @@ html.tab-hidden .disc-holo-shine {
     0 0 6px rgba(255, 255, 255, 0.35);
 }
 
-/* ---------- 7. ВНЕШНЯЯ ПРОЗРАЧНАЯ ФАСКА ---------- */
+
+
 .disc-outer-rim {
   position: absolute;
   inset: 0;
@@ -2668,17 +2832,19 @@ html.tab-hidden .disc-holo-shine {
   z-index: 11;
   pointer-events: none;
 }
-/* ---------- 8. AURORA RIBBON + CRT OVERLAY ---------- */
+
+
 .aurora-ribbon {
   position: absolute;
   inset: 0;
   z-index: var(--z-bg);
   overflow: hidden;
   pointer-events: none;
-  /* «Дыхание» в такт музыке. Переменная --p ставится НА ЭЛЕМЕНТ
-     (js/player.js → AMBIENT PULSE), а не на :root: локальная
-     переменная инвалидирует только своё поддерево, а не весь
-     документ (reflow после записи в :root стоит ~25 мс). */
+  
+
+
+
+
   opacity: calc(0.55 + var(--p, 0) * 0.42);
   mix-blend-mode: screen;
   pointer-events: none !important;
@@ -2690,9 +2856,10 @@ html.tab-hidden .disc-holo-shine {
   left: -8vw;
   top: 22vh;
   border-radius: 52% 48% 60% 40% / 48% 56% 44% 52%;
-  /* PERF: filter: blur(46px) + анимация transform = пересчёт размытия
-     на каждом кадре (плюс анимировавшийся border-radius = paint).
-     Мягкость задаёт сам радиальный градиент, а скругление статично. */
+  
+
+
+
   background: radial-gradient(ellipse at 46% 48%, var(--theme-ribbon) 0%, rgba(0, 255, 65, 0.06) 42%, transparent 72%);
   animation: auroraFlow 17s ease-in-out infinite alternate;
   will-change: transform;
@@ -2733,10 +2900,12 @@ html.tab-hidden .disc-holo-shine {
     repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.24) 0 1px, transparent 1px 3px);
   mix-blend-mode: multiply;
 }
-/* CRT-луч пульсирует в такт музыке — как настоящая ЭЛТ. */
+
+
 body.crt-on #crtOverlay { opacity: calc(0.4 + var(--p, 0) * 0.32); }
 
-/* Бочкообразная дисторсия + хроматическая аберрация по краям */
+
+
 #crtOverlay::before {
   content: "";
   position: absolute;
@@ -2745,7 +2914,8 @@ body.crt-on #crtOverlay { opacity: calc(0.4 + var(--p, 0) * 0.32); }
     radial-gradient(ellipse 96% 96% at 50% 50%, transparent 52%, rgba(0, 0, 0, 0.34) 82%, rgba(0, 0, 0, 0.8) 100%);
   mix-blend-mode: multiply;
 }
-/* Полоса «обратного хода» кадрового импульса */
+
+
 #crtOverlay::after {
   content: "";
   position: absolute;
@@ -2761,7 +2931,8 @@ body.crt-on #crtOverlay { opacity: calc(0.4 + var(--p, 0) * 0.32); }
   to { transform: translate3d(0, 560%, 0); }
 }
 
-/* ---------- 9. BOTTOM CONTROLLER BAR ---------- */
+
+
 .bottom-controller-bar {
   position: relative;
   z-index: 900 !important;

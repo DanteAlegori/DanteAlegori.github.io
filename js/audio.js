@@ -1,16 +1,3 @@
-/* ============================================================
-   XBOX 360 SYSTEM DASHBOARD · AUDIO ENGINE
-   ---------------------------------------------------------
-   Web Audio API:
-     • Nexus Orb startup (суб-бас, колокольчики, шум, ревер)
-     • Шум вентилятора консоли (кулер + привод)
-     • Щелчок пластика (переворот коробки)
-     • Свист Blades (переключение лезвий)
-     • Achievement Unlocked
-   Безопасно работает при Autoplay Policy: AudioContext создаётся
-   только после первого жеста пользователя, ошибки не попадают
-   в консоль браузера.
-   ============================================================ */
 (function (global) {
   'use strict';
 
@@ -35,20 +22,7 @@
     lastPlayAt: 0
   };
 
-  /* ---------------------------------------------------------
-     CONTEXT LIFECYCLE
-     --------------------------------------------------------- */
 
-  /**
-   * Создаёт AudioContext. Никогда не бросает исключений наружу —
-   * любые проблемы (отсутствие API, политика автозапуска)
-   * тихо деградируют в «звук выключен».
-   *
-   * ВАЖНО: вызывается ТОЛЬКО из unlock(), то есть из обработчика
-   * пользовательского жеста. Создание контекста без жеста —
-   * ровно та причина, по которой Chrome писал
-   * «The AudioContext was not allowed to start…».
-   */
   function createContext() {
     if (audio.ctx) return audio.ctx;
 
@@ -66,23 +40,19 @@
       return null;
     }
 
-    // Мастер-шина: всё звуковое проходит через неё.
     audio.master = audio.ctx.createGain();
     audio.master.gain.value = 0.9;
     audio.master.connect(audio.ctx.destination);
 
-    // Шина эффектов (SFX) — ею управляет тумблер SFX.
     audio.sfxBus = audio.ctx.createGain();
     audio.sfxBus.gain.value = audio.sfxEnabled ? 1 : 0;
     audio.sfxBus.connect(audio.master);
 
-    // Шина музыки — ею управляет слайдер громкости.
     audio.musicBus = audio.ctx.createGain();
     const savedVol = X360.prefs ? Number(X360.prefs.musicVolume) : 0.55;
     audio.musicBus.gain.value = Number.isFinite(savedVol) ? Math.min(1, Math.max(0, savedVol)) : 0.55;
     audio.musicBus.connect(audio.master);
 
-    // Анализатор для визуализатора.
     audio.analyser = audio.ctx.createAnalyser();
     audio.analyser.fftSize = 64;
     audio.analyser.smoothingTimeConstant = 0.75;
@@ -91,29 +61,10 @@
     return audio.ctx;
   }
 
-  /* ---------------------------------------------------------
-     ФОНОВАЯ МУЗЫКА — НАПРЯМУЮ В ДИНАМИКИ (без Web Audio)
-     ---------------------------------------------------------
-     Музыка принципиально НЕ проходит через Web Audio API.
-     createMediaElementSource() у кросс-доменного файла без
-     Access-Control-Allow-Origin (файлы GitHub Release:
-     github.com -> 302 -> objects.githubusercontent.com) НЕ
-     бросает исключение, а МОЛЧА заглушает поток: таймер идёт,
-     статус «ИГРАЕТ», а в колонках — тишина. Обойти это нельзя,
-     единственный путь — не брать музыку в граф.
-
-     Поэтому обычный <audio> играет сам, прямо в систему:
-       • element.muted  = false
-       • element.volume = значение ползунка громкости
-       • crossOrigin    НЕ выставляется (иначе запрос уходит
-         в CORS-режиме, GitHub не отдаёт ACAO — снова тишина)
-     Web Audio остаётся только для SFX: щелчки, свист лезвий,
-     гул вентилятора, звук Orb.
-     --------------------------------------------------------- */
 
   const music = {
-    el: null,       // нативный <audio> с фоновой музыкой
-    phase: 0        // фаза псевдоспектра (для визуализатора)
+    el: null,
+    phase: 0
   };
 
   function clamp01(value) {
@@ -122,34 +73,24 @@
     return n < 0 ? 0 : (n > 1 ? 1 : n);
   }
 
-  /** Сохранённая громкость музыки (из настроек дашборда). */
   function savedMusicVolume() {
     const v = X360.prefs ? Number(X360.prefs.musicVolume) : 0.55;
     return isFinite(v) ? clamp01(v) : 0.55;
   }
 
-  /**
-   * Регистрирует нативный <audio> как источник фоновой музыки.
-   * Вызывается плеером сразу после создания элемента.
-   * Гарантирует: muted = false, громкость из настроек,
-   * отсутствие атрибута crossorigin.
-   */
   function attachMusicElement(el) {
     if (!el) return null;
     music.el = el;
     try {
-      // CORS-режим выключен: без атрибута crossorigin обычный
-      // <audio> спокойно играет кросс-доменный файл как есть.
       if (el.hasAttribute && el.hasAttribute('crossorigin')) {
         el.removeAttribute('crossorigin');
       }
       el.muted = false;
       el.volume = savedMusicVolume();
-    } catch (err) { /* ignore */ }
+    } catch (err) {   }
     return el;
   }
 
-  /** Громкость музыки: и нативный элемент, и шина синтезатора. */
   function setMusicVolume(value) {
     const v = clamp01(value);
     if (X360.prefs) X360.prefs.musicVolume = v;
@@ -157,30 +98,21 @@
       try {
         music.el.muted = false;
         music.el.volume = v;
-      } catch (err) { /* ignore */ }
+      } catch (err) {   }
     }
-    // Синтезатор-заглушка (когда плейлист пуст) идёт через musicBus.
     if (audio.ctx && audio.musicBus) {
       try {
         audio.musicBus.gain.setTargetAtTime(v, audio.ctx.currentTime, 0.04);
-      } catch (err) { /* ignore */ }
+      } catch (err) {   }
     }
     return v;
   }
 
-  /** Идёт ли музыка прямо сейчас (элемент не на паузе и не закончен). */
   function isMusicPlaying() {
     const el = music.el;
     return !!(el && !el.paused && !el.ended);
   }
 
-  /**
-   * Псевдоспектр 0..1 для визуализатора.
-   * Настоящий анализатор невозможен: музыка идёт мимо Web Audio.
-   * Рисуем правдоподобные «прыгающие» полоски — сумма синусов
-   * плюс шум, темп — примерно как у трека. На паузе отдаём нули:
-   * полоски замирают на минимуме.
-   */
   function getMusicSpectrum(count, out) {
     const n = Math.max(1, count | 0);
     const arr = (out && out.length >= n) ? out : new Array(n);
@@ -199,11 +131,6 @@
     return arr;
   }
 
-  /**
-   * Отложенные эффекты: звук, запрошенный ДО жеста, не теряется —
-   * он проигрывается сразу после разблокировки контекста.
-   * Одинаковые ключи перезаписываются (не наслаиваются).
-   */
   function queuePending(key, fn) {
     for (let i = 0; i < audio.pendingSfx.length; i++) {
       if (audio.pendingSfx[i].key === key) {
@@ -223,7 +150,7 @@
     const list = audio.pendingSfx.slice();
     audio.pendingSfx.length = 0;
     list.forEach((entry) => {
-      try { entry.fn.call(null, ctx); } catch (err) { /* ignore */ }
+      try { entry.fn.call(null, ctx); } catch (err) {   }
     });
   }
 
@@ -232,16 +159,11 @@
     const cbs = audio.readyCbs.slice();
     audio.readyCbs.length = 0;
     cbs.forEach((cb) => {
-      try { cb(); } catch (err) { /* ignore */ }
+      try { cb(); } catch (err) {   }
     });
   }
 
-  /**
-   * Возобновляет контекст. Вызывается на первом пользовательском
-   * взаимодействии — безопасно, если контекст ещё не создан.
-   */
   function unlock() {
-    // Уже разблокировано — просто доигрываем отложенное.
     if (audio.ctx && audio.ctx.state === 'running') {
       audio.unlocked = true;
       flushPending();
@@ -249,10 +171,8 @@
       return true;
     }
 
-    // Контекст создаётся только здесь — из жеста пользователя.
     const ctx = createContext();
     if (!ctx) {
-      // Не получилось — пробуем снова при следующем жесте.
       armUnlockListeners();
       return false;
     }
@@ -272,7 +192,6 @@
         const p = ctx.resume();
         if (p && typeof p.then === 'function') {
           p.then(onRunning).catch(() => {
-            // Политика всё ещё не пускает — пробуем при следующем жесте.
             audio.unlocked = ctx.state === 'running';
             armUnlockListeners();
           });
@@ -280,7 +199,6 @@
           onRunning();
         }
       } catch (err) {
-        /* resume() бросает только в экзотических случаях */
         armUnlockListeners();
       }
     } else {
@@ -293,24 +211,13 @@
     return !!(audio.ctx && audio.ctx.state === 'running');
   }
 
-  /**
-   * Безопасный запуск: если звук запрещён политикой браузера —
-   * тихо выходим, без ошибок в консоли.
-   *
-   * Ключевое отличие от старой версии: guard() НИКОГДА не создаёт
-   * AudioContext. Если контекста ещё нет — эффект откладывается
-   * до первого жеста (queuePending). Это убирает предупреждение
-   * «The AudioContext was not allowed to start…».
-   */
   function guard(key, fn) {
     return function () {
-      // Аргументы пробрасываем внутрь эффекта (например, open=true/false).
       const args = Array.prototype.slice.call(arguments);
       try {
         if (!audio.sfxEnabled) return;
         const ctx = audio.ctx;
         if (!ctx) {
-          // Жеста ещё не было — откладываем эффект.
           queuePending(key || 'sfx', fn);
           return;
         }
@@ -318,32 +225,22 @@
           const p = ctx.resume();
           if (p && typeof p.then === 'function') {
             p.then(() => {
-              try { fn.apply(null, [ctx].concat(args)); } catch (err) { /* ignore */ }
-            }).catch(() => { /* ignore */ });
+              try { fn.apply(null, [ctx].concat(args)); } catch (err) {   }
+            }).catch(() => {   });
           }
           return;
         }
         fn.apply(null, [ctx].concat(args));
       } catch (err) {
-        /* Никогда не выбрасываем ошибки аудио наружу */
       }
     };
   }
 
-  /* ---------------------------------------------------------
-     ЗВУК ПРИВОДА DVD (лоток выезжает / заезжает)
-     --------------------------------------------------------- */
 
-  /**
-   * Механика реального Xbox 360: серво привода, шуршание дорожки
-   * и глухой щелчок защёлкивания.
-   * @param {boolean} open — true: лоток выезжает, false: заезжает.
-   */
   const playDrive = guard('drive', function (ctx, open) {
     const t = ctx.currentTime;
-    const out = open ? 1 : 0.55;   // задвигание — короче и тише
+    const out = open ? 1 : 0.55;
 
-    // 1) Серво: пила осаживается вниз.
     const servo = ctx.createOscillator();
     const servoGain = ctx.createGain();
     const servoLp = ctx.createBiquadFilter();
@@ -361,7 +258,6 @@
     servo.start(t);
     servo.stop(t + 0.55);
 
-    // 2) Шуршание дорожки лотка.
     const len = Math.floor(ctx.sampleRate * 0.65);
     const buf = ctx.createBuffer(1, len, ctx.sampleRate);
     const d = buf.getChannelData(0);
@@ -381,7 +277,6 @@
     noise.start(t);
     noise.stop(t + 0.6);
 
-    // 3) Защёлкивание: глухой «тук» в конце хода.
     const at = t + (open ? 0.46 : 0.3);
     const click = ctx.createOscillator();
     const clickGain = ctx.createGain();
@@ -397,11 +292,7 @@
     click.stop(at + 0.18);
   });
 
-  /* ---------------------------------------------------------
-     ЗВУК ЗАПУСКА XBOX 360
-     --------------------------------------------------------- */
 
-  /** Разгон винчестера при включении консоли. */
   const playSpinUp = guard('spinup', function (ctx) {
     const t = ctx.currentTime;
     const len = Math.floor(ctx.sampleRate * 1.5);
@@ -426,7 +317,6 @@
     noise.start(t);
     noise.stop(t + 1.5);
 
-    // Низкий «гул» раскачивающегося привода.
     const sub = ctx.createOscillator();
     const sg = ctx.createGain();
     sub.type = 'sine';
@@ -441,11 +331,9 @@
     sub.stop(t + 1.7);
   });
 
-  /** Звонок Xbox 360: стеклянное арпеджио вверх + суб-свип. */
   const playStartupChime = guard('chime', function (ctx) {
     const t = ctx.currentTime;
 
-    // Суб-свип «включения».
     const sub = ctx.createOscillator();
     const subGain = ctx.createGain();
     sub.type = 'sine';
@@ -459,7 +347,6 @@
     sub.start(t);
     sub.stop(t + 1.8);
 
-    // Стеклянное арпеджио вверх — четыре ноты.
     const notes = [523.25, 659.25, 783.99, 1046.5];
     notes.forEach((freq, i) => {
       const at = t + 0.16 + i * 0.15;
@@ -494,11 +381,7 @@
     });
   });
 
-  /* ---------------------------------------------------------
-     NEXUS ORB STARTUP SOUND
-     --------------------------------------------------------- */
 
-  /** Импульсный отклик «зала» для кристального нексуса. */
   function createBootReverb(ctx, seconds, decay) {
     const rate = ctx.sampleRate;
     const len = Math.max(1, Math.floor(rate * seconds));
@@ -515,7 +398,6 @@
   const playStartup = guard('startup', function (ctx) {
     const t = ctx.currentTime;
 
-    // Компрессор + «зальный» ревер.
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -15;
     comp.knee.value = 22;
@@ -541,7 +423,6 @@
     wet.connect(comp);
     comp.connect(audio.sfxBus);
 
-    // 1. Кинематографичный sub-bass sweep (48 → 110 → 73 Hz).
     const sub = ctx.createOscillator();
     const subGain = ctx.createGain();
     const subFilter = ctx.createBiquadFilter();
@@ -562,7 +443,6 @@
     sub.start(t);
     sub.stop(t + 3.15);
 
-    // 2. Кристаллический аккорд D-мажорной пентатоники.
     const bells = [587.33, 739.99, 880.0, 1174.66, 1479.98, 1760.0];
     bells.forEach((freq, idx) => {
       const start = t + 0.72 + idx * 0.075;
@@ -601,7 +481,6 @@
       shimmer.stop(start + dur + 0.05);
     });
 
-    // 3. Воздушный shimmer — «включение» сферы Nexus.
     const noiseLen = Math.floor(ctx.sampleRate * 2.4);
     const noiseBuf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
     const nd = noiseBuf.getChannelData(0);
@@ -622,15 +501,10 @@
     noise.stop(t + 2.35);
   });
 
-  /* ---------------------------------------------------------
-     CONSOLE FAN HUM (кулер + привод)
-     --------------------------------------------------------- */
 
   function startFanHum() {
     const ctx = audio.ctx;
     if (!ctx) {
-      // Контекста ещё нет (жеста не было) — гул запустится автоматически
-      // сразу после разблокировки. Никаких createContext() вне жеста!
       audio.fanPending = true;
       return;
     }
@@ -646,7 +520,6 @@
       source.buffer = buffer;
       source.loop = true;
 
-      // Низкочастотный «гул» + лёгкий призвук привода.
       const filter = ctx.createBiquadFilter();
       filter.type = 'lowpass';
       filter.frequency.setValueAtTime(140, ctx.currentTime);
@@ -670,7 +543,6 @@
       audio.fanNodes = { source, filter, body };
       audio.fanGain = gain;
     } catch (err) {
-      /* ignore */
     }
   }
 
@@ -683,7 +555,6 @@
           audio.ctx.currentTime + 0.3
         );
       } catch (err) {
-        /* ignore */
       }
     }
     if (audio.fanEnabled) startFanHum();
@@ -695,17 +566,12 @@
       audio.fanNodes.source.stop();
       audio.fanNodes.source.disconnect();
     } catch (err) {
-      /* ignore */
     }
     audio.fanNodes = null;
     audio.fanGain = null;
   }
 
-  /* ---------------------------------------------------------
-     SFX
-     --------------------------------------------------------- */
 
-  /** Свист лезвий Blades. */
   const playBladeSwoosh = guard('swoosh', function (ctx) {
     const t = ctx.currentTime;
     const len = Math.floor(ctx.sampleRate * 0.18);
@@ -734,7 +600,6 @@
     src.stop(t + 0.18);
   });
 
-  /** Щелчок пластика (переворот коробки). */
   const playPlasticClick = guard('click', function (ctx) {
     const t = ctx.currentTime;
 
@@ -773,7 +638,6 @@
     noise.stop(t + 0.06);
   });
 
-  /** Achievement Unlocked. */
   const playAchievement = guard('achieve', function (ctx) {
     const t = ctx.currentTime;
     const tones = [1396.91, 2093.0, 2637.02];
@@ -796,7 +660,6 @@
     });
   });
 
-  /** Мягкий «клик» навигации (категория/диск). */
   const playNavTick = guard('tick', function (ctx) {
     const t = ctx.currentTime;
     const osc = ctx.createOscillator();
@@ -812,13 +675,6 @@
     osc.stop(t + 0.07);
   });
 
-  /* ---------------------------------------------------------
-     ТОЧКИ ПОДКЛЮЧЕНИЯ (глобальные обработчики)
-     ---------------------------------------------------------
-     Ленивая разблокировка: обработчики одноразовые ({ once: true }).
-     До первого жеста AudioContext НЕ существует — значит браузеру
-     нечего ругаться в консоли.
-     --------------------------------------------------------- */
   function armUnlockListeners() {
     const passiveOnce = { passive: true, once: true };
     document.addEventListener('pointerdown', unlock, passiveOnce);
@@ -832,34 +688,23 @@
     audio.bound = true;
     armUnlockListeners();
 
-    // Возвращаем звук после переключения вкладки (контекст уже создан).
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && audio.ctx) unlock();
     });
   }
 
-  /* ---------------------------------------------------------
-     ПУБЛИЧНОЕ API
-     --------------------------------------------------------- */
   X360.Audio = {
     init() {
-      // Контекст намеренно НЕ создаётся здесь: до первого жеста браузер
-      // пишет warning "AudioContext was not allowed to start".
-      // Создание отложено до unlock() — консоль браузера остаётся чистой.
       bindUnlockHandlers();
     },
     unlock,
     isRunning,
     isUnlocked: () => audio.unlocked,
 
-    /**
-     * Подписка на момент разблокировки звука.
-     * Используется плеером: музыка стартует после первого жеста.
-     */
     onReady(cb) {
       if (typeof cb !== 'function') return;
       if (audio.unlocked && isRunning()) {
-        try { cb(); } catch (err) { /* ignore */ }
+        try { cb(); } catch (err) {   }
         return;
       }
       audio.readyCbs.push(cb);
@@ -870,7 +715,6 @@
     getMusicBus: () => audio.musicBus,
     getMaster: () => audio.master,
 
-    /* --- Фоновая музыка: нативно, без Web Audio-графа --- */
     attachMusicElement,
     getMusicElement: () => music.el,
     setMusicVolume,
@@ -884,7 +728,6 @@
         try {
           audio.sfxBus.gain.setTargetAtTime(audio.sfxEnabled ? 1 : 0, audio.ctx.currentTime, 0.03);
         } catch (err) {
-          /* ignore */
         }
       }
       return audio.sfxEnabled;

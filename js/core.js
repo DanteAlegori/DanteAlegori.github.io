@@ -1,18 +1,8 @@
-/* ============================================================
-   XBOX 360 SYSTEM DASHBOARD · CORE
-   ---------------------------------------------------------
-   Общее состояние приложения, синхронизация с config.js,
-   утилиты и локальное хранилище настроек.
-   Глобальный объект: window.X360
-   ============================================================ */
 (function (global) {
   'use strict';
 
   const X360 = global.X360 || (global.X360 = {});
 
-  /* ---------------------------------------------------------
-     FALLBACK CONFIG (используется, если config.js отсутствует)
-     --------------------------------------------------------- */
   const DEFAULT_CONFIG = {
     profile: {
       callsign: 'DANTE // 2003',
@@ -77,17 +67,6 @@
     ]
   };
 
-  /* ---------------------------------------------------------
-     CONFIG RESOLUTION — полная обратная совместимость
-
-     Источники (по убыванию приоритета, но с проверкой «свежести»):
-       1. Правка из мастерской NERO, сохранённая в LocalStorage.
-          Работает без сервера (file://) — витрина видит правки сразу.
-       2. Файл config.js на диске.
-
-       Файл побеждает, только если он СВЕЖЕЕ сохранённой правки:
-       timestamp берётся из window.WISHLIST_CONFIG_META.generated.
-     --------------------------------------------------------- */
   const LIVE_CONFIG_KEY = 'x360-wishlist-config';
 
   function readLiveConfig() {
@@ -104,7 +83,6 @@
     );
     const liveStamp = Number(parsed.savedAt) || 0;
 
-    // Файл на диске новее правки из мастерской — он главный.
     if (fileStamp && fileStamp >= liveStamp) return null;
 
     return { config: parsed.config, savedAt: liveStamp };
@@ -142,9 +120,6 @@
     return cfg;
   }
 
-  /* ---------------------------------------------------------
-     ПРЕДПОЧТЕНИЯ — localStorage, безопасный для file://
-     --------------------------------------------------------- */
   const PREFS_KEY = 'x360-wishlist-prefs-v1';
 
   const prefs = {
@@ -162,20 +137,15 @@
     const stored = JSON.parse(global.localStorage.getItem(PREFS_KEY) || '{}');
     if (stored && typeof stored === 'object') Object.assign(prefs, stored);
   } catch (err) {
-    /* localStorage недоступен (приватный режим) — работаем с дефолтами */
   }
 
   function savePrefs() {
     try {
       global.localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
     } catch (err) {
-      /* игнорируем — файл работает и без хранилища */
     }
   }
 
-  /* ---------------------------------------------------------
-     УТИЛИТЫ
-     --------------------------------------------------------- */
   const utils = {
     escapeHtml(value) {
       return String(value == null ? '' : value).replace(/[&<>"']/g, (ch) => ({
@@ -194,20 +164,6 @@
       return url;
     },
 
-    /**
-     * PERF: уменьшенная версия обложки.
-     *
-     * Обложка рисуется в карточке ~270 px, а CDN отдавал полноразмерные
-     * файлы: w1200 — 439 КБ, c1000 — 354 КБ на одну картинку.
-     * Уменьшенные варианты проверены HTTP-запросом (HEAD):
-     *   w1200 (439 КБ) → w600 (124 КБ)
-     *   c1000 (354 КБ) → c600 (136 КБ)
-     *   wc1000 (59 КБ) → wc600 (28 КБ)
-     *
-     * Переписываются ТОЛЬКО проверенные паттерны Ozone. Остальные CDN
-     * (Яндекс, dns-shop, hobbygames, vseinstrumenti) на уменьшенных
-     * вариантах отдают 404 либо картинку БОЛЬШЕ исходной — их не трогаем.
-     */
     thumbUrl(value) {
       const url = utils.safeUrl(value);
       if (!url) return '';
@@ -258,9 +214,6 @@
     }
   };
 
-  /* ---------------------------------------------------------
-     FALLBACK ART
-     --------------------------------------------------------- */
   const FALLBACK_ART = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800">' +
     '<rect width="100%" height="100%" fill="#0d120f"/>' +
@@ -270,9 +223,6 @@
     '</svg>'
   );
 
-  /* ---------------------------------------------------------
-     ПУБЛИЧНОЕ API ЯДРА
-     --------------------------------------------------------- */
   X360.DEFAULT_CONFIG = DEFAULT_CONFIG;
   X360.config = resolveConfig();
   X360.prefs = prefs;
@@ -281,7 +231,6 @@
   X360.FALLBACK_ART = FALLBACK_ART;
   X360.LIVE_CONFIG_KEY = LIVE_CONFIG_KEY;
 
-  /** Признак того, что витрина показывает правку из мастерской, а не файл. */
   X360.isLiveConfig = !!(readLiveConfig());
 
   X360.getCategories = function getCategories() {
@@ -309,7 +258,6 @@
 
   X360.ALL_CATEGORY = X360.getCategories()[0];
 
-  /* Общие флаги состояния */
   X360.state = {
     booted: false,
     activeCategory: X360.ALL_CATEGORY,

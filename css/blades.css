@@ -1,22 +1,25 @@
-/* ============================================================
-   XBOX 360 SYSTEM DASHBOARD · BLADES
-   ---------------------------------------------------------
-   1. Unified sliding-panel system (transform: translate3d)
-      — Guide Blade (досье) и Media Blade (плеер)
-   2. Sheet handle + backdrop (мобильные bottom-sheet)
-   3. Guide Blade content
-   4. Media Blade content
-   5. Achievement toast / theme toast / gamepad badge
-   ============================================================ */
 
-/* ---------- 1. UNIFIED SLIDING PANEL SYSTEM ---------- */
+
+
+
+
+
+
+
+
+
+
+
+
+
 .blade-panel {
   --sheet-y: 0px;
   position: fixed;
   top: calc(var(--header-h) + var(--safe-top) + 4px);
   bottom: calc(var(--footer-h) + var(--safe-bottom));
-  /* Панели живут на уровне body (вне #dashboard), поэтому их z-index
-     сравним с backdrop и точно перекрывают размытие. */
+  
+
+
   z-index: var(--z-blade);
   width: min(440px, 42vw);
   max-height: calc(100dvh - var(--header-h) - var(--footer-h) - var(--safe-top) - var(--safe-bottom) - 8px);
@@ -26,17 +29,19 @@
   gap: 10px;
   padding: 22px 22px 20px;
   overflow: hidden;
-  /* PERF: backdrop-filter удалён. Панель ВЫЕЗЖАЕТ на transform — блюр
-     фона пересчитывался на каждом кадре анимации (самый дорогой
-     backdrop-filter в проекте). Вместо него — плотный градиент
-     с «шумом» через повторяющийся градиент. */
+  
+
+
+
+
   background-color: #0a100c;
   background-image:
     repeating-linear-gradient(118deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 7px),
     linear-gradient(135deg, rgba(16, 26, 18, 0.99) 0%, rgba(8, 12, 9, 0.995) 100%);
   border: 1px solid var(--theme-border);
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), 0 0 25px var(--theme-glow);
-  /* Единственная система позиционирования: translate3d + will-change */
+  
+
   transform: translate3d(0, 0, 0);
   transition: transform var(--dur-slow) var(--ease-blade), opacity var(--dur-med) ease;
   will-change: transform;
@@ -61,14 +66,16 @@
 }
 #mediaBlade.open { transform: translate3d(0, 0, 0); }
 
-/* Закрытые панели не перехватывают клики */
+
+
 #guideBlade:not(.open),
 #mediaBlade:not(.open) {
   pointer-events: none;
 }
 
-/* Все интерактивные элементы внутри панели всегда кликабельны —
-   иначе блюр-оверлей перехватывает события и UI «зависает». */
+
+
+
 .blade-panel button,
 .blade-panel input,
 .blade-panel select,
@@ -80,7 +87,8 @@
   pointer-events: auto;
 }
 
-/* Свечение кромки лезвия */
+
+
 .blade-panel::before {
   content: "";
   position: absolute;
@@ -94,7 +102,8 @@
 #guideBlade::before { left: -3px; }
 #mediaBlade::before { right: -3px; }
 
-/* Scrollable inner body */
+
+
 .blade-panel-inner {
   display: flex;
   flex-direction: column;
@@ -110,7 +119,8 @@
 .blade-panel-inner::-webkit-scrollbar-track { background: #050806; }
 .blade-panel-inner::-webkit-scrollbar-thumb { background: var(--theme-accent); border-radius: 3px; }
 
-/* ---------- 2. SHEET HANDLE + BACKDROP ---------- */
+
+
 .blade-sheet-handle {
   display: none;
   width: 46px;
@@ -124,11 +134,12 @@
 }
 .blade-sheet-handle:active { cursor: grabbing; }
 
-/* Затемняющий оверлей под панелями: клик по нему закрывает шторку.
-   z-index строго ниже --z-blade, поэтому панель всегда поверх.
-   PERF: backdrop-filter(blur) на полноэкранном слое — самый дорогой
-   блюр в проекте (пересчёт на весь вьюпорт). Заменён плотным
-   затемнением без размытия. */
+
+
+
+
+
+
 #sheetBackdrop {
   position: fixed;
   inset: 0;
@@ -144,7 +155,8 @@
   pointer-events: auto;
 }
 
-/* ---------- 3. GUIDE BLADE (DOSSIER) ---------- */
+
+
 .guide-header {
   border-bottom: 1px solid #283e2e;
   padding-bottom: 14px;
@@ -211,7 +223,8 @@
   85%, 100% { transform: translateX(100%); }
 }
 .gps-fill {
-  /* PERF: width -> transform: scaleX() (нет layout на каждом кадре) */
+  
+
   width: 100%;
   height: 100%;
   transform-origin: left center;
@@ -234,7 +247,8 @@
   margin-top: 4px;
 }
 
-/* ---------- 4. MEDIA BLADE (BRADYYCARDIA) ---------- */
+
+
 .media-blade-header {
   border-bottom: 1px solid #283e2e;
   padding-bottom: 12px;
@@ -277,8 +291,9 @@
   color: #fff;
   line-height: 1.2;
   overflow-wrap: anywhere;
-  /* Длинные названия не должны разносить карточку — режем
-     одной строкой, полное имя — в подсказке (title). */
+  
+
+
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -291,7 +306,8 @@
   overflow-wrap: anywhere;
 }
 
-/* Статус воспроизведения: загрузка / ошибка / пауза / играет. */
+
+
 .mnp-status {
   display: none;
   font-family: var(--font-mono);
@@ -303,7 +319,8 @@
 .mnp-status.is-on { display: block; }
 .mnp-status.is-error { color: #ff7a5c; }
 
-/* Прогресс трека: время + перемотка. */
+
+
 .media-progress {
   display: flex;
   align-items: center;
@@ -408,7 +425,8 @@
 }
 .station-item-row.active .sir-icon { opacity: 1; }
 
-/* Счётчик треков в шапке станции (гостевой режим — без путей к файлам) */
+
+
 .media-track-count {
   font-family: var(--font-mono);
   font-size: 9px;
@@ -427,8 +445,9 @@
   letter-spacing: 1.2px;
   color: #8da491;
 }
-/* Блок управления закреплён: содержимое панели прокручивается,
-   а кнопки и ползунки всегда под рукой. */
+
+
+
 .media-controls {
   flex: 0 0 auto;
   display: flex;
@@ -476,11 +495,13 @@
 }
 .mp-btn:active { transform: translateY(1px) scale(0.98); }
 
-/* ---------- 5. TOASTS & BADGES ---------- */
+
+
 #achievementToast {
   position: fixed;
-  /* PERF: bottom -> transform. Анимация bottom — layout-свойство,
-     вызывавшая reflow всей страницы. Теперь только композиция. */
+  
+
+
   bottom: calc(40px + var(--safe-bottom));
   left: 50%;
   transform: translate3d(-50%, calc(100% + 80px), 0);

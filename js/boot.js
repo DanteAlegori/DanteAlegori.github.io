@@ -1,15 +1,3 @@
-/* ============================================================
-   XBOX 360 SYSTEM DASHBOARD · KINECT 2010 INTRO
-   ---------------------------------------------------------
-   Пересоздаёт заставку по мотивам Kinect Dashboard Update (2010):
-     • Шёлковые 3D-ленты света, вылетающие из глубины навстречу
-       зрителю, с переливом кислотный лайм → изумруд → белый
-     • Спиральная сборка хромированной сферы Nexus
-     • Bloom Shockwave + саб-басовый удар из Web Audio
-     • По сфере пробегает изумрудный луч, высекающий букву «X»
-     • Кинетическая типографика XBOX 360 и призыв «CLICK TO START»
-   Чистый Canvas 2D, без внешних зависимостей.
-   ============================================================ */
 (function (global) {
   'use strict';
 
@@ -18,17 +6,16 @@
 
   const RIBBON_COUNT = 6;
   const RIBBON_POINTS = 62;
-  const TRAIL_SAMPLE = 0.02;      // с — интервал выборки точек хвоста
-  const LAUNCH_DURATION = 1500;   // мс — спиральная сборка сферы
-  const FOCAL = 1000;             // фокус перспективы
+  const TRAIL_SAMPLE = 0.02;
+  const LAUNCH_DURATION = 1500;
+  const FOCAL = 1000;
 
-  /* Кинетическая палитра Kinect: лайм → изумруд → белые грани */
   const PALETTE = [
-    [157, 255, 0],      // #9dff00 — кислотный лайм
-    [16, 113, 16],      // #107c10 — изумруд
-    [224, 255, 208],    // белая грань
-    [124, 252, 0],      // #7cfc00
-    [82, 176, 67],      // #52b043
+    [157, 255, 0],
+    [16, 113, 16],
+    [224, 255, 208],
+    [124, 252, 0],
+    [82, 176, 67],
     [240, 255, 232]
   ];
 
@@ -43,23 +30,19 @@
     time: 0,
     rafId: null,
     running: false,
-    launchT: -1,          // -1 = покой, 0..1 = спиральная сборка
+    launchT: -1,
     collapsed: false,
     onCollapsed: null,
-    sphereGlow: 0,        // 0..1 — свечение хромированной сферы
-    beamAngle: 0,         // угол изумрудного луча, высекающего «X»
-    beamProgress: 0       // 0..1 — ход луча
+    sphereGlow: 0,
+    beamAngle: 0,
+    beamProgress: 0
   };
 
-  /* =========================================================
-     ГЕОМЕТРИЯ ЛЕНТ
-     ========================================================= */
   function makeRibbon(index) {
     return {
       index: index,
       color: PALETTE[index % PALETTE.length],
       phase: (index / RIBBON_COUNT) * Math.PI * 2,
-      // Ленты вылетают ИЗ ГЛУБИНЫ: большая стартовая Z-глубина.
       speed: 0.85 + (index % 3) * 0.3,
       rx: 300 + (index % 4) * 70,
       ry: 120 + ((index + 2) % 3) * 40,
@@ -82,10 +65,6 @@
     }
   }
 
-  /**
-   * Гармоническая траектория головы ленты.
-   * Лента «вылетает из глубины»: по мере движения z растёт к зрителю.
-   */
   function headPosition(r, t) {
     const a = r.phase + t * r.speed;
     const tt = t + r.tOffset;
@@ -96,7 +75,6 @@
     };
   }
 
-  /** Точка на спирали сборки сферы. */
   function spiralPoint(r, age, p) {
     const shrink = 1 - easeInCubic(p);
     const spiral = p * 32 + r.phase + age * r.speed * (1 + p * 10);
@@ -132,9 +110,6 @@
   function easeInCubic(t) { return t * t * t; }
   function easeOutCubic(t) { const u = 1 - t; return 1 - u * u * u; }
 
-  /* =========================================================
-     ОТРИСОВКА ЛЕНТ
-     ========================================================= */
   function drawRibbon(r) {
     const ctx = boot.ctx;
     const pts = r.trail;
@@ -151,7 +126,7 @@
     ctx.globalCompositeOperation = 'lighter';
 
     for (let i = 0; i < n - 1; i++) {
-      const t0 = i / (n - 1);   // 0 = хвост, 1 = голова
+      const t0 = i / (n - 1);
       const t1 = (i + 1) / (n - 1);
 
       const p0 = proj[i];
@@ -161,7 +136,6 @@
       const next = pts[Math.min(pts.length - 1, i + 2)];
       const tangent = normalize({ x: next.x - prev.x, y: next.y - prev.y, z: next.z - prev.z });
 
-      // Закрутка плоскости ленты — она «переливается» на свету.
       const twist = Math.sin(i * r.twistFreq + boot.time * r.twistSpeed) * 0.62;
       const upRef = normalize({
         x: Math.cos(r.phase) * 0.7,
@@ -170,7 +144,6 @@
       });
       const binormal = normalize(cross(tangent, upRef));
 
-      // Ширина: широкая у головы, узкая у хвоста.
       const w0 = r.width * (0.1 + t0 * 0.9) * Math.cos(twist) * p0.s;
       const w1 = r.width * (0.1 + t1 * 0.9) * Math.cos(twist) * p1.s;
 
@@ -182,7 +155,6 @@
       const nx1 = (-dy / len) * w1;
       const ny1 = (dx / len) * w1;
 
-      // Хвост уходит в темноту, голова — белая.
       const fade = Math.pow(t0, 1.7);
       const alpha = fade * (0.62 + 0.38 * (1 - launch * 0.4));
       if (alpha <= 0.008) continue;
@@ -191,7 +163,6 @@
       const cg = r.color[1];
       const cb = r.color[2];
 
-      // Тело ленты — полупрозрачная шёлковая полоса.
       ctx.beginPath();
       ctx.moveTo(p0.x + nx, p0.y + ny);
       ctx.lineTo(p1.x + nx1, p1.y + ny1);
@@ -201,7 +172,6 @@
       ctx.fillStyle = 'rgba(' + cr + ',' + cg + ',' + cb + ',' + (alpha * 0.3).toFixed(3) + ')';
       ctx.fill();
 
-      // Световая грань — тонкое белое ядро ленты.
       ctx.beginPath();
       ctx.moveTo(p0.x + nx * 0.3, p0.y + ny * 0.3);
       ctx.lineTo(p1.x + nx1 * 0.3, p1.y + ny1 * 0.3);
@@ -212,7 +182,6 @@
       ctx.fill();
     }
 
-    // Светящаяся «комета» на голове ленты.
     const hp = project(r.head);
     const glow = (0.55 + Math.sin(boot.time * 4 + r.phase) * 0.16) * (1 - launch * 0.55);
     if (glow > 0.02) {
@@ -230,11 +199,7 @@
     ctx.restore();
   }
 
-  /* =========================================================
-     СФЕРА NEXUS (хромированная, со стеклянным бликом)
-     ========================================================= */
 
-  /** Рисует хромированную жемчужно-белую сферу. */
   function drawNexusSphere() {
     const ctx = boot.ctx;
     const g = boot.sphereGlow;
@@ -245,7 +210,6 @@
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
 
-    // Внешнее свечение.
     const halo = ctx.createRadialGradient(boot.cx, boot.cy, R * 0.7, boot.cx, boot.cy, R * 2.6);
     halo.addColorStop(0, 'rgba(157,255,0,' + (0.34 * g).toFixed(3) + ')');
     halo.addColorStop(0.4, 'rgba(16,113,16,' + (0.2 * g).toFixed(3) + ')');
@@ -255,7 +219,6 @@
     ctx.arc(boot.cx, boot.cy, R * 2.6, 0, Math.PI * 2);
     ctx.fill();
 
-    // Хромированное тело: смесь холодного серебра и изумруда.
     const body = ctx.createRadialGradient(
       boot.cx - R * 0.32, boot.cy - R * 0.38, R * 0.05,
       boot.cx, boot.cy, R
@@ -271,7 +234,6 @@
     ctx.arc(boot.cx, boot.cy, R, 0, Math.PI * 2);
     ctx.fill();
 
-    // Стеклянный блик — маленький эллипс в верхней левой четверти.
     ctx.save();
     ctx.beginPath();
     ctx.arc(boot.cx, boot.cy, R, 0, Math.PI * 2);
@@ -288,7 +250,6 @@
     ctx.ellipse(boot.cx - R * 0.3, boot.cy - R * 0.36, R * 0.42, R * 0.26, -0.6, 0, Math.PI * 2);
     ctx.fill();
 
-    // Изумрудный луч, высекающий букву «X».
     if (boot.beamProgress > 0.001) {
       const bx = boot.cx + (boot.beamAngle % (Math.PI * 2)) * 0;
       const ang = boot.beamAngle;
@@ -314,7 +275,6 @@
     }
     ctx.restore();
 
-    // Тёмный пояс у нижнего края — сфера читается объёмной.
     const shade = ctx.createLinearGradient(boot.cx, boot.cy - R, boot.cx, boot.cy + R);
     shade.addColorStop(0, 'rgba(0,0,0,0)');
     shade.addColorStop(0.72, 'rgba(0,0,0,0)');
@@ -327,11 +287,6 @@
     ctx.restore();
   }
 
-  /**
-   * Рельефная буква «X», высечённая на сфере.
-   * Рисуется как «вырезанная» форма: тёмная тень внутри + яркий
-   * изумрудный кант по краю, как будто луч прошёл по металлу.
-   */
   function drawCarvedX() {
     const ctx = boot.ctx;
     const g = boot.sphereGlow;
@@ -348,7 +303,6 @@
     ctx.translate(boot.cx, boot.cy);
     ctx.scale(s, s);
 
-    // Контур лопасти «X» (как в официальном логотипе).
     const blade = 'M47 51 C58 40 70 28 79 19 C85 13 91 20 86 27 C75 40 62 53 51 60 C45 64 40 54 47 51 Z';
 
     const drawBlades = (mode) => {
@@ -374,16 +328,12 @@
       }
     };
 
-    // Сначала тень «выреза», затем светящийся кант.
     drawBlades('shadow');
     drawBlades('edge');
 
     ctx.restore();
   }
 
-  /* =========================================================
-     ЗВЁЗДНАЯ ПЫЛЬ
-     ========================================================= */
   const dust = [];
 
   function initDust() {
@@ -429,9 +379,6 @@
     }
   }
 
-  /* =========================================================
-     ЦИКЛ
-     ========================================================= */
   function frame(now) {
     if (!boot.running) {
       boot.rafId = null;
@@ -457,7 +404,6 @@
         boot.launchT = 1;
         if (!boot.collapsed) {
           boot.collapsed = true;
-          // Сфера Nexus полностью собрана — запускаем кульминацию.
           boot.sphereGlow = 1;
           if (typeof boot.onCollapsed === 'function') boot.onCollapsed();
         }
@@ -466,7 +412,6 @@
 
     boot.ribbons.forEach((r) => {
       if (boot.launchT >= 0) {
-        // Спиральная сборка: вся лента стягивается к центру сферы.
         const p = boot.launchT;
         const keep = Math.max(6, Math.floor(RIBBON_POINTS * (1 - p * 0.45)));
         const stride = TRAIL_SAMPLE * (1 + p * 4);
@@ -496,13 +441,11 @@
       }
     });
 
-    // Дальние ленты — за ближними.
     boot.ribbons
       .slice()
       .sort((a, b) => a.head.z - b.head.z)
       .forEach(drawRibbon);
 
-    // Сфера Nexus и высекающий луч.
     if (boot.sphereGlow > 0) {
       boot.sphereGlow = Math.min(1, boot.sphereGlow + dt * 1.6);
       boot.beamProgress = Math.min(1, boot.beamProgress + dt * 1.1);
@@ -514,9 +457,6 @@
     boot.rafId = requestAnimationFrame(frame);
   }
 
-  /* =========================================================
-     API
-     ========================================================= */
   X360.Boot = {
     init(canvas, options) {
       const opts = options || {};
@@ -552,7 +492,6 @@
       boot.rafId = requestAnimationFrame(frame);
     },
 
-    /** Полностью останавливает рендер (после входа в дашборд). */
     stop() {
       boot.running = false;
       if (boot.rafId) cancelAnimationFrame(boot.rafId);
@@ -562,7 +501,6 @@
       }
     },
 
-    /** Запуск: ленты ускоряются и закручиваются в спираль вокруг сферы. */
     launch() {
       boot.launchT = 0;
       boot.collapsed = false;

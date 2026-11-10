@@ -15,26 +15,26 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700;900&family=Teko:wght@600;700&family=Share+Tech+Mono&family=Permanent+Marker&family=VT323&display=swap" rel="stylesheet">
 
-  <!-- Стили: variables → boot → dashboard → blades → responsive -->
+  
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/boot.css">
   <link rel="stylesheet" href="css/dashboard.css">
   <link rel="stylesheet" href="css/blades.css">
   <link rel="stylesheet" href="css/responsive.css">
 
-  <!-- Обратная совместимость: внешние данные проекта -->
+  
   <script src="config.js"></script>
-  <!-- Музыка вынесена в GitHub Release: манифест с прямыми ссылками.
-       Локальный music/playlist.js остаётся запасным вариантом. -->
+  
+
   <script src="music/release.js"></script>
   <script src="music/playlist.js"></script>
 </head>
 
 <body class="theme-fat">
 
-  <!-- =========================================================
-       SVG-SPRITE: официальный логотип XBOX (работает offline)
-       ========================================================= -->
+  
+
+
   <svg width="0" height="0" aria-hidden="true" focusable="false" class="svg-sprite">
     <defs>
       <symbol id="xboxLogo" viewBox="0 0 32 32">
@@ -67,9 +67,9 @@
     </defs>
   </svg>
 
-  <!-- =========================================================
-       1. BOOT SCREEN — Nexus Orb 2005
-       ========================================================= -->
+  
+
+
   <section id="bootScreen" class="boot-live" aria-label="Заставка Xbox 360">
     <canvas id="bootCanvas" aria-hidden="true"></canvas>
     <div class="boot-aurora" aria-hidden="true"></div>
@@ -147,17 +147,17 @@
     <button class="boot-skip" id="bootSkipBtn" type="button">ПРОПУСТИТЬ &gt;</button>
   </section>
 
-  <!-- =========================================================
-       2. DASHBOARD
-       ========================================================= -->
+  
+
+
   <div id="dashboard">
 
-    <!-- Фоновые слои -->
+    
     <div class="bg-ribbon" aria-hidden="true"></div>
     <div class="aurora-ribbon" aria-hidden="true"><i></i><i></i><i></i></div>
     <div class="bg-spotlight" id="bgSpotlight" aria-hidden="true"></div>
 
-    <!-- ---------- TOP GAMER BAR ---------- -->
+    
     <header class="top-gamer-bar">
       <div class="gamer-profile-left">
         <div class="gamerpic-box">
@@ -216,17 +216,17 @@
       </div>
     </header>
 
-    <!-- ---------- BLADES RIBBON ---------- -->
+    
     <div class="blades-ribbon-wrap" id="bladesRibbonWrap">
       <button class="blade-scroll-btn" id="bladesPrevBtn" type="button" title="Предыдущая категория (LB)" aria-label="Предыдущая категория">LB&nbsp;◀</button>
-      <!-- Viewport жёстко обрезает ленту: вкладки не могут вылететь за экран -->
+      
       <div class="blades-ribbon-viewport">
-        <nav class="blades-nav-bar" id="bladesContainer" aria-label="Категории вишлиста"><!-- JS --></nav>
+        <nav class="blades-nav-bar" id="bladesContainer" aria-label="Категории вишлиста"></nav>
       </div>
       <button class="blade-scroll-btn" id="bladesNextBtn" type="button" title="Следующая категория (RB)" aria-label="Следующая категория">▶&nbsp;RB</button>
     </div>
 
-    <!-- ---------- 3D COVERFLOW STAGE ---------- -->
+    
     <main class="stage-center">
       <button class="carousel-nav-btn prev" id="carouselPrevBtn" type="button" title="Предыдущий диск" aria-label="Предыдущий диск">
         <span class="cnb-arrow" aria-hidden="true">‹</span>
@@ -234,9 +234,9 @@
       </button>
 
       <div class="carousel-stage" id="carouselStage">
-        <!-- Нативный CSS Scroll Snap: инерцию, «резиновый» край и
-             долистывание до карточки считает сам браузер. -->
-        <div class="carousel-track" id="carouselTrack"><!-- JS --></div>
+        
+
+        <div class="carousel-track" id="carouselTrack"></div>
       </div>
 
       <button class="carousel-nav-btn next" id="carouselNextBtn" type="button" title="Следующий диск" aria-label="Следующий диск">
@@ -244,10 +244,10 @@
         <span class="cnb-label">NEXT</span>
       </button>
 
-      <div class="carousel-pips-bar" id="carouselPipsBar"><!-- JS --></div>
+      <div class="carousel-pips-bar" id="carouselPipsBar"></div>
     </main>
 
-    <!-- ---------- BOTTOM CONTROLLER BAR ---------- -->
+    
     <footer class="bottom-controller-bar">
       <div class="controller-hints">
         <div class="ctrl-hint-item" id="hintSelect" role="button" tabindex="0">
@@ -274,7 +274,7 @@
     </footer>
   </div>
 
-  <!-- ---------- GUIDE BLADE (ДОСЬЕ) ---------- -->
+  
   <aside id="guideBlade" class="blade-panel" aria-hidden="true" aria-label="Досье цели">
     <div class="blade-sheet-handle" role="separator" aria-label="Потяните вниз, чтобы закрыть"></div>
 
@@ -314,7 +314,7 @@
     </div>
   </aside>
 
-  <!-- ---------- MEDIA BLADE (BRADYYCARDIA) ---------- -->
+  
   <aside id="mediaBlade" class="blade-panel" aria-hidden="true" aria-label="Музыкальный плеер BRADYYCARDIA">
     <div class="blade-sheet-handle" role="separator" aria-label="Потяните вниз, чтобы закрыть"></div>
 
@@ -334,8 +334,8 @@
         <div class="mnp-status" id="mnpStatus" role="status" aria-live="polite"></div>
         <canvas id="mediaVisualizer" width="370" height="38" aria-hidden="true"></canvas>
 
-        <!-- Прогресс трека: перемотка по прямой ссылке на файл
-             (файлы релиза отдаются с поддержкой Range). -->
+        
+
         <div class="media-progress">
           <span class="mp-time" id="mpTimeCurrent">0:00</span>
           <input type="range" id="mpSeek" min="0" max="1000" value="0" step="1"
@@ -344,7 +344,7 @@
         </div>
       </div>
 
-      <div class="media-stations-list" id="stationsList"><!-- JS --></div>
+      <div class="media-stations-list" id="stationsList"></div>
     </div>
 
     <div class="media-controls">
@@ -364,22 +364,22 @@
     </div>
   </aside>
 
-  <!-- =========================================================
-       ОТКРЫТЫЙ БОКС — ДВУСТВОРЧАТЫЙ РАЗВОРОТ
-       =========================================================
-       ЛЕВАЯ СТВОРКА — буклет-мануал (текст + управление),
-       КОРЕШОК — сгиб коробки,
-       ПРАВАЯ СТВОРКА — лоток с крутящимся диском.
-       Конструкция собрана как обычный DOM без зеркальных
-       трансформаций — весь текст читается как есть. -->
-  <!-- Затемнение фона вокруг раскрытой коробки + сам разворот.
-       Оверлей живёт по центру экрана и не зависит от координат
-       карточки в карусели. -->
+  
+
+
+
+
+
+
+
+  
+
+
   <div class="xbox-case-backdrop" id="openCaseBackdrop" aria-hidden="true"></div>
   <div class="xbox-case-open-wrapper centered" id="openCaseWrapper" aria-hidden="true">
     <div class="xbox-case-opened" role="dialog" aria-modal="true" aria-label="Открытый бокс Xbox 360">
 
-      <!-- ЛЕВАЯ ПОЛОВИНА: БУКЛЕТ / ИНФО -->
+      
       <div class="case-wing case-left">
         <div class="booklet-clips" aria-hidden="true"><i></i><i></i><i></i></div>
         <div class="booklet-content">
@@ -409,22 +409,22 @@
         </div>
       </div>
 
-      <!-- КОРЕШОК СГИБА -->
+      
       <div class="case-spine" aria-hidden="true"></div>
 
-      <!-- ПРАВАЯ ПОЛОВИНА: ЛОТОК + ДИСК -->
+      
       <div class="case-wing case-right">
         <div class="disc-tray">
           <div class="tray-hub" aria-hidden="true"></div>
           <div class="disc-blade">
             <div class="rotating-disc" id="openCaseDisc">
-              <!-- 0. Серебряное отражающее поле диска -->
+              
               <div class="disc-surface"></div>
 
-              <!-- 1. Прямоугольная печать (Picture Disc) с артом игры -->
+              
               <div class="disc-print-clip" id="openDiscPrint"></div>
 
-              <!-- 2. Белая шапка: логотип XBOX 360 слева, зелёный мотив справа -->
+              
               <div class="disc-xbox-header">
                 <div class="disc-header-green-swoosh"></div>
                 <div class="disc-header-brand">
@@ -433,7 +433,7 @@
                 </div>
               </div>
 
-              <!-- 3. Технические лейблы: рейтинг/стандарты слева, издатель справа -->
+              
               <div class="disc-meta-left">
                 <div class="disc-rating-box">18+</div>
                 <div class="disc-tech-row"><span class="dd-mark">DO</span> DOLBY DIGITAL</div>
@@ -446,7 +446,7 @@
                 <div class="disc-title-text" id="openDiscTitle">—</div>
               </div>
 
-              <!-- 4. Тонкий круговой юридический копирайт по внешней кромке -->
+              
               <svg class="disc-edge-legal" viewBox="0 0 200 200" aria-hidden="true">
                 <defs>
                   <path id="discRimArcOpen" d="M100,100 m-95,0 a95,95 0 1,1 190,0 a95,95 0 1,1 -190,0"></path>
@@ -456,10 +456,10 @@
                 </text>
               </svg>
 
-              <!-- 5. Дифракционная радуга света по дорожкам -->
+              
               <div class="disc-holo-shine"></div>
 
-              <!-- 6. Прозрачная втулка с голографической лентой безопасности -->
+              
               <div class="disc-center-hub">
                 <svg class="disc-holo-ring-svg" viewBox="0 0 200 200" aria-hidden="true">
                   <defs>
@@ -482,7 +482,7 @@
                 <div class="disc-spindle-hole"></div>
               </div>
 
-              <!-- 7. Внешняя прозрачная фаска поликарбоната -->
+              
               <div class="disc-outer-rim"></div>
             </div>
           </div>
@@ -492,9 +492,9 @@
     </div>
   </div>
 
-  <!-- =========================================================
-       OVERLAY LAYERS
-       ========================================================= -->
+  
+
+
   <div id="sheetBackdrop" aria-hidden="true"></div>
 
   <div id="achievementToast" role="status" aria-live="polite">
@@ -514,9 +514,9 @@
 
   <div id="themeToast" class="theme-toast" role="status" aria-live="polite"></div>
 
-  <!-- =========================================================
-       MODULES
-       ========================================================= -->
+  
+
+
   <script src="js/core.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/player.js"></script>

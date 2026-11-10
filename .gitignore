@@ -5,11 +5,9 @@ music/*.wav
 music/*.m4a
 music/*.flac
 
-# Архив с музыкой (390 МБ) — только локальный бэкап
 *.rar
 *.zip
 music.rar
 
-# Служебное
 Thumbs.db
 .DS_Store

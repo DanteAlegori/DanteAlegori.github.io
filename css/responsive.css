@@ -1,16 +1,18 @@
-/* ============================================================
-   XBOX 360 SYSTEM DASHBOARD · RESPONSIVE
-   ---------------------------------------------------------
-   1. Ноутбуки (≤1500 / ≤1280 / ≤1100)
-   2. Планшеты (≤900)
-   3. Смартфоны (≤700) — bottom-sheet панели
-   4. Узкие смартфоны (≤480 / ≤420 / ≤360)
-   5. Альбомная ориентация (телефон/планшет)
-   6. Крупные экраны 1080p / 2K / 4K / TV
-   7. Указатели и prefers-reduced-motion
-   ============================================================ */
 
-/* ---------- 1. НОУТБУКИ ---------- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @media (max-width: 1500px) {
   #statusMessageText { max-width: 230px; }
   .top-gamer-bar { padding-left: calc(22px + var(--safe-left)); padding-right: calc(22px + var(--safe-right)); }
@@ -36,7 +38,8 @@
   .carousel-nav-btn.next { right: 8px; }
 }
 
-/* ---------- 2. ПЛАНШЕТЫ ---------- */
+
+
 @media (max-width: 900px) {
   :root {
     --header-h: 66px;
@@ -58,7 +61,8 @@
   .blade-tab { font-size: 16px; padding: 3px 10px 1px; letter-spacing: 1px; }
 }
 
-/* ---------- 3. СМАРТФОНЫ (≤700) ---------- */
+
+
 @media (max-width: 700px) {
   :root {
     --header-h: 60px;
@@ -80,7 +84,8 @@
   .hud-stat,
   #statusMessageText { display: none; }
 
-  /* На телефоне оставляем только чипы музыки/кулера/SFX */
+  
+
   .audio-toggles-group { display: flex; gap: 4px; }
   .audio-toggles-group #fanHumBtn,
   .audio-toggles-group #sfxToggleBtn { display: none; }
@@ -99,7 +104,8 @@
   .carousel-pips-bar { bottom: -18px; padding: 4px 9px; gap: 5px; }
   .carousel-pip { width: 8px; height: 8px; }
 
-  /* Кнопки быстрого действия всегда доступны */
+  
+
   .case-hover-quick-bar {
     opacity: 1;
     pointer-events: auto;
@@ -113,7 +119,8 @@
   .ctrl-hint-item:last-child { display: none; }
   .footer-boot-btn { font-size: 9px; padding: 4px 7px; }
 
-  /* ---------- BOTTOM SHEET: досье и плеер ---------- */
+  
+
   .blade-panel {
     top: auto;
     bottom: 0;
@@ -121,8 +128,9 @@
     right: 0;
     width: 100%;
     max-width: 100vw;
-    /* Фиксированная высота (а не auto): иначе flex-контент шторки
-       переполняется и наезжает на блок управления вместо прокрутки. */
+    
+
+
     height: min(86dvh, 760px);
     max-height: min(86dvh, 760px);
     border: 1px solid var(--theme-border);
@@ -133,7 +141,8 @@
     transition: transform var(--dur-slow) var(--ease-blade);
     box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.9), 0 0 30px var(--theme-glow);
   }
-  /* Внутренняя область обязана уметь сжиматься и скроллиться */
+  
+
   .blade-panel-inner {
     flex: 1 1 0;
     min-height: 0;
@@ -148,7 +157,8 @@
   .blade-panel::before { display: none; }
 }
 
-/* ---------- 4. УЗКИЕ СМАРТФОНЫ ---------- */
+
+
 @media (max-width: 560px) {
   .carousel-stage { transform: scale(0.9); }
   .bottom-controller-bar { padding-left: calc(10px + var(--safe-left)); padding-right: calc(10px + var(--safe-right)); }
@@ -165,10 +175,12 @@
   .blade-tab { font-size: 14px; padding: 3px 10px 1px; }
   .console-stats-right { gap: 4px; }
   .case-hover-quick-bar { flex-direction: column; }
-  /* Кнопки плеера остаются в одну строку — иначе шторка не помещается */
+  
+
   .media-playback-controls { grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
   .mp-btn { font-size: 10px; padding: 8px 4px; }
-  /* Палец: кнопки и перемотка — крупная цель */
+  
+
   .mp-btn { min-height: 38px; }
   .media-progress input[type="range"] { height: 26px; }
   .media-progress .mp-time { font-size: 9px; min-width: 30px; }
@@ -199,12 +211,14 @@
   .cnb-arrow { font-size: 17px; }
 }
 
-/* Планшет в портретной ориентации / крупный телефон */
+
+
 @media (max-width: 700px) and (min-width: 561px) {
   .carousel-stage { transform: scale(0.98); }
 }
 
-/* ---------- 5. АЛЬБОМНАЯ ОРИЕНТАЦИЯ ---------- */
+
+
 @media (max-height: 620px) and (orientation: landscape) {
   :root {
     --header-h: 52px;
@@ -227,7 +241,8 @@
   .boot-press-start { margin-top: 8px; }
 }
 
-/* Низкий ландшафт на телефоне — компактный ультраширокий вид */
+
+
 @media (max-height: 460px) and (orientation: landscape) {
   :root { --header-h: 44px; --footer-h: 32px; --blades-h: 36px; --case-w: clamp(120px, 26vh, 160px); }
   .gamer-text .gamerscore { display: none; }
@@ -237,7 +252,8 @@
   .carousel-nav-btn { width: 26px; height: 54px; }
 }
 
-/* Низкие экраны — компактный плеер, чтобы шторка не «съедала» экран */
+
+
 @media (max-height: 560px) {
   .blade-panel { padding-top: 4px; }
   .blade-sheet-handle { margin-bottom: 4px; }
@@ -257,7 +273,8 @@
   .guide-actions .btn-xbox { padding: 9px; font-size: 11px; }
 }
 
-/* ---------- 6. КРУПНЫЕ ЭКРАНЫ / TV ---------- */
+
+
 @media (min-width: 1800px) {
   :root {
     --header-h: 90px;
@@ -298,12 +315,14 @@
   .bottom-controller-bar { font-size: 16px; }
 }
 
-/* Ультраширокий монитор — расширяем сцену, не растягивая карточки */
+
+
 @media (min-aspect-ratio: 21/9) {
   .carousel-stage { max-width: 1800px; }
 }
 
-/* TV / Couch mode: увеличенные отступы для «далёкого просмотра» */
+
+
 @media (min-width: 1800px) and (pointer: coarse) {
   .guide-title { font-size: 36px; }
   .guide-quote { font-size: 18px; }
@@ -311,7 +330,8 @@
   .media-playback-controls .mp-btn { font-size: 15px; padding: 14px; }
 }
 
-/* ---------- 7. УКАЗАТЕЛИ И ДОСТУПНОСТЬ ---------- */
+
+
 @media (hover: none), (pointer: coarse) {
   .card-item.is-active .case-holo-sheen { opacity: 0.5; }
   .card-item.is-active .case-specular { opacity: 0.7; }
@@ -334,8 +354,9 @@
   .blade-panel {
     transition-duration: 0.01ms !important;
   }
-  /* Коробка раскрывается без анимации: крышка сразу откинута,
-     разворот появляется мгновенно. */
+  
+
+
   .case-flip-rotor {
     transition: none !important;
   }
@@ -343,35 +364,39 @@
   .xbox-case-opened {
     transition: none !important;
   }
-  /* Уважаем «уменьшить движение»: никакой плавной прокрутки */
+  
+
   .carousel-track {
     scroll-behavior: auto !important;
   }
 }
 
-/* Повышенный контраст для читаемости */
+
+
 @media (prefers-contrast: more) {
   .blade-tab { color: #d8e8dc; border-color: #6f8a74; }
   .guide-quote,
   .mnp-artist { color: #d8e8dc; }
 }
 
-/* ==========================================================================
-   8. MOBILE PERFORMANCE FIRST
-   --------------------------------------------------------------------------
-   На слабых мобильных GPU (iOS Safari, Android Chrome) главные тормоза —
-   НЕ JS, а compositing:
-     • mix-blend-mode на полноэкранных слоях заставляет браузер читать
-       back-buffer и смешивать его (двойная/тройная отрисовка кадра);
-     • backdrop-filter — отдельный проход размытия по всему экрану;
-     • filter: blur() — пересчёт размытия покадрово;
-     • большое число композитинг-слой (3D-карточки) → переполнение
-       видеопамяти и микрофризы.
-   Ниже — «дешёвый» режим: те же цвета и композиция, но без тяжёлых
-   проходов композитора.
-   ========================================================================== */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @media (max-width: 900px), (pointer: coarse) {
-  /* Полноэкранное смешивание -> обычное наложение (визуально ~1:1). */
+  
+
   .bg-spotlight,
   .aurora-ribbon,
   #crtOverlay,
@@ -381,7 +406,8 @@
   .bg-spotlight { opacity: 0.2; }
   .aurora-ribbon { opacity: 0.55; }
 
-  /* Голографические слои карточки: оставляем эффект, но без blending. */
+  
+
   .case-holo-sheen,
   .case-specular {
     mix-blend-mode: normal;
@@ -389,9 +415,10 @@
   .case-holo-sheen { opacity: 0.42; }
   .case-specular { opacity: 0.42; }
 
-  /* PERF: mix-blend-mode заставляет браузер читать back-buffer на
-     каждом кадре. На слабом GPU это самый дорогой пасс. Оставляем
-     те же цвета обычным наложением (разница ~1:1). */
+  
+
+
+
   .card-item.is-active .case-chassis-glow::after,
   .card-item.is-active .case-x360-header::after,
   .blade-tab.active .blade-gloss,
@@ -399,35 +426,41 @@
     mix-blend-mode: normal;
   }
 
-  /* PERF: блик лезвия ездит через background-position — это
-     перерисовка лезвия каждый кадр. На мобильных оставляем
-     статичный блик (тот же материал, без мигания). */
+  
+
+
+
   .blade-tab.active .blade-gloss,
   .blade-tab.active .blade-gloss::after {
     animation: none;
   }
 
-  /* Свечение лезвий/аватара — дешевле (без второй тени в каждом кадре). */
+  
+
   .gamerpic-box { animation: none; }
 
-  /* Пол floor: без размытия (уже убрано), уменьшаем площадь. */
+  
+
   .carousel-stage::before {
     height: 60px;
     opacity: 0.34;
   }
 
-  /* Тост достижений: анимация только transform (без opacity-ре-layout). */
+  
+
   #achievementToast {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85);
   }
 
-  /* Панели-шторки: убираем внутренние перерисовки теней. */
+  
+
   .blade-panel {
     box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.9);
   }
 }
 
-/* Совсем слабые девайсы / экономия батареи: глушим «дышащие» слои. */
+
+
 @media (max-width: 480px), (pointer: coarse) and (max-height: 700px) {
   .case-sheen { opacity: 0.35; }
   .carousel-stage::before,
