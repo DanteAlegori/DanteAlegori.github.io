@@ -168,6 +168,10 @@
   /* Кнопки плеера остаются в одну строку — иначе шторка не помещается */
   .media-playback-controls { grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
   .mp-btn { font-size: 10px; padding: 8px 4px; }
+  /* Палец: кнопки и перемотка — крупная цель */
+  .mp-btn { min-height: 38px; }
+  .media-progress input[type="range"] { height: 26px; }
+  .media-progress .mp-time { font-size: 9px; min-width: 30px; }
   .guide-actions { flex-direction: column; }
 }
 
@@ -245,6 +249,8 @@
   .media-stations-list { min-height: 40px; }
   .media-volume-row { margin-top: 4px; }
   .media-playback-controls { margin-top: 4px; }
+  .media-progress { margin-top: 0; }
+  .media-progress .mp-time { font-size: 9px; min-width: 30px; }
   .mp-btn { padding: 7px 4px; font-size: 11px; }
   .guide-title { font-size: 19px; }
   .guide-progress-section { padding: 10px; margin: 10px 0; }

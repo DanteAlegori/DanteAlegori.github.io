@@ -1,0 +1,19 @@
+# --- Тяжёлые медиафайлы: НЕ попадают в репозиторий и в артефакт Pages ---
+# Музыка вынесена в GitHub Release:
+#   https://github.com/DanteAlegori/DanteAlegori.github.io/releases/tag/Music
+# Локальная копия (393 МБ) остаётся на диске для офлайн-прослушивания,
+# но в git не индексируется — иначе Pages собрал бы артефакт на 400 МБ.
+music/*.mp3
+music/*.ogg
+music/*.wav
+music/*.m4a
+music/*.flac
+
+# Архив с музыкой (390 МБ) — только локальный бэкап
+*.rar
+*.zip
+music.rar
+
+# Служебное
+Thumbs.db
+.DS_Store

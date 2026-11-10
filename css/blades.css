@@ -277,11 +277,70 @@
   color: #fff;
   line-height: 1.2;
   overflow-wrap: anywhere;
+  /* Длинные названия не должны разносить карточку — режем
+     одной строкой, полное имя — в подсказке (title). */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
 }
 .mnp-artist {
   font-size: 13px;
   color: #9cb8a1;
   overflow-wrap: anywhere;
+}
+
+/* Статус воспроизведения: загрузка / ошибка / пауза / играет. */
+.mnp-status {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--theme-toxic);
+}
+.mnp-status.is-on { display: block; }
+.mnp-status.is-error { color: #ff7a5c; }
+
+/* Прогресс трека: время + перемотка. */
+.media-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+.media-progress .mp-time {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #8da491;
+  flex: 0 0 auto;
+  min-width: 34px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.media-progress input[type="range"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 18px;
+  accent-color: var(--theme-accent);
+  background: transparent;
+  cursor: pointer;
+}
+.media-progress input[type="range"]:disabled { opacity: 0.4; cursor: default; }
+.media-progress input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  background: linear-gradient(90deg, var(--theme-accent), var(--theme-toxic));
+  border-radius: 2px;
+}
+.media-progress input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 8px var(--theme-glow);
 }
 
 #mediaVisualizer {
@@ -367,6 +426,14 @@
   font-size: 10px;
   letter-spacing: 1.2px;
   color: #8da491;
+}
+/* Блок управления закреплён: содержимое панели прокручивается,
+   а кнопки и ползунки всегда под рукой. */
+.media-controls {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .media-volume-row .mv-label { flex: 0 0 auto; color: #6f8a74; }
 .media-volume-row input[type="range"] {

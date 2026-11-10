@@ -24,6 +24,9 @@
 
   <!-- Обратная совместимость: внешние данные проекта -->
   <script src="config.js"></script>
+  <!-- Музыка вынесена в GitHub Release: манифест с прямыми ссылками.
+       Локальный music/playlist.js остаётся запасным вариантом. -->
+  <script src="music/release.js"></script>
   <script src="music/playlist.js"></script>
 </head>
 
@@ -312,7 +315,7 @@
   </aside>
 
   <!-- ---------- MEDIA BLADE (BRADYYCARDIA) ---------- -->
-  <aside id="mediaBlade" class="blade-panel" aria-hidden="true" aria-label="Музыкальный плеер">
+  <aside id="mediaBlade" class="blade-panel" aria-hidden="true" aria-label="Музыкальный плеер BRADYYCARDIA">
     <div class="blade-sheet-handle" role="separator" aria-label="Потяните вниз, чтобы закрыть"></div>
 
     <div class="blade-panel-inner">
@@ -320,32 +323,42 @@
         <div class="media-blade-title">
           <span aria-hidden="true">💿</span> BRADYYCARDIA // RADIO
         </div>
-        <p class="media-blade-sub">Custom Soundtrack — встроенный плейлист</p>
+        <p class="media-blade-sub" id="mediaBladeSub">Custom Soundtrack — встроенный плейлист</p>
         <div class="media-track-count" id="musicTrackCount">загрузка…</div>
       </div>
 
       <div class="media-now-playing-card">
         <div class="mnp-station-badge" id="mnpStation">РАДИОСТАНЦИЯ: BRADYYCARDIA</div>
-        <div class="mnp-track-name" id="mnpTrack">Воспроизведение...</div>
+        <div class="mnp-track-name" id="mnpTrack" title="" aria-live="polite">Воспроизведение...</div>
         <div class="mnp-artist" id="mnpArtist">Папка music // Shuffle</div>
+        <div class="mnp-status" id="mnpStatus" role="status" aria-live="polite"></div>
         <canvas id="mediaVisualizer" width="370" height="38" aria-hidden="true"></canvas>
+
+        <!-- Прогресс трека: перемотка по прямой ссылке на файл
+             (файлы релиза отдаются с поддержкой Range). -->
+        <div class="media-progress">
+          <span class="mp-time" id="mpTimeCurrent">0:00</span>
+          <input type="range" id="mpSeek" min="0" max="1000" value="0" step="1"
+                 aria-label="Перемотка трека" disabled>
+          <span class="mp-time" id="mpTimeTotal">--:--</span>
+        </div>
       </div>
 
       <div class="media-stations-list" id="stationsList"><!-- JS --></div>
     </div>
 
-    <div>
+    <div class="media-controls">
       <div class="media-volume-row">
-        <span class="mv-label">ГРОМКОСТЬ</span>
-        <input type="range" id="musicVolume" min="0" max="100" value="55" aria-label="Громкость музыки">
+        <span class="mv-label" id="musicVolumeLabel">ГРОМКОСТЬ</span>
+        <input type="range" id="musicVolume" min="0" max="100" value="55" aria-label="Громкость музыки" aria-labelledby="musicVolumeLabel">
         <span class="mv-val" id="musicVolumeVal">55%</span>
       </div>
       <div class="media-playback-controls">
-        <button class="mp-btn" id="mpPrevBtn" type="button">|&lt; ТРЕК</button>
-        <button class="mp-btn" id="mpPlayBtn" type="button">▶ / || ПАУЗА</button>
-        <button class="mp-btn" id="mpNextBtn" type="button">ТРЕК &gt;|</button>
+        <button class="mp-btn" id="mpPrevBtn" type="button" aria-label="Предыдущий трек" title="Предыдущий трек">|&lt; ТРЕК</button>
+        <button class="mp-btn" id="mpPlayBtn" type="button" aria-label="Воспроизвести" aria-pressed="false" title="Воспроизвести / пауза (Пробел)">▶ ПУСК</button>
+        <button class="mp-btn" id="mpNextBtn" type="button" aria-label="Следующий трек" title="Следующий трек">ТРЕК &gt;|</button>
       </div>
-      <button class="btn-xbox secondary btn-xbox--wide" id="mediaCloseBtn" type="button">
+      <button class="btn-xbox secondary btn-xbox--wide" id="mediaCloseBtn" type="button" aria-label="Закрыть панель плеера (B)" title="Закрыть панель (музыка продолжит играть)">
         <span class="xbox-btn-dot btn-b">B</span> ЗАКРЫТЬ ПЛЕЕР
       </button>
     </div>

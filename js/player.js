@@ -19,6 +19,7 @@
      --------------------------------------------------------- */
   const player = {
     tracks: [],
+    source: '',
     order: [],
     orderPos: -1,
     current: null,
@@ -28,6 +29,8 @@
     graphReady: false,
     errorStreak: 0,
     isPlaying: false,
+    status: 'idle',      // idle | loading | playing | paused | error
+    statusText: '',
     volume: 0.55,
     synthTimer: null,
     synthStep: 0,
@@ -134,30 +137,62 @@
     });
 
     node.addEventListener('playing', () => {
+      // Сброс счётчика ошибок — только когда трек РЕАЛЬНО заиграл.
+      // Раньше он обнулялся в playAt(), и при недоступных файлах
+      // счётчик никогда не дорастал до 3: плеер бесконечно
+      // перебирал список и «зависал» на первом же битом треке.
       player.errorStreak = 0;
       player.isPlaying = true;
+      setStatus('playing');
       updateChip();
       updateDisplay();
+      updateProgress();
     });
 
     node.addEventListener('pause', () => {
       if (!player.isPlaying) {
+        // Ошибка загрузки важнее: при смене трека браузер шлёт pause
+        // после error, и статус «Файл недоступен» затирался на «ПАУЗА».
+        if (player.status !== 'error') setStatus('paused');
         updateChip();
         updateDisplay();
       }
     });
 
+    node.addEventListener('waiting', () => {
+      setStatus('loading');
+      updateDisplay();
+    });
+
+    node.addEventListener('loadedmetadata', () => {
+      updateProgress();
+    });
+
+    node.addEventListener('durationchange', () => {
+      updateProgress();
+    });
+
+    node.addEventListener('timeupdate', () => {
+      updateProgress();
+    });
+
     node.addEventListener('error', () => {
       player.errorStreak++;
-      // Слишком много ошибок подряд — не мучаем пользователя.
+      setStatus('error', 'Файл недоступен');
+      // Слишком много ошибок подряд — не мучаем пользователя
+      // и не крутим бесконечный цикл по списку.
       if (player.errorStreak > 3) {
         player.isPlaying = false;
+        setStatus('error', 'Файлы недоступны — радио остановлено');
         updateChip();
         updateDisplay();
         return;
       }
       if (player.tracks.length > 1) {
         setTimeout(() => playNext(false), 600);
+      } else {
+        updateChip();
+        updateDisplay();
       }
     });
 
@@ -173,17 +208,28 @@
    * Поэтому на file:// играем напрямую через HTMLMediaElement.volume,
    * а визуализатор получает синтетический сигнал.
    */
-  function canRouteThroughWebAudio() {
+  function canRouteThroughWebAudio(trackUrl) {
     const proto = (global.location && global.location.protocol) || '';
     // blob:/object URL (выбор папки через File System Access) — свой origin, всё ок.
-    return proto !== 'file:';
+    if (proto === 'file:') return false;
+    // Кросс-домен без CORS (файлы из GitHub Release): createMediaElementSource()
+    // НЕ бросает исключение, а молча заглушает поток — музыка играет
+    // в тишину. Такие треки через граф не пускаем.
+    try {
+      const url = new URL(String(trackUrl || ''), global.location.href);
+      return url.origin === global.location.origin;
+    } catch (err) {
+      return false;
+    }
   }
 
   function connectGraph() {
     if (player.graphReady || !player.audioEl) return;
 
-    if (!canRouteThroughWebAudio()) {
-      // file:// — играем нативно, громкость ставим на элемент.
+    if (!canRouteThroughWebAudio(player.current && player.current.url)) {
+      // file:// или кросс-домен (GitHub Release) — играем нативно,
+      // громкость ставим в элемент: через Web Audio такой источник
+      // заглушается CORS-taint'ом (на выходе тишина). громкость ставим на элемент.
       player.graphReady = false;
       player.audioEl.volume = clampVolume(player.volume);
       return;
@@ -248,7 +294,8 @@
     if (!player.order.length) buildOrder(false);
     player.orderPos = ((pos % player.order.length) + player.order.length) % player.order.length;
     player.current = player.tracks[player.order[player.orderPos]];
-    player.errorStreak = 0;
+    // errorStreak здесь НЕ обнуляем: он должен копиться при
+    // недоступных файлах, иначе перебор списка не прервётся.
 
     node.muted = false;
     if (!player.graphReady) node.volume = clampVolume(player.volume);
@@ -311,8 +358,34 @@
      ЗАГРУЗКА ТРЕКОВ
      --------------------------------------------------------- */
 
-  /** Загрузка из music/playlist.js (работает на file://). */
+  /**
+   * Загрузка треков.
+   *
+   * Приоритет:
+   *   1) music/release.js — прямые ссылки на файлы в GitHub Release.
+   *      Музыка вынесена из репозитория, чтобы 393 МБ треков не
+   *      попадали в артефакт Pages.
+   *   2) music/playlist.js — локальные файлы (fallback: file://,
+   *      офлайн-копия рядом с проектом).
+   */
   function loadManifest() {
+    const release = Array.isArray(global.BRADYYCARDIA_RELEASE) ? global.BRADYYCARDIA_RELEASE : null;
+    if (release && release.length) {
+      const tracks = [];
+      release.forEach((entry) => {
+        const name = String((entry && entry.name) || '').trim();
+        const url = String((entry && entry.url) || '').trim();
+        if (!name || !url) return;
+        // Наружу отдаём только http(s) — никаких file:// и data:.
+        if (!/^https?:\/\//i.test(url)) return;
+        tracks.push(buildTrackRecord(name, url));
+      });
+      if (tracks.length) {
+        setTracks(tracks, 'Music Release');
+        return tracks.length;
+      }
+    }
+
     const list = Array.isArray(global.BRADYYCARDIA_PLAYLIST) ? global.BRADYYCARDIA_PLAYLIST : [];
     const tracks = [];
     list.forEach((entry) => {
@@ -327,8 +400,9 @@
     return tracks.length;
   }
 
-  function setTracks(tracks) {
+  function setTracks(tracks, source) {
     player.tracks = Array.isArray(tracks) ? tracks.slice() : [];
+    player.source = source || '';
     player.order = [];
     player.orderPos = -1;
     player.current = null;
@@ -677,6 +751,12 @@
     node.textContent = player.tracks.length
       ? player.tracks.length + ' трек(ов) // shuffle'
       : 'плейлист пуст';
+    const sub = el('mediaBladeSub');
+    if (sub) {
+      sub.textContent = player.source === 'Music Release'
+        ? 'Custom Soundtrack — GitHub Release'
+        : 'Custom Soundtrack — встроенный плейлист';
+    }
   }
 
   /* ---------------------------------------------------------
@@ -793,6 +873,113 @@
     });
   }
 
+  /* ---------------------------------------------------------
+     СОСТОЯНИЕ И ПРОГРЕСС (для панели плеера)
+     --------------------------------------------------------- */
+
+  /** Статус воспроизведения: idle / loading / playing / paused / error. */
+  function setStatus(kind, text) {
+    player.status = kind || 'idle';
+    player.statusText = text || '';
+    updateDisplay();
+  }
+
+  /** Секунды -> «мм:сс» (часы добавляются только когда надо). */
+  function fmtTime(sec) {
+    if (!isFinite(sec) || sec < 0) return '0:00';
+    const s = Math.floor(sec % 60);
+    const m = Math.floor(sec / 60) % 60;
+    const h = Math.floor(sec / 3600);
+    const mm = (h ? String(m).padStart(2, '0') : String(m));
+    return (h ? h + ':' + mm : mm) + ':' + String(s).padStart(2, '0');
+  }
+
+  /**
+   * Полоса прогресса, прошедшее/общее время.
+   * Перемотка идёт по ССЫЛКЕ НА ФАЙЛ: у файлов релиза GitHub
+   * поддерживается Range (проверено: ответ 206), поэтому seek
+   * работает — браузер сам докачает нужный кусок.
+   */
+  function updateProgress() {
+    const node = player.audioEl;
+    const seek = el('mpSeek');
+    const curEl = el('mpTimeCurrent');
+    const totalEl = el('mpTimeTotal');
+    const dur = node && isFinite(node.duration) && node.duration > 0 ? node.duration : 0;
+    const pos = node && isFinite(node.currentTime) ? node.currentTime : 0;
+
+    if (curEl) curEl.textContent = fmtTime(pos);
+    if (totalEl) totalEl.textContent = dur ? fmtTime(dur) : '--:--';
+
+    if (seek) {
+      // Пока пользователь тянет ползунок — не перебиваем его руку.
+      if (seek.dataset.dragging !== '1') {
+        seek.value = String(dur ? Math.round(Math.min(1, pos / dur) * 1000) : 0);
+      }
+      seek.disabled = !dur;
+      seek.setAttribute('aria-valuetext',
+        fmtTime(pos) + (dur ? ' из ' + fmtTime(dur) : ' (длительность неизвестна)'));
+    }
+  }
+
+  /**
+   * Холст визуализатора по ширине панели.
+   * Атрибут width был фиксированным (370 px) — на узком экране
+   * холст растягивался CSS'ом и мылился, на широком — обрезался.
+   */
+  function sizeVisualizer() {
+    const canvas = el('mediaVisualizer');
+    if (!canvas) return;
+    const w = Math.max(120, Math.round(canvas.clientWidth || canvas.width || 300));
+    const h = 38;
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+  }
+
+  /**
+   * Управление плеером с клавиатуры.
+   * Пробел — play/pause, ←/→ — трек, ↑/↓ — громкость.
+   * Работает, пока открыта музыкальная шторка.
+   */
+  function bindPanelKeyboard() {
+    if (global.__bradyyKbBound) return;
+    global.__bradyyKbBound = true;
+    document.addEventListener('keydown', (e) => {
+      const panel = el('mediaBlade');
+      if (!panel || !panel.classList.contains('open')) return;
+      const t = e.target;
+      // На ползунках стрелки работают нативно — не перебиваем.
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return;
+      switch (e.code) {
+        case 'Space':
+        case 'KeyK':
+          e.preventDefault();
+          toggle(true);
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          next(true);
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          prev(true);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setVolume(Math.min(1, player.volume + 0.05), true);
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          setVolume(Math.max(0, player.volume - 0.05), true);
+          break;
+        default:
+          break;
+      }
+    });
+  }
+
   function updateDisplay() {
     const stationEl = el('mnpStation');
     const trackEl = el('mnpTrack');
@@ -806,14 +993,38 @@
       artistEl.textContent = `${artist} // SHUFFLE`;
     } else if (player.tracks.length) {
       trackEl.textContent = 'Готово к запуску';
-      artistEl.textContent = `${player.tracks.length} трек(ов) в папке // shuffle`;
+      artistEl.textContent = `${player.tracks.length} трек(ов) // shuffle`;
     } else {
       trackEl.textContent = 'Плейлист пуст';
       artistEl.textContent = 'BRADYYCARDIA // радио без источника';
     }
 
+    /* Статус: загрузка / ошибка / пауза / играет. */
+    const statusEl = el('mnpStatus');
+    if (statusEl) {
+      let txt = '';
+      if (player.status === 'loading') txt = 'ЗАГРУЗКА…';
+      else if (player.status === 'error') txt = player.statusText || 'ОШИБКА ЗАГРУЗКИ';
+      else if (player.status === 'paused') txt = 'ПАУЗА';
+      else if (player.status === 'playing') txt = 'ИГРАЕТ';
+      statusEl.textContent = txt;
+      statusEl.className = 'mnp-status' + (txt ? ' is-on' : '') +
+        (player.status === 'error' ? ' is-error' : '');
+    }
+
+    /* Кнопка play/pause показывает РЕАЛЬНОЕ состояние. */
+    const playBtn = el('mpPlayBtn');
+    if (playBtn) {
+      const playing = !!player.isPlaying;
+      playBtn.textContent = playing ? '|| ПАУЗА' : '▶ ПУСК';
+      playBtn.setAttribute('aria-pressed', playing ? 'true' : 'false');
+      playBtn.setAttribute('aria-label', playing ? 'Пауза' : 'Воспроизвести');
+    }
+
     const rows = document.querySelectorAll('.station-item-row');
     rows.forEach((row) => row.classList.toggle('active', row.dataset.stationId === STATION.id));
+
+    updateProgress();
   }
 
   function renderStations() {
@@ -983,6 +1194,7 @@
     if (active) {
       readTheme();
       visualGradient = null;
+      sizeVisualizer();
       startVisualizer();
     } else {
       stopVisualizer();
@@ -1006,6 +1218,22 @@
         slider.addEventListener('input', (e) => setVolume(Number(e.target.value) / 100, true));
       }
 
+      /* Перемотка трека: диапазон 0..1000 = 0..100% длительности. */
+      const seek = el('mpSeek');
+      if (seek) {
+        const applySeek = () => {
+          const node = player.audioEl;
+          if (!node || !isFinite(node.duration) || !node.duration) return;
+          node.currentTime = (Number(seek.value) / 1000) * node.duration;
+          updateProgress();
+        };
+        seek.addEventListener('input', applySeek);
+        seek.addEventListener('change', applySeek);
+        seek.addEventListener('pointerdown', () => { seek.dataset.dragging = '1'; });
+        seek.addEventListener('pointerup', () => { delete seek.dataset.dragging; });
+        seek.addEventListener('blur', () => { delete seek.dataset.dragging; });
+      }
+
       const playBtn = el('mpPlayBtn');
       if (playBtn) playBtn.addEventListener('click', () => toggle(true));
 
@@ -1014,6 +1242,14 @@
 
       const prevBtn = el('mpPrevBtn');
       if (prevBtn) prevBtn.addEventListener('click', () => prev(true));
+
+      bindPanelKeyboard();
+      sizeVisualizer();
+      let resizeTimer = 0;
+      global.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(sizeVisualizer, 200);
+      });
 
       renderStations();
       updateFolderStatus();
