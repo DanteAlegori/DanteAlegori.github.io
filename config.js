@@ -1,4 +1,11 @@
-
+/* ============================================================
+   XBOX 360 SYSTEM DASHBOARD — КОНФИГУРАЦИЯ ВИШЛИСТА
+   ---------------------------------------------------------
+   Сгенерировано мастерской NERO: 2026-11-10T18:57:34.503Z
+   Замените этот файл в папке проекта рядом с index.html.
+   Файл самодостаточен: данные встроены ниже, а отсутствующие
+   поля автоматически заполняются значениями по умолчанию.
+   ============================================================ */
 (function (global) {
   'use strict';
   var DEFAULTS = {
@@ -48,6 +55,7 @@
           "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794044407517",
           "title": "Кровать Шкаф",
           "category": "Дом",
           "price": 84000,
@@ -57,10 +65,10 @@
           "photoUrl": "https://ir.ozone.ru/s3/multimedia-k/w1200/6851117072.jpg",
           "shopUrl": "https://www.ozon.ru/category/shkafy-krovati-transformery/?abt_att=1&origin_referer=yandex.ru",
           "slogan": "А мне че на полу спать?",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794044407517"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794044742189",
           "title": "Холодильник",
           "category": "Техника",
           "price": 70000,
@@ -70,10 +78,10 @@
           "photoUrl": "https://cdn.vseinstrumenti.ru/images/goods/tovary-dlya-ofisa-i-doma/bytovaya-tehnika/21936746/1000x1000/210601616.jpg",
           "shopUrl": "https://www.dns-shop.ru/search/?q=холодильник&category=4e2a7cdb390b7fd7&price=50001-80000",
           "slogan": "ЕЕЕ продукты не испортятся)",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794044742189"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794045133486",
           "title": "Кухня",
           "category": "Дом",
           "price": 250000,
@@ -83,10 +91,10 @@
           "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-z/c1000/7674472799.jpg",
           "shopUrl": "https://www.ozon.ru/category/kuhnya-garnitur-gotovaya/",
           "slogan": "Кушать готовить будем)",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794045133486"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794046338971",
           "title": "Душевая кабина или Душевой уголок",
           "category": "Дом",
           "price": 25000,
@@ -96,10 +104,10 @@
           "photoUrl": "https://static.santehnika-online.ru/static/IZD8MygefiO6utA8URP5b3tbO6T88MXimRgmO0PcEjg/g:no/wm:1/aHR0cHM6Ly91cGxvYWQtaW1hZ2VzLndlYnNpdGUueWFuZGV4Y2xvdWQubmV0L3BpY3R1cmVzL2RhbS9zYW50b24vMTAyODI0MC8zY2VmZWIxNjNjMTVmY2NjYTEwZDIyMDJjOTBiM2U3Ny5qcGc.jpg",
           "shopUrl": "https://www.ozon.ru/product/dushevoy-ugolok-mario-100x100x190-sm-prozrachnoe-zakalennoe-steklo-4-mm-chernyy-profil-razdvizhnoy-5813746674/?at=1qGq1YrIDWCPowFNPq8TEuXgdFxgvcUa&sh=sY_pt-MYiw",
           "slogan": "МЫтся не вонять )",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794046338971"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794046618314",
           "title": "Проектор",
           "category": "Техника",
           "price": 50000,
@@ -109,10 +117,10 @@
           "photoUrl": "https://avatars.mds.yandex.net/get-mpic/13919929/2a00000195668cdb5147cf9abd3c063afb3c/orig",
           "shopUrl": "https://www.dns-shop.ru/catalog/17a8e3e116404e77/proektory/?ysclid=mw68zz5mji570546376&utm_medium=organic&utm_source=yandex&utm_referrer=https%3A%2F%2Fyandex.ru%2F",
           "slogan": "Лы красота )",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794046618314"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794046785644",
           "title": "Телевизор",
           "category": "Техника",
           "price": 100000,
@@ -122,10 +130,10 @@
           "photoUrl": "https://avatars.mds.yandex.net/get-mpic/1749547/img_id3970873790396909092.png/orig",
           "shopUrl": "https://www.dns-shop.ru/search/?q=телевизор&category=17a8ae4916404e77",
           "slogan": "В зале повешу буду сериалы смотреть",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794046785644"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794056632003",
           "title": "Vr шлем",
           "category": "Техника",
           "price": 73000,
@@ -135,10 +143,10 @@
           "photoUrl": "https://avatars.mds.yandex.net/get-mpic/11520282/2a0000018bfa59f8af82f9e8180d04d7991f/orig",
           "shopUrl": "https://www.dns-shop.ru/product/29001e0268b2ed20/sistema-virtualnoj-realnosti-meta-quest-3-belyj/",
           "slogan": "новые миры",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794056632003"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794062002581",
           "title": "Экран проектора",
           "category": "Техника",
           "price": 0,
@@ -148,10 +156,10 @@
           "photoUrl": "https://www.deloks.ru/upload/iblock/b1c/d3z12pw5cg3brhnhmyi10owph27rbx7i/ekran_classic_solution_crux_4_3_210_173_1_full.jpg",
           "shopUrl": "https://www.dns-shop.ru/catalog/17a88b3e16404e77/ekrany-dla-proektorov/?ysclid=mw6i4t5b8g303068747&utm_medium=organic&utm_source=yandex&utm_referrer=https%3A%2F%2Fyandex.ru%2F",
           "slogan": "Для проектора",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794062002581"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794082769531",
           "title": "Протекторы Dragon Shield Blood Red (100 шт., 63x88 мм)",
           "category": "Настолки",
           "price": 1500,
@@ -161,10 +169,10 @@
           "photoUrl": "https://hobbygames.ru/image/cache/hobbygames_beta/data/-new/arcane-tinmen/protektori/ds-matovie-standard/dragon-shield-blood-red/dragon-shield-blood-red-00-1000x416-wm.webp",
           "shopUrl": "https://hobbygames.ru/protektori-dragon-shield-blood-red-100-sht-63x88-mm",
           "slogan": "Надо",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794082769531"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794082849998",
           "title": "Берсерк: Приключения. Хигарт",
           "category": "Настолки",
           "price": 3500,
@@ -174,10 +182,10 @@
           "photoUrl": "https://hobbygames.ru/image/cache/hobbygames_beta/data/-new/hobby-world/berserk/prikljuchenija/higart/hg/00-1000x416-wm.webp",
           "shopUrl": "https://hobbygames.ru/berserk-prikljuchenija-higart",
           "slogan": "Секир-башка",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794082849998"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794082963462",
           "title": "Берсерк. Герои. Крах святынь: Дисплей бустеров",
           "category": "Настолки",
           "price": 4000,
@@ -187,10 +195,10 @@
           "photoUrl": "https://hobbygames.ru/image/cache/hobbygames_beta/data/-new/hobby-world/berserk/geroi/krah-svyatin/display-1000x416-wm.webp",
           "shopUrl": "https://hobbygames.ru/berserk-geroi-krah-svjatin-displej-busterov",
           "slogan": "Ради всего святого",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794082963462"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794083134506",
           "title": "StarCraft. Two Player Starter Set: Founders Edition",
           "category": "Настолки",
           "price": 28000,
@@ -200,10 +208,10 @@
           "photoUrl": "https://hobbygames.ru/image/cache/hobbygames_beta/data/-new/archone-studios/starcraft-tmg/two-player-starter-set-founders-edition/two-player-starter-set-00-1000x416-wm.webp",
           "shopUrl": "https://hobbygames.ru/starcraft-two-player-starter-set-founders-edition",
           "slogan": "",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794083134506"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794083309762",
           "title": "StarCraft. Protoss Starter Set: Founders Edition",
           "category": "Настолки",
           "price": 15000,
@@ -213,10 +221,10 @@
           "photoUrl": "https://hobbygames.ru/image/cache/hobbygames_beta/data/-new/archone-studios/starcraft-tmg/protoss-starter-set-founders-edition/protoss-starter-set-00-1000x416-wm.webp",
           "shopUrl": "https://hobbygames.ru/starcraft-protoss-starter-set-founders-edition",
           "slogan": "",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794083309762"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794083468354",
           "title": "Фигурка JoyToy. Warhammer 40,000: Dark Angels MkX Helmet & Display Stand",
           "category": "Всякая шняга",
           "price": 25000,
@@ -226,10 +234,10 @@
           "photoUrl": "https://hobbygames.ru/image/cache/hobbygames_beta/data/-new/joytoy/renders/2026/09/jt02762/00-1000x416-wm.webp",
           "shopUrl": "https://hobbygames.ru/figurka-joytoy-warhammer-40000-dark-angels-mkx-helmet-and-display-stand",
           "slogan": "",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794083468354"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794083632740",
           "title": "Heroes of Might and Magic III: The Board Game",
           "category": "Настолки",
           "price": 11000,
@@ -239,10 +247,10 @@
           "photoUrl": "https://hobbygames.ru/image/cache/hobbygames_beta/data/-new/archone-studios/heroes-of-might-and-magic-iii/her0001/00-1000x416-wm.webp",
           "shopUrl": "https://hobbygames.ru/heroes-of-might-and-magic-iii-the-board-game",
           "slogan": "У нас недостаточно маны",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794083632740"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794083731439",
           "title": "Ктулху: Смерть может умереть. Страх неведомого",
           "category": "Настолки",
           "price": 13000,
@@ -252,10 +260,10 @@
           "photoUrl": "https://hobbygames.ru/image/cache/hobbygames_beta/data/-new/hobby-world/ktulhu-smert-mozhet-umeret/strah-nevedomogo/hg/strah-nevedomogo-00-1000x416-wm.webp",
           "shopUrl": "https://hobbygames.ru/ktulhu-smert-mozhet-umeret-strah-nevedomogo",
           "slogan": "",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794083731439"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794083798284",
           "title": "Страдающее Средневековье",
           "category": "Настолки",
           "price": 2090,
@@ -265,10 +273,10 @@
           "photoUrl": "https://hobbygames.ru/image/cache/hobbygames_beta/data/-new/new-making-studio/stradayuchee-srednevekove/hg/stradayuchee-srednevekove-00-1000x416-wm.webp",
           "shopUrl": "https://hobbygames.ru/stradajushhee-srednevekove",
           "slogan": "",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794083798284"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794083878538",
           "title": "Серп",
           "category": "Настолки",
           "price": 10000,
@@ -278,10 +286,10 @@
           "photoUrl": "https://hobbygames.ru/image/cache/hobbygames_beta/data/CrowD_Games/Scythe/Serp_01-1000x416-wm.webp",
           "shopUrl": "https://hobbygames.ru/serp",
           "slogan": "",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794083878538"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794084023074",
           "title": "Свеча ароматическая \"Запах душных подземелий\"",
           "category": "Всякая шняга",
           "price": 800,
@@ -291,10 +299,10 @@
           "photoUrl": "https://hobbygames.ru/image/cache/hobbygames_beta/data/-new/hobby-games/svechi/aromaticheskije/zapah-dushnyh-podzemelij-01-1000x416-wm.webp",
           "shopUrl": "https://hobbygames.ru/svecha-aromaticheskaja-zapah-dushnih-podzemelij",
           "slogan": "",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794084023074"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794084211075",
           "title": "Кардкейс \"Алый плащ\"",
           "category": "Настолки",
           "price": 2000,
@@ -304,10 +312,10 @@
           "photoUrl": "https://hobbygames.ru/image/cache/hobbygames_beta/data/-new/chudesa-lesa/kardkejs-alyj-plashch/kardkejs-alyj-plashch-01-1000x416-wm.webp",
           "shopUrl": "https://hobbygames.ru/kardkejs-alij-plashh",
           "slogan": "",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794084211075"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794084642357",
           "title": "Wi-Fi-роутер ASUS RT-BE86U",
           "category": "Техника",
           "price": 32000,
@@ -317,10 +325,10 @@
           "photoUrl": "https://c.dns-shop.ru/thumb/st1/fit/500/500/28e39f6d8092b2f3e429ccda9a851960/64efa004cc112f13535afa17302d1516e222631fd802a47ed6a0c3e57e1bd394.jpg.webp",
           "shopUrl": "https://www.dns-shop.ru/product/12a437d9dea8d9cb/wi-fi-router-asus-rt-be86u/",
           "slogan": "Найдете лучше и дешевле валяйте",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794084642357"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794084747182",
           "title": "Кондиционер настенный мультисплит-система DEXP MS-CHD12/27KINV белый",
           "category": "Техника",
           "price": 60300,
@@ -330,10 +338,10 @@
           "photoUrl": "https://c.dns-shop.ru/thumb/st1/fit/500/500/72e99d5c49e00058589982a4639712ce/f98e810563ab5a5c210d3b76ac897643d106cbdcde6f8bebe589bd46deb1c8b8.jpg.webp",
           "shopUrl": "https://www.dns-shop.ru/product/361b8012b5cf1e7a/kondicioner-nastennyj-multisplit-sistema-dexp-ms-chd1227kinv-belyj/",
           "slogan": "",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794084747182"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794084868724",
           "title": "Оперативная память DDR5 UDIMM ADATA XPG Lancer Blade [AX5U6000C3032G-DTLABWH] 64 ГБ",
           "category": "Техника",
           "price": 135000,
@@ -343,10 +351,10 @@
           "photoUrl": "https://c.dns-shop.ru/thumb/st1/fit/500/500/58c034d6d05ba5e722ad7a7346020d73/cef6483b89b8a7df9444f5bae10f846460be6a4ee8275c3f62a58e4bc129f8c0.jpg.webp",
           "shopUrl": "https://www.dns-shop.ru/product/cb70528f97edd582/operativnaa-pamat-ddr5-udimm-adata-xpg-lancer-blade-ax5u6000c3032g-dtlabwh-64-gb/",
           "slogan": "НАДА МНЕ НУЖНО ПРОСТА НАДА",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794084868724"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794084991797",
           "title": "Внешняя звуковая карта Midiplus Studio M pro OTG",
           "category": "Техника",
           "price": 8000,
@@ -356,10 +364,10 @@
           "photoUrl": "https://c.dns-shop.ru/thumb/st1/fit/500/500/a57a7d0b125cff4ec32d6ccef08ba04e/783116bf3aacc890b2c211159917075d2ae4e4376e35884c63a65126843a1eea.jpg.webp",
           "shopUrl": "https://www.dns-shop.ru/product/940e41188f54ed20/vnesnaa-zvukovaa-karta-midiplus-studio-m-pro-otg/",
           "slogan": "",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794084991797"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794085148667",
           "title": "Руль Logitech G923 черный",
           "category": "Техника",
           "price": 33000,
@@ -369,10 +377,10 @@
           "photoUrl": "https://c.dns-shop.ru/thumb/st1/fit/500/500/e90e3bb0be7e9753a45c9117a9dd7e74/78d2010109ffd7b00502b7ac3db21cac950df445c432d2850f2213389e162808.jpg.webp",
           "shopUrl": "https://www.dns-shop.ru/product/eb2e3d72f3053332/rul-logitech-g923-cernyj/",
           "slogan": "",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794085148667"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794085254934",
           "title": "Пневматический пистолет Borner P08 Parabellum Blowback 4,5 мм металлический",
           "category": "Хобби",
           "price": 20000,
@@ -382,10 +390,10 @@
           "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-g/wc1000/9709004176.jpg",
           "shopUrl": "https://www.ozon.ru/product/pnevmaticheskiy-pistolet-borner-p08-parabellum-blowback-4-5-mm-metallicheskiy-2046797713/?at=1rmq1S2GwIKULqe7WvaZV5R3TrCGTTO8&is_apparel_size_selected=true&sh=sY_pt4bQrw",
           "slogan": "",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794085254934"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794085324785",
           "title": "Тестораскатка лапшерезка ручная",
           "category": "Кухня",
           "price": 3000,
@@ -395,10 +403,10 @@
           "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-m/wc1000/8091529798.jpg",
           "shopUrl": "https://www.ozon.ru/product/testoraskatka-lapsherezka-ruchnaya-mashinka-dlya-raskatki-testa-i-narezki-domashney-lapshi-638497250/?at=1rmq1SaOv48-Cd8Z2iGKtSf7OfureKxN&is_apparel_size_selected=true&sh=sY_pt4bQrw",
           "slogan": "",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794085324785"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794085401404",
           "title": "Шкаф для одежды распашной",
           "category": "Дом",
           "price": 40000,
@@ -408,10 +416,10 @@
           "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-6/wc1000/10891353534.jpg",
           "shopUrl": "https://www.ozon.ru/product/shkaf-dlya-odezhdy-raspashnoy-boho-puzzlemebel-76-sm-s-rotangovymi-dvertsami-4479568971/?at=1rmq1NQDrbosBkI3hrqhwqNvIXsg4vaw&is_apparel_size_selected=true&sh=sY_pt4bQrw",
           "slogan": "",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794085401404"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794085460679",
           "title": "Стеллаж металлический",
           "category": "Дом",
           "price": 7000,
@@ -421,10 +429,10 @@
           "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-s/wc1000/12637140148.jpg",
           "shopUrl": "https://www.ozon.ru/product/stellazh-metallicheskiy-5-polok-200x100x40-sm-tsvet-seryy-usilennyy-dlya-hraneniya-nagruzka-na-polku-3679379704/?at=1rmq1SAuoF5ckMIC0ZaWRNO4BtBFFZrR&is_apparel_size_selected=true&sh=sY_pt4bQrw",
           "slogan": "",
-          "bountyTag": "NEW TARGET",
-          "id": "target-1794085460679"
+          "bountyTag": "NEW TARGET"
         },
         {
+          "id": "target-1794085591939",
           "title": "Органайзер для карт",
           "category": "Настолки",
           "price": 2400,
@@ -434,8 +442,436 @@
           "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-6/wc1000/20611938930.jpg",
           "shopUrl": "https://www.ozon.ru/product/chehol-dlya-kart-igralny-3520622888/?at=1rmq1PXG8oQJRz0Rig0rKuD388rTYkwb&is_apparel_size_selected=true&sh=sY_pt5sy8w",
           "slogan": "",
+          "bountyTag": "NEW TARGET"
+        },
+        {
+          "title": "Castlevania: Belmont’s Curse",
+          "category": "Игры",
+          "price": 2500,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://avatars.mds.yandex.net/get-mpic/20442030/2a0000019eab2aafa204e995b29ed0cf66f2/orig",
+          "shopUrl": "https://playerok.com/products/c466567e00d2-predzakaz-castlevania-belmont-s-curse-midnight-ed-podarok-steam-kz?utm_source=yandex&utm_medium=cpc&utm_campaign=shop_feed_all%7C700550197&utm_content=gid%7C5592477330%7Caid%7C17615309115%7C205592477330_205592477330&utm_term=---autotargeting&pm_source=none&pm_block=premium&pm_position=1&etext=2202.2uay8bei9-eJOPVltjX8g4n_cPtaOiv_oBOLTvVIcCGtkJ8UgboEM7v05l0ITWpgZ2Nvenh3ZmJ1Z3JmZ2Nodg.7de18904bf6bf5bf65314ab5ac205f2739bd313c&yclid=1773727547521499135&ybaip=1",
+          "slogan": "Офигенная",
           "bountyTag": "NEW TARGET",
-          "id": "target-1794085591939"
+          "id": "target-1794335019060"
+        },
+        {
+          "title": "The Alters",
+          "category": "Игры",
+          "price": 2220,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://avatars.mds.yandex.net/get-mpic/3609127/2a000001977598f17d6e0606a5bc1362eee2/orig",
+          "shopUrl": "https://store.steampowered.com/app/1601570/The_Alters/",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794335097874"
+        },
+        {
+          "title": "TEVI",
+          "category": "Игры",
+          "price": 1200,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://avatars.mds.yandex.net/i?id=704653192b25e320a7caef9cbc359e8c_l-9147032-images-thumbs&n=13",
+          "shopUrl": "https://store.steampowered.com/app/2230650/TEVI/",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794335152687"
+        },
+        {
+          "title": "RetroSpace",
+          "category": "Игры",
+          "price": 900,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://avatars.mds.yandex.net/i?id=3204ecad6271d166f8c4be24e3e8e703_l-10851145-images-thumbs&n=13",
+          "shopUrl": "https://store.steampowered.com/app/2067820/RetroSpace/",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794335198991"
+        },
+        {
+          "title": "DreamWorks Shrek 2 Remastered",
+          "category": "Игры",
+          "price": 1500,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://avatars.mds.yandex.net/i?id=2ee7ac1a9d926369a29f1ad2604d56c5_l-5191337-images-thumbs&n=13",
+          "shopUrl": "https://store.steampowered.com/app/2523740/DreamWorks_Shrek_2_Remastered/",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794335245597"
+        },
+        {
+          "title": "Phantom Blade Zero",
+          "category": "Игры",
+          "price": 4000,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://cdn1.epicgames.com/spt-assets/c424b46a7aea429eba3f457097994ae2/phantom-blade-zero-iuqe3.jpg",
+          "shopUrl": "https://store.steampowered.com/app/4115450/Phantom_Blade_Zero/",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794335319781"
+        },
+        {
+          "title": "The First Berserker: Khazan",
+          "category": "Игры",
+          "price": 3600,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://avatars.mds.yandex.net/i?id=b34ab4a0fff3c849db34852416473919_l-4444221-images-thumbs&n=13",
+          "shopUrl": "https://store.steampowered.com/app/2680010/The_First_Berserker_Khazan/",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794335357318"
+        },
+        {
+          "title": "Valor Mortis",
+          "category": "Игры",
+          "price": 2100,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://avatars.mds.yandex.net/i?id=04a714bfd7df9cbfceeb8002a753cfac_l-13054092-images-thumbs&n=13",
+          "shopUrl": "https://store.steampowered.com/app/2828710/Valor_Mortis/",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794335423905"
+        },
+        {
+          "title": "Bloodstained: Ritual of the Night",
+          "category": "Игры",
+          "price": 2200,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://avatars.mds.yandex.net/i?id=55dd65cd38fb5a01f2457ac31bcdd8fc_l-5218867-images-thumbs&n=13",
+          "shopUrl": "https://store.steampowered.com/app/692850/Bloodstained_Ritual_of_the_Night/",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794335480064"
+        },
+        {
+          "title": "Thief: The Dark Project Remastered",
+          "category": "Игры",
+          "price": 1800,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ru2-files.vgtimes.ru/gallery/thumb/213230/8601139464_thief-the-dark-project-remastered-mbq5s.webp",
+          "shopUrl": "https://store.steampowered.com/app/4200960/Thief_The_Dark_Project_Remastered/",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794335530756"
+        },
+        {
+          "title": "Частный детектив МАУС",
+          "category": "Игры",
+          "price": 1500,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://avatars.mds.yandex.net/i?id=a12ecf4530cc18d3f6814ef46870496813dcef57-4401365-images-thumbs&n=13",
+          "shopUrl": "https://store.steampowered.com/app/2416450/%D0%A7%D0%B0%D1%81%D1%82%D0%BD%D1%8B%D0%B9_%D0%B4%D0%B5%D1%82%D0%B5%D0%BA%D1%82%D0%B8%D0%B2_%D0%9C%D0%90%D0%A3%D0%A1/",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794335614263"
+        },
+        {
+          "title": "Metal Wolf Chaos XD",
+          "category": "Игры",
+          "price": 900,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://avatars.mds.yandex.net/get-mpic/16727805/2a0000019e2cc94f71499a9b518c722bf02f/orig",
+          "shopUrl": "https://store.steampowered.com/app/820630/Metal_Wolf_Chaos_XD/",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794335672573"
+        },
+        {
+          "title": "Little Witch in the Woods",
+          "category": "Игры",
+          "price": 710,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://i.playground.ru/p/KeozXiGKDeOFs7onKGR5bA.jpeg?1200x675",
+          "shopUrl": "https://store.steampowered.com/app/1594940/Little_Witch_in_the_Woods/",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794335729910"
+        },
+        {
+          "title": "Winx Club - Moonlight Quest",
+          "category": "Игры",
+          "price": 3000,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://images.stopgame.ru/games/logos/68872/c560x560/oJQoN--V0PqL39xFBJnJug/winx_club_moonlight_quest-square.jpg",
+          "shopUrl": "https://store.steampowered.com/app/5189950/Winx_Club_Moonlight_Quest/",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794335925902"
+        },
+        {
+          "title": "Манга Блич (Bleach) | Кубо Тайто",
+          "category": "Библиотека",
+          "price": 1300,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-1/wc1000/7435812997.jpg",
+          "shopUrl": "https://www.ozon.ru/product/manga-blich-bleach-kubo-tayto-1994438052/?at=1vGq1Mp_ijbRTTmyvnE5mQs5J8B0N8Tc&sh=sY_ptxFpCQ",
+          "slogan": "Купите все серию мне",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794335998008"
+        },
+        {
+          "title": "One Piece",
+          "category": "Библиотека",
+          "price": 1500,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-p/wc1000/7657088137.jpg",
+          "shopUrl": "https://www.ozon.ru/product/one-piece-bolshoy-kush-kn-1-na-zare-priklyucheniy-oda-eyitiro-151604795/?at=1vGq1_MnkSQnm11tRik6l-Y_m2bOAKwc&sh=sY_ptxFpCQ",
+          "slogan": "Красиво хоть и забросил смотреть",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794336076106"
+        },
+        {
+          "title": "Поводок для собак",
+          "category": "Питомцы",
+          "price": 1800,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-t/wc1000/11677170881.jpg",
+          "shopUrl": "https://www.ozon.ru/product/povodok-dlya-sobak-ruletka-10m-xpaws-dlya-krupnyh-i-srednih-porod-do-50-kg-dlina-10-metrov-4719937084/?at=1vGq1V8Ca-vMvN63zGgT-Yv00Y86kcxP&sh=sY_ptxFpCQ",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794336143866"
+        },
+        {
+          "title": "Шлейка для собак",
+          "category": "Питомцы",
+          "price": 1300,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-5/wc1000/20554941137.jpg",
+          "shopUrl": "https://www.ozon.ru/product/shleyka-dlya-sobak-svetyashchayasya-anatomicheskaya-svetootrazhayushchaya-rozovyy-xl-5057613477/?at=1vGq1PGYAlduiWxfJnYg51TnI8F7ecJu&sh=sY_ptxFpCQ",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794336197024"
+        },
+        {
+          "title": "Магнит на холодильник с 9 дисками и индивидуальной песней_Linkin Park",
+          "category": "Хобби",
+          "price": 3300,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-s/wc1000/11387291212.jpg",
+          "shopUrl": "https://www.ozon.ru/product/magnit-na-holodilnik-s-9-diskami-i-individualnoy-pesney-linkin-park-4680310998/?at=1vGq1RsS_OovdRZY_nxn03bhYvjZeM7G&is_apparel_size_selected=true&sh=sY_ptxFpCQ",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794336247194"
+        },
+        {
+          "title": "Средневековые стальные латные перчатки",
+          "category": "Хобби",
+          "price": 5000,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-o/wc1000/9728356272.jpg",
+          "shopUrl": "https://www.ozon.ru/product/srednevekovye-stalnye-latnye-perchatki-40-64-sm-ruchnoy-kovki-s-latunnymi-vstavkami-3900725772/?at=1vGq1WiuDZ9wsT8-gdzxwcQUDobSq6Qu&is_apparel_size_selected=true&sh=sY_pt6ayCA",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794336277676"
+        },
+        {
+          "title": "Шлем крестоносца \"Сахарная Голова\"",
+          "category": "Хобби",
+          "price": 10000,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-i/wc1000/10637795826.jpg",
+          "shopUrl": "https://www.ozon.ru/product/shlem-krestonostsa-saharnaya-golova-4356063126/?oos_search=false&sh=sY_pt6ayCA",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794336321308"
+        },
+        {
+          "title": "Элегантная фехтовальная шпага",
+          "category": "Хобби",
+          "price": 6000,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-4/wc1000/20996558032.jpg",
+          "shopUrl": "https://www.ozon.ru/product/elegantnaya-fehtovalnaya-shpaga-iz-metalla-ne-zatochena-dlya-teatra-i-dekora-6246144923/?at=1vGq1MTe1gIxYnoWvgx4Chzzr5ZZwqwI&is_apparel_size_selected=true&sh=sY_pt6ayCA",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794336398937"
+        },
+        {
+          "title": "Чемодан-самокат",
+          "category": "Всякая шняга",
+          "price": 27000,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-j/wc1000/12397296115.jpg",
+          "shopUrl": "https://www.ozon.ru/product/chemodan-samokat-abs-plastik-57-sm-36-l-5027361112/?at=1vGq1Rip_VBOATiMgD6333m-nJVIatyB&is_apparel_size_selected=true&sh=sY_pt6ayCA",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794336458966"
+        },
+        {
+          "title": "Настенный светильник",
+          "category": "Всякая шняга",
+          "price": 4100,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-n/wc1000/6418474211.jpg",
+          "shopUrl": "https://www.ozon.ru/product/nastennyy-svetilnik-bez-tsokolya-722913111/?at=1vGq1UctZ20Izu-9_AjdnPmJUnmh2BSo&is_apparel_size_selected=true&sh=sY_pt6ayCA",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794336508744"
+        },
+        {
+          "title": "Бэтмен. Рыцарь Аркхема: Гамбит Загадочника | Ирвин Алекс",
+          "category": "Библиотека",
+          "price": 5500,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-p/wc1000/6011805325.jpg",
+          "shopUrl": "https://www.ozon.ru/product/betmen-rytsar-arkhema-gambit-zagadochnika-irvin-aleks-180520320/?oos_search=false&sh=sY_pt6ayCA",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794336560464"
+        },
+        {
+          "title": "Плед 160x130 см софт жаккардовый аниме светло-зеленый",
+          "category": "Всякая шняга",
+          "price": 2400,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-4/wc1000/7850926876.jpg",
+          "shopUrl": "https://www.ozon.ru/product/pled-160x130-sm-soft-zhakkardovyy-anime-svetlo-zelenyy-2725936791/?at=1vGq1-Vmr-Tf8BsoCTjUZi-vRNAY-XTe&is_apparel_size_selected=true&sh=sY_pt995aA",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794336607807"
+        },
+        {
+          "title": "Ключница настенная",
+          "category": "Дом",
+          "price": 1100,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-n/wc1000/7113895547.jpg",
+          "shopUrl": "https://www.ozon.ru/product/klyuchnitsa-nastennaya-s-brelkami-dlya-doma-v-prihozhuyu-1026377684/?at=1vGq1Ymiqtt4eUKhvhZ2_qDBhDZyG2bJ&is_apparel_size_selected=true&sh=sY_pt995aA",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794336667533"
+        },
+        {
+          "title": "Повербанк",
+          "category": "Техника",
+          "price": 3500,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-h/wc1000/12690657773.jpg",
+          "shopUrl": "https://www.ozon.ru/product/emkost-batarei-10000mah-magnitnaya-besprovodnaya-zaryadka-15w-bystryy-provod-22-5-w-retro-3351871811/?at=1vGq1_JQNVJMNpwCTkKbm9xVeDZ5MS8U&is_apparel_size_selected=true&sh=sY_pt995aA",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794336709566"
+        },
+        {
+          "title": "Сумка на плечо",
+          "category": "Всякая шняга",
+          "price": 8900,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-5/wc1000/14005695425.jpg",
+          "shopUrl": "https://www.ozon.ru/product/sumka-na-plecho-5507032308/?at=1vGq1Y2penpvABTTsX4lpntDZFOR4N4-&sh=sY_pt995aA",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794336750017"
+        },
+        {
+          "title": "Комплект клавиатура, мышь",
+          "category": "Техника",
+          "price": 13000,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-l/wc1000/7540282137.jpg",
+          "shopUrl": "https://www.ozon.ru/product/komplekt-klaviatura-mysh-sirenevyy-svetlo-zheltyy-2131340614/?at=1vGq1YmhJ1GoqRBsF9z9uGjfafd-baoF&is_apparel_size_selected=true&sh=sY_pt995aA",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794336807363"
+        },
+        {
+          "title": "Робот пылесос",
+          "category": "Техника",
+          "price": 43000,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-7/wc1000/7996364647.jpg",
+          "shopUrl": "https://www.ozon.ru/product/robot-pylesos-s-vlazhnoy-i-suhoy-uborkoy-3i-home-p10u-2089380827/?at=1vGq1Tzj0pxeRxedTOo3nmMuZaRQYpR0&is_apparel_size_selected=true&sh=sY_pt995aA",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794336866622"
+        },
+        {
+          "title": "Протекторы матовые Dragon Shield",
+          "category": "Настолки",
+          "price": 1600,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-d/wc1000/7096774801.jpg",
+          "shopUrl": "https://www.ozon.ru/product/protektory-matovye-dragon-shield-anniversary-25th-special-edition-matte-dual-sleeves-standard-size-1653691192/?at=1vGq1YpC2K-E28VbeeIb6ZTgW4N7yaFx&is_apparel_size_selected=true&sh=sY_pt7AR5Q",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794336907831"
+        },
+        {
+          "title": "Протекторы для карт Dragon Shield матовые",
+          "category": "Настолки",
+          "price": 1600,
+          "collected": 0,
+          "heatLevel": 4,
+          "status": "wanted",
+          "photoUrl": "https://ir.ozone.ru/s3/multimedia-1-n/wc1000/9060526031.jpg",
+          "shopUrl": "https://www.ozon.ru/product/protektory-dlya-kart-dragon-shield-matovye-prozrachnye-100-sht-243976711/?at=1vGq1PNKe1jESIte7PHpIUK_7qSkkigw&is_apparel_size_selected=true&sh=sY_pt7AR5Q",
+          "slogan": "",
+          "bountyTag": "NEW TARGET",
+          "id": "target-1794336939334"
         }
       ]
     };
@@ -475,5 +911,5 @@
 
   /* Метка времени: витрина сравнивает её с сохранённой в
      LocalStorage правкой из мастерской. */
-  global.WISHLIST_CONFIG_META = { generated: 1794087201601 };
+  global.WISHLIST_CONFIG_META = { generated: 1794337054503 };
 })(window);
